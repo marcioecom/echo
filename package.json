@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "db:generate": "pnpm --filter @workspace/db db:generate",
+    "db:migrate": "pnpm --filter @workspace/db db:migrate",
+    "db:studio": "pnpm --filter @workspace/db db:studio",
     "dev": "turbo dev",
     "infra:down": "docker compose down",
     "infra:up": "docker compose up -d --wait",

@@ -1,0 +1,46 @@
+{
+  "name": "@workspace/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "development": "./src/schema/index.ts",
+      "types": "./src/schema/index.ts",
+      "default": "./dist/schema/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "db:generate": "NODE_OPTIONS=--conditions=development dotenv -e ../../apps/api/.env -- drizzle-kit generate",
+    "db:migrate": "dotenv -e ../../apps/api/.env -- tsx --conditions=development src/migrate.ts",
+    "db:studio": "NODE_OPTIONS=--conditions=development dotenv -e ../../apps/api/.env -- drizzle-kit studio",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src --exclude **/*.integration.test.ts --passWithNoTests",
+    "test:integration": "vitest run src/schema/support.integration.test.ts"
+  },
+  "dependencies": {
+    "@workspace/domain": "workspace:*",
+    "drizzle-orm": "^0.45.0",
+    "pg": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.0.0",
+    "@testcontainers/postgresql": "^11.0.0",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9.0.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5",
+    "vitest": "^4.0.0"
+  }
+}
