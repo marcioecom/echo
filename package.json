@@ -3,10 +3,18 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
+    "auth:schema:generate": "pnpm --filter @workspace/api auth:schema:generate",
     "build": "turbo build",
+    "db:generate": "pnpm --filter @workspace/db db:generate",
+    "db:migrate": "pnpm --filter @workspace/db db:migrate",
+    "db:studio": "pnpm --filter @workspace/db db:studio",
     "dev": "turbo dev",
+    "infra:down": "docker compose down",
+    "infra:up": "docker compose up -d --wait",
     "lint": "turbo lint",
     "format": "turbo format",
+    "test": "turbo test",
+    "test:integration": "turbo test:integration",
     "typecheck": "turbo typecheck"
   },
   "devDependencies": {

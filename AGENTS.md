@@ -38,7 +38,7 @@ If sources conflict, use this precedence order:
 
 ## Code Organization
 
-- Prefer `src/modules/<feature>` for feature slices across apps.
+- Prefer `modules/<feature>` in `apps/web` and `src/modules/<feature>` in `apps/api` and `apps/worker`.
 - Keep `app/` route files thin.
 - Share code through `packages/*` only when at least two apps truly need it.
 - Never import source code directly from one app into another app.

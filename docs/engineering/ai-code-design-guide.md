@@ -133,7 +133,7 @@ The exact package list can evolve. The important rule is that `apps/web`, `apps/
 ## Global Architectural Rules
 
 - Use `pnpm` for installs, dev commands, linting, and tests.
-- Prefer `src/modules/<feature>` as the standard domain-slice folder across apps.
+- Prefer `modules/<feature>` in `apps/web` and `src/modules/<feature>` in `apps/api` and `apps/worker`.
 - Never import source code directly from one app into another app.
 - Share stable code through `packages/*` only.
 - Keep provider-specific code at the edges.
@@ -154,7 +154,7 @@ If a module does not need every subfolder listed below, omit the unused ones. Ke
 
 ## Web Structure
 
-Keep `apps/web/src/app/**` thin.
+Keep `apps/web/app/**` thin.
 
 Route files should mainly do:
 
@@ -163,14 +163,15 @@ Route files should mainly do:
 - server-side data loading or prefetch
 - rendering of a module-owned view
 
-Real feature code should live in `apps/web/src/modules/<feature>`.
+Real feature code should live in `apps/web/modules/<feature>`.
 
 Recommended shape:
 
 ```text
-apps/web/src/
+apps/web/
   app/
   components/
+  hooks/
   lib/
   modules/
     inbox/
@@ -185,11 +186,11 @@ apps/web/src/
 
 Rules:
 
-- `src/components` is for cross-feature UI building blocks, not feature-specific screens.
-- `src/lib` is for small app-wide adapters or helpers, not business rules.
-- `src/modules/<feature>/server` may contain param loaders, prefetchers, or API-client composition for that feature.
-- `src/modules/<feature>/ui/views` should hold page-sized views.
-- `src/modules/<feature>/ui/components` should hold smaller feature-owned UI pieces.
+- `components` is for cross-feature UI building blocks, not feature-specific screens.
+- `lib` is for small app-wide adapters or helpers, not business rules.
+- `modules/<feature>/server` may contain param loaders, prefetchers, or API-client composition for that feature.
+- `modules/<feature>/ui/views` should hold page-sized views.
+- `modules/<feature>/ui/components` should hold smaller feature-owned UI pieces.
 
 ## API Structure
 
@@ -452,7 +453,7 @@ Good placement:
 - `apps/api/src/modules/messages/domain/resolve-active-conversation.ts`
 - `apps/api/src/modules/channel-connections/http/twilio-webhook-handler.ts`
 - `apps/worker/src/modules/support-conversations/orchestration/run-ai-reply.ts`
-- `apps/web/src/modules/inbox/ui/views/conversation-id-view.tsx`
+- `apps/web/modules/inbox/ui/views/conversation-id-view.tsx`
 
 Bad placement:
 
