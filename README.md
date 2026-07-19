@@ -1,21 +1,82 @@
-# shadcn/ui monorepo template
+# Echo
 
-This is a Next.js monorepo template with shadcn/ui.
+Echo is a tenant-aware, WhatsApp-first support platform. The monorepo contains:
 
-## Adding components
+- `apps/web`: Next.js operator interface
+- `apps/api`: Fastify API and future Better Auth host
+- `apps/worker`: background processing runtime
+- `packages/domain`: shared domain contracts and ULID generation
+- `packages/db`: Drizzle schema, migrations, and Postgres client
+- `packages/config`: shared server environment validation
 
-To add components to your app, run the following command at the root of your `web` app:
+## Prerequisites
+
+- Node.js 20 or newer
+- pnpm 10.33.4
+- Docker with Compose
+
+## Local setup
 
 ```bash
-pnpm dlx shadcn@latest add button -c apps/web
+pnpm install
+cp apps/api/.env.example apps/api/.env
+cp apps/worker/.env.example apps/worker/.env
+pnpm infra:up
+pnpm db:migrate
+pnpm dev
 ```
 
-This will place the ui components in the `packages/ui/src/components` directory.
+The local services use these addresses:
 
-## Using components
+| Service | Address |
+| --- | --- |
+| Web | http://localhost:3000 |
+| API | http://localhost:3001 |
+| Worker health | http://localhost:3002 |
+| Postgres | localhost:5432 |
+| Redis | localhost:6379 |
 
-To use the components in your app, import them from the `ui` package.
+## Verify connectivity
 
-```tsx
-import { Button } from "@workspace/ui/components/button";
+Both server runtimes fail during startup if Postgres or Redis is unavailable. Once `pnpm dev` is running, verify their probes:
+
+```bash
+curl --fail http://localhost:3001/health/live
+curl --fail http://localhost:3001/health/ready
+curl --fail http://localhost:3002/health/live
+curl --fail http://localhost:3002/health/ready
+```
+
+Readiness returns HTTP 503 when either dependency is unavailable. Responses expose only sanitized dependency states.
+
+## Database workflow
+
+The Better Auth schema is generated from the API-owned auth configuration. Domain tables are maintained separately in `packages/db/src/schema/support.ts`.
+
+```bash
+pnpm auth:schema:generate
+pnpm db:generate
+pnpm db:migrate
+pnpm db:studio
+```
+
+Commit generated SQL migrations. Do not use `drizzle-kit push` as the normal schema workflow.
+Database commands load `apps/api/.env`, the app-local environment owned by the API. The same commands can be run from `packages/db` as `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:studio`.
+
+## Quality checks
+
+```bash
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm test:integration
+pnpm build
+```
+
+Integration tests start isolated Postgres and Redis containers and do not modify the local development database.
+
+## Stop local infrastructure
+
+```bash
+pnpm infra:down
 ```

@@ -196,7 +196,7 @@ A Channel-specific address for a Contact.
 
 ### SupportConversation
 
-The durable support thread tracked by operators.
+The durable support thread tracked by operators between one ChannelIdentity and one ChannelConnection. Contact through a different ChannelConnection forms a separate thread, even when the ChannelIdentity is the same.
 
 Suggested state machine:
 
@@ -245,7 +245,7 @@ Immutable trail for important system events.
 3. The payload is normalized into internal message structures.
 4. The system resolves the Organization from the WhatsApp ChannelConnection.
 5. The system resolves or creates the Contact and ChannelIdentity.
-6. The system resolves an eligible open Conversation or creates a new one.
+6. The system resolves the active Conversation for the ChannelIdentity and ChannelConnection pair or creates a new one. A resolved Conversation is never reopened by a new inbound Message.
 7. The inbound Message is persisted before any AI action starts.
 8. A worker job is published.
 9. `apps/worker` evaluates whether the Conversation is AI-eligible.
@@ -290,6 +290,9 @@ If the AI pipeline fails, the safe fallback is `human_required`.
 - every tenant-scoped record must carry an Organization boundary.
 - membership checks gate access to Organizations and their Support Conversations.
 - the worker runs with internal credentials and bypasses browser-facing auth, but still operates on tenant-scoped records.
+- Organizations are archived rather than physically deleted through normal product flows.
+- tenant-owned support data must not be cascade-deleted when an Organization is archived.
+- any future permanent purge requires a separate, explicit retention policy and workflow.
 
 ## Operator Roles
 
@@ -357,7 +360,10 @@ Operators reply from the Support Inbox only.
 ## Concurrency Rules
 
 - active Conversation states are `open`, `ai_active`, and `human_required`
-- only one active Conversation should exist per `Organization + ChannelIdentity + policy window` unless a future policy explicitly allows otherwise
+- only one active Conversation should exist per `Organization + ChannelIdentity + ChannelConnection`
+- while that Conversation is active, new inbound Messages join it regardless of elapsed time
+- after that Conversation is resolved, a new inbound Message creates a new Conversation rather than reopening the resolved one
+- the WhatsApp customer care window controls outbound eligibility, not Conversation identity
 - the system must prevent AI and operator replies from double-sending concurrently on the same Conversation
 - when a Conversation enters `human_required`, AI auto-reply eligibility is removed until the state changes explicitly
 
