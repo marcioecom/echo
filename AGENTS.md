@@ -40,6 +40,8 @@ If sources conflict, use this precedence order:
 
 - Prefer `modules/<feature>` in `apps/web` and `src/modules/<feature>` in `apps/api` and `apps/worker`.
 - Keep `app/` route files thin.
+- In `apps/web`, keep `modules/<feature>/ui` presentational; business logic, queries, mutations, and form state live in `modules/<feature>/hooks`.
+- Auth-related calls go through the Better Auth `authClient`; other backend calls use react-query inside module hooks.
 - Share code through `packages/*` only when at least two apps truly need it.
 - Never import source code directly from one app into another app.
 - Keep provider-specific code at the edges.
