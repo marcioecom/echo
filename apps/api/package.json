@@ -4,24 +4,28 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "auth:schema:generate": "NODE_OPTIONS=--conditions=development auth generate --config src/modules/auth/auth-schema-config.ts --output ../../packages/db/src/schema/auth.ts --yes",
+    "auth:schema:generate": "NODE_OPTIONS='--conditions=development --env-file=.env' auth generate --config src/modules/auth/auth-cli-config.ts --output ../../packages/db/src/schema/auth.ts --yes",
     "build": "tsup",
-    "dev": "tsx watch --conditions=development --env-file=.env src/index.ts",
+    "dev": "tsx watch --conditions=development --env-file=.env src/main.ts",
     "lint": "eslint . --max-warnings 0",
-    "start": "node dist/index.js",
+    "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src --exclude **/*.integration.test.ts",
-    "test:integration": "vitest run src/app.integration.test.ts"
+    "test:integration": "vitest run integration.test"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.0.0",
+    "@fastify/cors": "^11.0.0",
+    "@workspace/auth": "workspace:*",
     "@workspace/config": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/domain": "workspace:*",
     "better-auth": "^1.0.0",
+    "bullmq": "^5.0.0",
     "drizzle-orm": "^0.45.2",
     "fastify": "^5.0.0",
     "ioredis": "^5.0.0",
+    "pino": "^9.0.0",
     "pino-pretty": "^13.0.0",
     "zod": "^4.0.0"
   },

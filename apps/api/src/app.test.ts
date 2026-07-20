@@ -11,6 +11,9 @@ const env: ApiEnv = {
   API_PORT: 3001,
   NODE_ENV: "test",
   LOG_LEVEL: "silent",
+  BETTER_AUTH_SECRET: "test-secret",
+  BETTER_AUTH_URL: "http://localhost:3001",
+  WEB_APP_URL: "http://localhost:3000",
 }
 
 describe("API health", () => {
