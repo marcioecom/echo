@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { BrandLogo } from "@/components/brand-logo"
 import { requireWorkspace } from "@/modules/auth/server/session"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
 
@@ -14,9 +15,11 @@ export default async function AppLayout({
     <div className="flex min-h-svh flex-col">
       <header className="flex items-center justify-between border-b px-6 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-sm font-semibold">
-            Echo
-          </Link>
+          <BrandLogo
+            variant="compact"
+            className="rounded-xl"
+            imageClassName="h-7 w-auto"
+          />
           <span className="text-sm text-muted-foreground">
             {workspace.organization.name}
           </span>

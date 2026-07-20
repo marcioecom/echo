@@ -20,5 +20,3 @@ export const organizationRoles = { owner, admin, operator } as const
 
 export const organizationRoleNames = ["owner", "admin", "operator"] as const
 export type OrganizationRole = (typeof organizationRoleNames)[number]
-
-// TODO: deixar o auth.ts e auth-client.ts aqui?
