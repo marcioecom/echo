@@ -11,6 +11,8 @@ const env: WorkerEnv = {
   WORKER_PORT: 3002,
   NODE_ENV: "test",
   LOG_LEVEL: "silent",
+  RESEND_API_KEY: "re_test",
+  EMAIL_FROM: "Echo <test@echo.dev>",
 }
 
 describe("worker health", () => {

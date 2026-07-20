@@ -3,9 +3,9 @@ import { createDatabase } from "@workspace/db"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
+import { createApp } from "./app"
 import type { WorkerEnv } from "./config/env"
 import { createRedis } from "./lib/redis"
-import { createApp } from "./app"
 
 describe("worker readiness with real dependencies", () => {
   const postgresContainer = new PostgreSqlContainer("postgres:17-alpine")
@@ -51,6 +51,8 @@ describe("worker readiness with real dependencies", () => {
       DEPENDENCY_TIMEOUT_MS: 10_000,
       WORKER_HOST: "127.0.0.1",
       WORKER_PORT: 3002,
+      RESEND_API_KEY: "re_test",
+      EMAIL_FROM: "Echo <test@echo.dev>",
       NODE_ENV: "test",
       LOG_LEVEL: "silent",
     }
