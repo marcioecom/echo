@@ -1,26 +1,24 @@
+import { getSessionCookie } from "better-auth/cookies"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 
 const publicPrefixes = ["/login", "/sign-up"]
-const sessionCookieName = "better-auth.session_token"
 
 export function proxy(request: NextRequest) {
-  const hasSessionCookie = request.cookies.has(sessionCookieName)
+  const sessionCookie = getSessionCookie(request)
+  const { pathname } = request.nextUrl
   const isPublicRoute = publicPrefixes.some((prefix) =>
-    request.nextUrl.pathname.startsWith(prefix),
+    pathname.startsWith(prefix),
   )
 
-  if (!hasSessionCookie && !isPublicRoute) {
+  if (!sessionCookie && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url)
-    if (request.nextUrl.pathname !== "/") {
-      loginUrl.searchParams.set("redirect", request.nextUrl.pathname)
+    if (pathname !== "/") {
+      loginUrl.searchParams.set("redirect", pathname)
     }
     return NextResponse.redirect(loginUrl)
   }
 
-  // Authenticated visitors on public routes are redirected by the pages
-  // themselves after a real session check, so a stale cookie cannot cause a
-  // redirect loop between proxy and app shell.
   return NextResponse.next()
 }
 

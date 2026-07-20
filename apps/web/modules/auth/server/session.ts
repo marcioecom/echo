@@ -1,10 +1,8 @@
-import { cookies, headers } from "next/headers"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { cache } from "react"
 
 import { authClient } from "@/lib/auth-client"
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
 
 export interface Workspace {
   user: {
@@ -39,18 +37,34 @@ export const getSession = cache(async () => {
 })
 
 export const getWorkspace = cache(async (): Promise<Workspace | null> => {
-  const cookieStore = await cookies()
-  const cookie = cookieStore.toString()
-  if (!cookie) return null
-  try {
-    const response = await fetch(`${apiUrl}/v1/me`, {
-      headers: { cookie },
-      cache: "no-store",
+  const session = await getSession()
+  if (!session) return null
+
+  const { data: organization, error } =
+    await authClient.organization.getFullOrganization({
+      fetchOptions: {
+        headers: await headers(),
+      },
     })
-    if (!response.ok) return null
-    return (await response.json()) as Workspace
-  } catch {
-    return null
+  if (error || !organization) return null
+
+  const member = organization.members.find(
+    (entry) => entry.userId === session.user.id,
+  )
+  if (!member) return null
+
+  return {
+    user: {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+    },
+    organization: {
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+    },
+    role: member.role,
   }
 })
 
