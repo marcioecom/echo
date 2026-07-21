@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { ulidSchema } from "./ids"
+import { ulidSchema } from "@workspace/domain"
 
 export const emailQueueName = "email"
 

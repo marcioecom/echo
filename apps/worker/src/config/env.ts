@@ -1,5 +1,5 @@
-import { loadEnv, serverEnvSchema } from "@workspace/config"
-import { z } from "zod"
+import { loadEnv, serverEnvSchema } from "@workspace/config";
+import { z } from "zod";
 
 const workerEnvSchema = serverEnvSchema.extend({
   WORKER_HOST: z.string().default("0.0.0.0"),
@@ -10,6 +10,4 @@ const workerEnvSchema = serverEnvSchema.extend({
 
 export type WorkerEnv = z.output<typeof workerEnvSchema>
 
-export function loadWorkerEnv(): WorkerEnv {
-  return loadEnv(workerEnvSchema)
-}
+export const env = loadEnv(workerEnvSchema);
