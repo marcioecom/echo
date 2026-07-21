@@ -24,6 +24,6 @@ export interface QueueConfig {
   /** Optional custom event handlers */
   eventHandlers?: {
     onCompleted?: (job: { name: string; id?: string }) => void
-    onFailed?: (job: Job | null, err: Error) => void | Promise<void>
+    onFailed?: (job: Job | undefined, err: Error) => void | Promise<void>
   }
 }

@@ -1,21 +1,12 @@
 import Fastify from "fastify"
-import { env } from "./config/env"
 import { db } from "./lib/db"
 import { redisConnection } from "./lib/redis"
+import { createLoggerWithContext } from "@workspace/logger"
 
 export function createApp() {
+  const logger = createLoggerWithContext("worker:api")
   const app = Fastify({
-    logger: {
-      level: env.LOG_LEVEL,
-      base: {
-        service: "worker",
-        environment: env.NODE_ENV,
-      },
-      transport:
-        env.NODE_ENV === "development"
-          ? { target: "pino-pretty", options: { colorize: true } }
-          : undefined,
-    },
+    loggerInstance: logger,
   })
 
   app.get("/health/live", async () => ({ status: "ok" }))
