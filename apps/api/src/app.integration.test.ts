@@ -6,9 +6,9 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
+import { createApp } from "./app"
 import type { ApiEnv } from "./config/env"
 import { createRedis } from "./lib/redis"
-import { createApp } from "./app"
 
 describe("API readiness with real dependencies", () => {
   const postgresContainer = new PostgreSqlContainer("postgres:17-alpine")
@@ -59,6 +59,9 @@ describe("API readiness with real dependencies", () => {
       API_PORT: 3001,
       NODE_ENV: "test",
       LOG_LEVEL: "silent",
+      BETTER_AUTH_SECRET: "test-secret",
+      BETTER_AUTH_URL: "http://localhost:3001",
+      WEB_APP_URL: "http://localhost:3000",
     }
     const app = createApp(env, {
       postgres: () => database.check(),

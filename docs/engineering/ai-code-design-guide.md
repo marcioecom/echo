@@ -189,8 +189,10 @@ Rules:
 - `components` is for cross-feature UI building blocks, not feature-specific screens.
 - `lib` is for small app-wide adapters or helpers, not business rules.
 - `modules/<feature>/server` may contain param loaders, prefetchers, or API-client composition for that feature.
+- `modules/<feature>/hooks` owns the feature's client-side business logic: react-query queries and mutations, form state (`react-hook-form` + `zod`), and calls to `authClient` or the backend API.
 - `modules/<feature>/ui/views` should hold page-sized views.
 - `modules/<feature>/ui/components` should hold smaller feature-owned UI pieces.
+- Code under `modules/<feature>/ui` stays presentational. It consumes hooks and renders; it does not own fetch, query, mutation, or submit logic.
 
 ## API Structure
 
@@ -345,6 +347,18 @@ Apply them this way in Echo:
 - loading, empty, error, and happy paths should be explicit for operator-facing screens
 - feature-owned server helpers may parse params or prepare API-backed data for the page
 - cross-feature UI stays in `src/components`, while inbox-specific pieces stay inside the inbox module
+
+#### Auth And Data Fetching
+
+Echo splits auth across two runtimes: `apps/api` owns the Better Auth server, `apps/web` owns the UI. The reference repos co-locate both in one Next.js runtime, so their patterns are adapted as follows:
+
+- All auth-domain calls (session, sign-in, sign-up, sign-out, organization, invitations) go through `authClient` from `@/lib/auth-client`, which points at `apps/api`. Never hand-roll `fetch` calls to `/api/auth/*`.
+- Client components act through `authClient` methods and read auth state through its hooks (for example `authClient.useSession()`).
+- Server components read session and workspace through the helpers in `modules/auth/server/session.ts` (`getSession`, `requireUser`, `getWorkspace`, `requireWorkspace`). These helpers call `authClient` with the incoming request headers forwarded, never raw HTTP.
+- Better Auth built-ins are the source of truth for auth state. Do not create custom aggregation endpoints such as `/v1/me`; compose `getSession` with `organization.getFullOrganization` instead.
+- Backend API calls outside the auth domain use `@tanstack/react-query` (`useQuery`/`useMutation`) inside `modules/<feature>/hooks`. `authClient` calls may also be wrapped in react-query when the UI needs loading, error, or invalidation handling.
+- Forms use `react-hook-form` + `zod` with `@workspace/ui/components/form`. The form definition (schema, `useForm`, submit handler) lives in `modules/<feature>/hooks/use-*-form.ts`; the view only renders it.
+- `apps/web/proxy.ts` is only an optimistic gate using `getSessionCookie` from `better-auth/cookies`. Authoritative auth and membership checks stay in server components and layouts.
 
 ### `apps/api`
 

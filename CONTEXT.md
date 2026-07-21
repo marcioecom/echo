@@ -4,9 +4,41 @@ This context covers a B2B customer support platform that uses AI to handle inbou
 
 ## Language
 
+### Identity and Access
+
 **Organization**:
 A B2B customer whose data and support operations form an isolated tenant boundary in the platform.
 _Avoid_: Account, workspace, customer tenant
+
+**User**:
+An internal person who authenticates into the platform to run an Organization's support operations. A User is never the supported person; supported people are Contacts.
+_Avoid_: Account, staff, admin user
+
+**Membership**:
+The link between a User and an Organization that carries the User's Role within that Organization. A User can hold Memberships in multiple Organizations.
+_Avoid_: Seat, subscription
+
+**Role**:
+The level of authority a Membership carries inside an Organization. The Roles are Owner, Admin, and Operator.
+_Avoid_: Permission set, scope
+
+**Owner**:
+The Role with full control over an Organization, including archiving it and managing every Membership. The User who creates an Organization becomes its first Owner.
+_Avoid_: Super admin, root
+
+**Admin**:
+The Role that can manage an Organization's configuration, Memberships, and Invitations, but cannot archive the Organization or manage Owners.
+_Avoid_: Manager, moderator
+
+**Operator**:
+The Role that works in the Support Inbox without authority to manage the Organization, its Memberships, or its Invitations.
+_Avoid_: Member, agent, seat
+
+**Invitation**:
+A pending offer for a person to join an Organization with a given Role. Accepting an Invitation creates a Membership, and it is the only way to join an existing Organization.
+_Avoid_: Invite link, join request
+
+### Channels and Contacts
 
 **Channel**:
 A customer-facing entry point that can originate or carry a support conversation. Examples include WhatsApp and the embedded widget.
@@ -23,6 +55,8 @@ _Avoid_: Channel, Twilio account, integration
 **Embedded Widget**:
 A web Channel delivered inside the customer's site. It is a future or secondary Channel for this project, not the initial Primary Channel.
 _Avoid_: Chatbox, iframe app
+
+### Support Operations
 
 **Support Conversation**:
 A customer support interaction about a question, issue, or request for help between one Channel Identity and one Channel Connection. Contact through a different Channel Connection forms a separate Support Conversation, even when the Channel Identity is the same. New interactions join the active Support Conversation for that pair; after it is resolved, a new interaction starts a new Support Conversation. In this project, Support Conversations exclude sales qualification and outbound campaigns.
@@ -69,3 +103,15 @@ Domain Expert: No. The Support Inbox in this product is the official workspace f
 Dev: If the same person returns on another day or another Channel, do we treat them as new?
 
 Domain Expert: No. We model a persistent Contact that can carry multiple Channel Identities across time.
+
+Dev: Is the person answering conversations also a Contact?
+
+Domain Expert: No. That person is a User, internal to the platform. Contacts are the people being supported.
+
+Dev: How does a User get access to an Organization?
+
+Domain Expert: Through a Membership. The User who creates the Organization becomes its Owner; everyone else joins by accepting an Invitation.
+
+Dev: So invited Users can manage the Organization too?
+
+Domain Expert: Only if their Role is Owner or Admin. An Operator works in the Support Inbox but cannot manage the Organization or its Memberships.
