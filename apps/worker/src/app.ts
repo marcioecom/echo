@@ -1,16 +1,9 @@
 import Fastify from "fastify"
+import { env } from "./config/env"
+import { db } from "./lib/db"
+import { redisConnection } from "./lib/redis"
 
-import type { WorkerEnv } from "./config/env"
-
-export interface WorkerHealthDependencies {
-  postgres: () => Promise<void>
-  redis: () => Promise<void>
-}
-
-export function createApp(
-  env: WorkerEnv,
-  dependencies: WorkerHealthDependencies,
-) {
+export function createApp() {
   const app = Fastify({
     logger: {
       level: env.LOG_LEVEL,
@@ -28,8 +21,8 @@ export function createApp(
   app.get("/health/live", async () => ({ status: "ok" }))
   app.get("/health/ready", async (_request, reply) => {
     const checks = await Promise.allSettled([
-      dependencies.postgres(),
-      dependencies.redis(),
+      db.check(),
+      redisConnection.ping(),
     ])
     const [postgres, redis] = checks
     const body = {
