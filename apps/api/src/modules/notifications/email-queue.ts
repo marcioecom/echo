@@ -17,7 +17,6 @@ export function createEmailQueue(connection: Redis): EmailQueue {
 
 	return {
 		async enqueueSendInvitationEmail(job) {
-			console.log({ job })
 			const payload = sendInvitationEmailJobSchema.parse(job);
 			await queue.add(emailJobNames.sendInvitationEmail, payload, {
 				attempts: 3,
