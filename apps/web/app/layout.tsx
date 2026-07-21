@@ -26,7 +26,7 @@ export default function RootLayout({
         "antialiased",
         fontMono.variable,
         "font-sans",
-        inter.variable,
+        inter.variable
       )}
     >
       <body>

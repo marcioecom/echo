@@ -59,7 +59,7 @@ export function MembersView({ currentRole }: { currentRole: string }) {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((values) =>
-                inviteMutation.mutate(values),
+                inviteMutation.mutate(values)
               )}
               className="flex items-start gap-2"
             >

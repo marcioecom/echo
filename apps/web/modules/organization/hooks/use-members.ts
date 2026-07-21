@@ -18,7 +18,8 @@ export function useMembers(currentRole: string) {
   const organizationQuery = useQuery({
     queryKey: ["organization", "full"],
     queryFn: async () => {
-      const { data, error } = await authClient.organization.getFullOrganization()
+      const { data, error } =
+        await authClient.organization.getFullOrganization()
       if (error) throw new Error(error.message)
       return data
     },
@@ -53,7 +54,7 @@ export function useMembers(currentRole: string) {
 
   const members = organizationQuery.data?.members ?? []
   const pendingInvitations = (invitationsQuery.data ?? []).filter(
-    (invitation) => invitation.status === "pending",
+    (invitation) => invitation.status === "pending"
   )
 
   return {
