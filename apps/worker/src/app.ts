@@ -1,6 +1,6 @@
 import Fastify from "fastify"
 import { db } from "./lib/db"
-import { redisConnection } from "./lib/redis"
+import { pingRedis } from "./lib/redis"
 import { createLoggerWithContext } from "@workspace/logger"
 
 export function createApp() {
@@ -13,7 +13,7 @@ export function createApp() {
   app.get("/health/ready", async (_request, reply) => {
     const checks = await Promise.allSettled([
       db.check(),
-      redisConnection.ping(),
+      pingRedis(),
     ])
     const [postgres, redis] = checks
     const body = {

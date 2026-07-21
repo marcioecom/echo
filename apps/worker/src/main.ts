@@ -4,7 +4,7 @@ import { Worker } from "bullmq"
 import { createApp } from "./app"
 import { env } from "./config/env"
 import { db } from "./lib/db"
-import { redisConnection, workerRedisConnection } from "./lib/redis"
+import { pingRedis, redisConnection } from "./lib/redis"
 import { getProcessor } from "./processors/registry"
 import { getAllQueues, queuesConfigs } from "./queues"
 
@@ -41,77 +41,62 @@ async function main(): Promise<void> {
       if (config.eventHandlers?.onCompleted)
         config.eventHandlers?.onCompleted(job)
     })
+    return worker
   })
 
   const app = createApp()
 
   await app.register(workbench({ queues: getAllQueues() }))
 
-  let shuttingDown = false
+  let shutdownPromise: Promise<void> | undefined
 
-  async function runShutdownStep(
-    failures: Array<{ step: string; error: unknown }>,
-    step: string,
-    action: () => Promise<unknown>
-  ): Promise<void> {
-    try {
-      await action()
-    } catch (error) {
-      failures.push({ step, error })
-    }
+  function shutdown(signal?: NodeJS.Signals): Promise<void> {
+    shutdownPromise ??= performShutdown(signal)
+    return shutdownPromise
   }
 
-  async function closeWorkersWithin(timeoutMs: number): Promise<void> {
-    let timeout: NodeJS.Timeout | undefined
-
-    try {
-      await Promise.race([
-        Promise.all(workers.map((worker) => worker.close())).then(
-          () => undefined
-        ),
-        new Promise<never>((_, reject) => {
-          timeout = setTimeout(() => {
-            reject(new Error(`worker shutdown timed out after ${timeoutMs}ms`))
-          }, timeoutMs)
-          timeout.unref?.()
-        }),
-      ])
-    } finally {
-      if (timeout) {
-        clearTimeout(timeout)
-      }
-    }
-  }
-
-  async function shutdown(signal?: NodeJS.Signals): Promise<void> {
-    if (shuttingDown) return
-    shuttingDown = true
-
+  async function performShutdown(signal?: NodeJS.Signals): Promise<void> {
     if (signal) {
       app.log.info({ signal }, "shutting down")
     }
 
-    const failures: Array<{ step: string; error: unknown }> = []
+    const deadline = setTimeout(() => {
+      app.log.error(
+        { timeoutMs: env.DEPENDENCY_TIMEOUT_MS },
+        "shutdown timed out"
+      )
+      process.exit(1)
+    }, env.DEPENDENCY_TIMEOUT_MS)
+    deadline.unref?.()
 
-    await runShutdownStep(failures, "app.close", () => app.close())
-    await runShutdownStep(failures, "workers.close", () =>
-      closeWorkersWithin(env.DEPENDENCY_TIMEOUT_MS)
-    )
-    await runShutdownStep(failures, "workerRedisConnection.quit", () =>
-      workerRedisConnection.quit()
-    )
-    await runShutdownStep(failures, "redis.quit", () => redisConnection.quit())
-    await runShutdownStep(failures, "database.close", () => db.close())
+    const steps: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
+      ["app.close", () => app.close()],
+      ["workers.close", () => Promise.all(workers.map((w) => w.close()))],
+      ["redis.quit", () => redisConnection.quit()],
+      ["database.close", () => db.close()],
+    ]
 
-    if (failures.length > 0) {
-      app.log.error({ failures }, "shutdown failed")
-      process.exitCode = 1
+    let failed = false
+
+    try {
+      for (const [step, close] of steps) {
+        try {
+          await close()
+        } catch (error) {
+          failed = true
+          app.log.error({ err: error, step }, "shutdown step failed")
+        }
+      }
+    } finally {
+      clearTimeout(deadline)
     }
+
+    if (failed) process.exitCode = 1
   }
 
   try {
     await db.check()
-    await redisConnection.ping()
+    await pingRedis()
 
     process.once("SIGINT", () => void shutdown("SIGINT"))
     process.once("SIGTERM", () => void shutdown("SIGTERM"))

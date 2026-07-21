@@ -1,6 +1,6 @@
 import { createLoggerWithContext } from "@workspace/logger"
 import type { QueueOptions, WorkerOptions } from "bullmq"
-import { redisConnection, workerRedisConnection } from "../lib/redis"
+import { redisConnection } from "../lib/redis"
 import { QueueConfig } from "../types/queue-config"
 import { DEFAULT_JOB_OPTIONS } from "../config/job-options"
 
@@ -21,7 +21,7 @@ const emailQueueOptions: QueueOptions = {
 }
 
 const emailWorkerOptions: WorkerOptions = {
-  connection: workerRedisConnection,
+  connection: redisConnection,
   concurrency: 5,
   lockDuration: 30_000, // 30 seconds - notifications are quick
   stalledInterval: 60_000, // 1 minute
