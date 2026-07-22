@@ -117,7 +117,7 @@ export const auth = createAuth({
   baseURL: env.BETTER_AUTH_URL,
   webAppUrl: env.WEB_APP_URL,
   deliverInvitationEmail: async (request) => {
-    await jobs.enqueue("send-invitation-email", request, "email")
+    await jobs.enqueue("send-invitation-email", request)
   },
   onDeliveryError: (error, request) => {
     logger.error("failed to enqueue invitation email", {

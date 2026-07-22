@@ -2,18 +2,17 @@ import type { JobsOptions } from "bullmq"
 import { Queue } from "bullmq"
 import type { Redis } from "ioredis"
 import type { z } from "zod"
-import { EmailJobName } from "./schemas"
+import { jobDefinitions, type JobName } from "./schemas"
 
 export interface EnqueuedJob {
   id: string
 }
 
 export interface JobClient {
-  enqueue: <TSchema extends z.ZodType>(
-    jobName: EmailJobName, // TODO: add new job names later
-    payload: z.input<TSchema>,
-    queueName: string,
-    options?: JobsOptions
+  enqueue: <TJobName extends JobName>(
+    jobName: TJobName,
+    payload: z.input<(typeof jobDefinitions)[TJobName]["schema"]>,
+    options?: JobsOptions,
   ) => Promise<EnqueuedJob>
   close: () => Promise<void>
 }
@@ -31,9 +30,12 @@ export function createJobClient(connection: Redis): JobClient {
   }
 
   return {
-    async enqueue(jobName, payload, queueName, options) {
-      const job = await getQueue(queueName).add(
-        jobName, payload, { ...options }
+    async enqueue(jobName, payload, options) {
+      const definition = jobDefinitions[jobName]
+      const job = await getQueue(definition.queueName).add(
+        jobName,
+        definition.schema.parse(payload),
+        { ...options }
       )
 
       if (!job.id) {

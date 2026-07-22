@@ -29,12 +29,12 @@ describe("createJobClient", () => {
     close.mockReset()
   })
 
-  it("enqueues the payload and returns the BullMQ job id", async () => {
+  it("validates the payload and returns the BullMQ job id", async () => {
     add.mockResolvedValue({ id: "1" })
     const client = createJobClient({} as never)
 
     await expect(
-      client.enqueue("send-invitation-email", validInvitation, "email")
+      client.enqueue("send-invitation-email", validInvitation)
     ).resolves.toEqual({ id: "1" })
     expect(add).toHaveBeenCalledWith(
       "send-invitation-email",
@@ -43,12 +43,14 @@ describe("createJobClient", () => {
     )
   })
 
-  it("rejects when BullMQ does not return a job id", async () => {
-    add.mockResolvedValue({})
+  it("rejects invalid payloads before creating a queue job", async () => {
     const client = createJobClient({} as never)
 
     await expect(
-      client.enqueue("send-invitation-email", validInvitation, "email")
-    ).rejects.toThrow("Failed to enqueue job: send-invitation-email")
+      client.enqueue("send-invitation-email", {
+        invitationId: "invalid",
+      } as never)
+    ).rejects.toThrow()
+    expect(add).not.toHaveBeenCalled()
   })
 })
