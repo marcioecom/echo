@@ -1,26 +1,25 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { WorkerEnv } from "./config/env"
+const { postgres, redis } = vi.hoisted(() => ({
+  postgres: vi.fn(),
+  redis: vi.fn(),
+}))
+
+vi.mock("./lib/db", () => ({ db: { check: postgres } }))
+vi.mock("./lib/redis", () => ({ pingRedis: redis }))
+
 import { createApp } from "./app"
 
-const env: WorkerEnv = {
-  DATABASE_URL: "postgres://localhost/test",
-  REDIS_URL: "redis://localhost:6379",
-  DEPENDENCY_TIMEOUT_MS: 5_000,
-  WORKER_HOST: "127.0.0.1",
-  WORKER_PORT: 3002,
-  NODE_ENV: "test",
-  LOG_LEVEL: "silent",
-  RESEND_API_KEY: "re_test",
-  EMAIL_FROM: "Echo <test@echo.dev>",
-}
-
 describe("worker health", () => {
+  beforeEach(() => {
+    postgres.mockReset()
+    redis.mockReset()
+  })
+
   it("reports readiness only when every dependency is available", async () => {
-    const app = createApp(env, {
-      postgres: async () => undefined,
-      redis: async () => undefined,
-    })
+    postgres.mockResolvedValue(undefined)
+    redis.mockResolvedValue(undefined)
+    const app = createApp()
 
     const response = await app.inject({ method: "GET", url: "/health/ready" })
 

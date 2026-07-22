@@ -38,7 +38,7 @@ export function useOnboardingForm() {
       await authClient.organization.checkSlug({ slug })
     if (slugError || slugAvailability?.status !== true) {
       toast.error(
-        slugError?.message ?? "This organization name is already taken",
+        slugError?.message ?? "This organization name is already taken"
       )
       return
     }

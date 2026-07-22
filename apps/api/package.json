@@ -20,6 +20,8 @@
     "@workspace/config": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/domain": "workspace:*",
+    "@workspace/jobs": "workspace:*",
+    "@workspace/logger": "workspace:*",
     "better-auth": "^1.0.0",
     "bullmq": "^5.0.0",
     "drizzle-orm": "^0.45.2",

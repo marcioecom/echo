@@ -4,7 +4,11 @@ import { Button } from "@workspace/ui/components/button"
 
 import { useAcceptInvitation } from "@/modules/organization/hooks/use-accept-invitation"
 
-export function AcceptInvitationView({ invitationId }: { invitationId: string }) {
+export function AcceptInvitationView({
+  invitationId,
+}: {
+  invitationId: string
+}) {
   const { invitation, isInvalid, acceptMutation } =
     useAcceptInvitation(invitationId)
 

@@ -49,7 +49,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
   if (error || !organization) return null
 
   const member = organization.members.find(
-    (entry) => entry.userId === session.user.id,
+    (entry) => entry.userId === session.user.id
   )
   if (!member) return null
 

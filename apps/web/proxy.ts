@@ -8,7 +8,7 @@ export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request)
   const { pathname } = request.nextUrl
   const isPublicRoute = publicPrefixes.some((prefix) =>
-    pathname.startsWith(prefix),
+    pathname.startsWith(prefix)
   )
 
   if (!sessionCookie && !isPublicRoute) {

@@ -1,23 +1,19 @@
-import { resolve } from "node:path"
-
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import { createDatabase } from "@workspace/db"
-import { migrate } from "drizzle-orm/node-postgres/migrator"
+import type { createDatabase } from "@workspace/db"
+import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
-
-import { createApp } from "./app"
-import type { ApiEnv } from "./config/env"
-import { createRedis } from "./lib/redis"
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import type { createApp } from "./app"
 
 describe("API readiness with real dependencies", () => {
   const postgresContainer = new PostgreSqlContainer("postgres:17-alpine")
-  const redisContainer = new GenericContainer("redis:7.4-alpine").withExposedPorts(
-    6379,
-  )
+  const redisContainer = new GenericContainer(
+    "redis:7.4-alpine"
+  ).withExposedPorts(6379)
 
+  let app: ReturnType<typeof createApp>
   let database: ReturnType<typeof createDatabase>
-  let redis: ReturnType<typeof createRedis>
+  let redis: Redis
   let stopPostgres: () => Promise<void>
   let stopRedis: () => Promise<void>
 
@@ -29,47 +25,43 @@ describe("API readiness with real dependencies", () => {
     stopPostgres = () => postgres.stop().then(() => undefined)
     stopRedis = () => redisService.stop().then(() => undefined)
 
-    database = createDatabase(postgres.getConnectionUri(), 10_000)
-    await migrate(database.db, {
-      migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
-    })
-
-    redis = createRedis(
-      `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`,
-      10_000,
+    vi.stubEnv("DATABASE_URL", postgres.getConnectionUri())
+    vi.stubEnv(
+      "REDIS_URL",
+      `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`
     )
-    await redis.connect()
+    vi.stubEnv("DEPENDENCY_TIMEOUT_MS", "10000")
+    vi.stubEnv("API_HOST", "127.0.0.1")
+    vi.stubEnv("API_PORT", "3001")
+    vi.stubEnv("NODE_ENV", "test")
+    vi.stubEnv("LOG_LEVEL", "silent")
+    vi.stubEnv("BETTER_AUTH_SECRET", "integration-test-secret-integration-test")
+    vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3001")
+    vi.stubEnv("WEB_APP_URL", "http://localhost:3000")
+
+    vi.resetModules()
+    const [appModule, dbModule, redisModule] = await Promise.all([
+      import("./app"),
+      import("./lib/db"),
+      import("./lib/redis"),
+    ])
+    app = appModule.createApp()
+    database = dbModule.database
+    redis = redisModule.redisConnection
   }, 60_000)
 
   afterAll(async () => {
     await Promise.allSettled([
+      app?.close(),
       database?.close(),
       redis?.quit(),
       stopPostgres?.(),
       stopRedis?.(),
     ])
+    vi.unstubAllEnvs()
   })
 
   it("reports Postgres and Redis as ready", async () => {
-    const env: ApiEnv = {
-      DATABASE_URL: "postgres://unused",
-      REDIS_URL: "redis://unused",
-      DEPENDENCY_TIMEOUT_MS: 10_000,
-      API_HOST: "127.0.0.1",
-      API_PORT: 3001,
-      NODE_ENV: "test",
-      LOG_LEVEL: "silent",
-      BETTER_AUTH_SECRET: "test-secret",
-      BETTER_AUTH_URL: "http://localhost:3001",
-      WEB_APP_URL: "http://localhost:3000",
-    }
-    const app = createApp(env, {
-      postgres: () => database.check(),
-      redis: async () => {
-        await redis.ping()
-      },
-    })
-
     const response = await app.inject({ method: "GET", url: "/health/ready" })
 
     expect(response.statusCode).toBe(200)
@@ -77,7 +69,5 @@ describe("API readiness with real dependencies", () => {
       status: "ok",
       dependencies: { postgres: "ok", redis: "ok" },
     })
-
-    await app.close()
   })
 })

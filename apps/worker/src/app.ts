@@ -1,35 +1,19 @@
 import Fastify from "fastify"
+import { db } from "./lib/db"
+import { pingRedis } from "./lib/redis"
+import { createLoggerWithContext } from "@workspace/logger"
 
-import type { WorkerEnv } from "./config/env"
-
-export interface WorkerHealthDependencies {
-  postgres: () => Promise<void>
-  redis: () => Promise<void>
-}
-
-export function createApp(
-  env: WorkerEnv,
-  dependencies: WorkerHealthDependencies,
-) {
+export function createApp() {
+  const logger = createLoggerWithContext("worker:api")
   const app = Fastify({
-    logger: {
-      level: env.LOG_LEVEL,
-      base: {
-        service: "worker",
-        environment: env.NODE_ENV,
-      },
-      transport:
-        env.NODE_ENV === "development"
-          ? { target: "pino-pretty", options: { colorize: true } }
-          : undefined,
-    },
+    loggerInstance: logger,
   })
 
   app.get("/health/live", async () => ({ status: "ok" }))
   app.get("/health/ready", async (_request, reply) => {
     const checks = await Promise.allSettled([
-      dependencies.postgres(),
-      dependencies.redis(),
+      db.check(),
+      pingRedis(),
     ])
     const [postgres, redis] = checks
     const body = {

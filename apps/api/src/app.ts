@@ -1,42 +1,23 @@
 import cors from "@fastify/cors"
-import Fastify from "fastify"
+import Fastify, { type FastifyBaseLogger } from "fastify"
 
-import type { ApiEnv } from "./config/env"
-import type { Auth } from "./modules/auth/auth"
+import { createLoggerWithContext } from "@workspace/logger"
+import { env } from "./config/env"
+import { auth } from "./modules/auth/auth"
 import { registerAuthRoutes } from "./plugins/auth"
-import {
-  registerHealthRoutes,
-  type HealthDependencies,
-} from "./plugins/health"
+import { registerHealthRoutes } from "./plugins/health"
 
-export interface AppDependencies extends HealthDependencies {
-  auth?: Auth
-}
+export function createApp() {
+  const logger: FastifyBaseLogger = createLoggerWithContext("api")
+  const app = Fastify({ loggerInstance: logger })
 
-export function createApp(env: ApiEnv, dependencies: AppDependencies) {
-  const app = Fastify({
-    logger: {
-      level: env.LOG_LEVEL,
-      base: {
-        service: "api",
-        environment: env.NODE_ENV,
-      },
-      transport:
-        env.NODE_ENV === "development"
-          ? { target: "pino-pretty", options: { colorize: true } }
-          : undefined,
-    },
+  app.register(cors, {
+    origin: env.WEB_APP_URL,
+    credentials: true,
   })
 
-  registerHealthRoutes(app, dependencies)
-
-  if (dependencies.auth) {
-    void app.register(cors, {
-      origin: env.WEB_APP_URL,
-      credentials: true,
-    })
-    registerAuthRoutes(app, dependencies.auth)
-  }
+  registerHealthRoutes(app)
+  registerAuthRoutes(app, auth)
 
   return app
 }

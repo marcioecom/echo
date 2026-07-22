@@ -1,32 +1,16 @@
 import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import { createDatabase } from "@workspace/db"
+import type { createDatabase } from "@workspace/db"
+import type { JobClient } from "@workspace/jobs"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import { Redis } from "ioredis"
+import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
-
-import { createApp } from "../../app"
-import type { ApiEnv } from "../../config/env"
-import { createEmailQueue } from "../notifications/email-queue"
-import { createAuth } from "./auth"
-
-const env: ApiEnv = {
-  DATABASE_URL: "postgres://unused",
-  REDIS_URL: "redis://unused",
-  DEPENDENCY_TIMEOUT_MS: 10_000,
-  API_HOST: "127.0.0.1",
-  API_PORT: 3001,
-  NODE_ENV: "test",
-  LOG_LEVEL: "silent",
-  BETTER_AUTH_SECRET: "integration-test-secret-integration-test",
-  BETTER_AUTH_URL: "http://localhost:3001",
-  WEB_APP_URL: "http://localhost:3000",
-}
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import type { createApp } from "../../app"
 
 function extractCookies(
-  headers: Record<string, string | string[] | number | undefined>,
+  headers: Record<string, string | string[] | number | undefined>
 ): string {
   const raw = headers["set-cookie"]
   const setCookies = Array.isArray(raw)
@@ -40,13 +24,14 @@ function extractCookies(
 
 describe("auth and organization access", () => {
   const postgresContainer = new PostgreSqlContainer("postgres:17-alpine")
-  const redisContainer = new GenericContainer("redis:7.4-alpine").withExposedPorts(
-    6379,
-  )
+  const redisContainer = new GenericContainer(
+    "redis:7.4-alpine"
+  ).withExposedPorts(6379)
 
   let app: ReturnType<typeof createApp>
   let database: ReturnType<typeof createDatabase>
-  let queueConnection: Redis
+  let redis: Redis
+  let jobs: JobClient
   let stopPostgres: () => Promise<void>
   let stopRedis: () => Promise<void>
 
@@ -58,41 +43,46 @@ describe("auth and organization access", () => {
     stopPostgres = () => postgres.stop().then(() => undefined)
     stopRedis = () => redisService.stop().then(() => undefined)
 
-    database = createDatabase(postgres.getConnectionUri(), 10_000)
+    vi.stubEnv("DATABASE_URL", postgres.getConnectionUri())
+    vi.stubEnv(
+      "REDIS_URL",
+      `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`
+    )
+    vi.stubEnv("DEPENDENCY_TIMEOUT_MS", "10000")
+    vi.stubEnv("API_HOST", "127.0.0.1")
+    vi.stubEnv("API_PORT", "3001")
+    vi.stubEnv("NODE_ENV", "test")
+    vi.stubEnv("LOG_LEVEL", "silent")
+    vi.stubEnv("BETTER_AUTH_SECRET", "integration-test-secret-integration-test")
+    vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3001")
+    vi.stubEnv("WEB_APP_URL", "http://localhost:3000")
+
+    vi.resetModules()
+    const [appModule, dbModule, redisModule, jobsModule] = await Promise.all([
+      import("../../app"),
+      import("../../lib/db"),
+      import("../../lib/redis"),
+      import("../../lib/jobs-client"),
+    ])
+    database = dbModule.database
+    redis = redisModule.redisConnection
+    jobs = jobsModule.jobs
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })
-
-    queueConnection = new Redis(
-      `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`,
-      { maxRetriesPerRequest: null },
-    )
-    const emailQueue = createEmailQueue(queueConnection)
-
-    const auth = createAuth({
-      db: database.db,
-      secret: env.BETTER_AUTH_SECRET,
-      baseURL: env.BETTER_AUTH_URL,
-      webAppUrl: env.WEB_APP_URL,
-      deliverInvitationEmail: (request) =>
-        emailQueue.enqueueSendInvitationEmail(request),
-    })
-
-    app = createApp(env, {
-      postgres: () => database.check(),
-      redis: async () => undefined,
-      auth,
-    })
+    app = appModule.createApp()
   }, 120_000)
 
   afterAll(async () => {
     await Promise.allSettled([
       app?.close(),
       database?.close(),
-      queueConnection?.quit(),
+      jobs?.close(),
+      redis?.quit(),
       stopPostgres?.(),
       stopRedis?.(),
     ])
+    vi.unstubAllEnvs()
   })
 
   async function signUp(email: string, name: string): Promise<string> {
@@ -156,8 +146,8 @@ describe("auth and organization access", () => {
     })
     expect(
       ownerOrg.members.find(
-        (member) => member.userId === sessionBeforeOrg.user.id,
-      )?.role,
+        (member) => member.userId === sessionBeforeOrg.user.id
+      )?.role
     ).toBe("owner")
 
     const invite = await app.inject({
@@ -217,9 +207,8 @@ describe("auth and organization access", () => {
     }
     expect(operatorOrg.id).toBe(organization.id)
     expect(
-      operatorOrg.members.find(
-        (member) => member.userId === operator.user.id,
-      )?.role,
+      operatorOrg.members.find((member) => member.userId === operator.user.id)
+        ?.role
     ).toBe("operator")
 
     const operatorInviteAttempt = await app.inject({
