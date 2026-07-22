@@ -12,11 +12,14 @@ import { usePathname } from "next/navigation"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
+import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
+  organizationId: string
   organizationName: string
   userName: string
   userRole: string
+  organizationSwitcherSide?: "bottom" | "right"
 }
 
 const NAV_SECTIONS: {
@@ -46,9 +49,11 @@ function initials(name: string) {
 }
 
 export function AppSidebar({
+  organizationId,
   organizationName,
   userName,
   userRole,
+  organizationSwitcherSide,
 }: AppSidebarProps) {
   const pathname = usePathname()
 
@@ -60,9 +65,11 @@ export function AppSidebar({
           className="rounded-md"
           imageClassName="h-6 w-6"
         />
-        <span className="truncate text-sm font-semibold tracking-tight">
-          {organizationName}
-        </span>
+        <OrganizationSwitcher
+          activeOrganizationId={organizationId}
+          activeOrganizationName={organizationName}
+          side={organizationSwitcherSide}
+        />
       </div>
 
       <nav aria-label="Primary" className="flex-1 space-y-5 overflow-y-auto p-3">

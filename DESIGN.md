@@ -75,7 +75,9 @@ Rules:
 ## Components
 
 - shadcn-style components in `packages/ui/src/components` (button, input,
-  label, form, card, sonner). Radius base `--radius: 0.625rem`; nothing
+  select, popover, label, form, card, sonner). Add new registry components with
+  `pnpm dlx shadcn add <component>` from their owning package. Radius base
+  `--radius: 0.625rem`; nothing
   larger than 16px on cards/panels.
 - Nav item: `rounded-md px-2 py-1.5 text-[13px]`, muted text; hover/focus
   `bg-sidebar-accent`; active adds `font-medium` + primary-green icon.
@@ -107,7 +109,5 @@ Rules:
 
 - Dark mode: tokens structured, needs a real design pass (plus
   `next-themes` provider wiring) before a toggle ships.
-- Members invite form still uses a native `<select>`; replace with a styled
-  Select component when one lands in `@workspace/ui`.
 - Destructive-on-dark filled contrast (2.71:1) is inherited stock; fix in
   the dark pass.

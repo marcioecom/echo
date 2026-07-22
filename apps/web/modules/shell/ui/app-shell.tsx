@@ -9,6 +9,7 @@ import { BrandLogo } from "@/components/brand-logo"
 import { AppSidebar } from "@/modules/shell/ui/app-sidebar"
 
 type AppShellProps = {
+  organizationId: string
   organizationName: string
   userName: string
   userRole: string
@@ -16,6 +17,7 @@ type AppShellProps = {
 }
 
 export function AppShell({
+  organizationId,
   organizationName,
   userName,
   userRole,
@@ -39,12 +41,12 @@ export function AppShell({
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [sidebarOpen])
 
-  const sidebarProps = { organizationName, userName, userRole }
+  const sidebarProps = { organizationId, organizationName, userName, userRole }
 
   return (
     <div className="min-h-svh">
       <aside className="fixed inset-y-0 left-0 z-(--z-sticky) hidden w-60 border-r border-sidebar-border md:block">
-        <AppSidebar {...sidebarProps} />
+        <AppSidebar {...sidebarProps} organizationSwitcherSide="right" />
       </aside>
 
       {sidebarOpen ? (
@@ -55,7 +57,7 @@ export function AppShell({
             onClick={() => setSidebarOpen(false)}
           />
           <aside className="animate-in slide-in-from-left duration-200 absolute inset-y-0 left-0 w-60 border-r border-sidebar-border">
-            <AppSidebar {...sidebarProps} />
+            <AppSidebar {...sidebarProps} organizationSwitcherSide="bottom" />
           </aside>
           <button
             type="button"

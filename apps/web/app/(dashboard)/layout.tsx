@@ -10,6 +10,7 @@ export default async function AppLayout({
 
   return (
     <AppShell
+      organizationId={workspace.organization.id}
       organizationName={workspace.organization.name}
       userName={workspace.user.name}
       userRole={workspace.role}

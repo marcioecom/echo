@@ -46,6 +46,14 @@ If sources conflict, use this precedence order:
 - Never import source code directly from one app into another app.
 - Keep provider-specific code at the edges.
 
+## Design Context
+
+- `PRODUCT.md`: register (product), users, brand personality, anti-references, design principles.
+- `DESIGN.md`: the visual system. OKLCH tokens in `packages/ui/src/styles/globals.css`, typography, layout, components, motion.
+- Color strategy is Restrained: pure white surfaces plus the moss-green primary reserved for the primary action, current selection, and positive state. Never decorative green.
+- App shell lives in `apps/web/modules/shell/` (sidebar + `PageHeader`). New dashboard pages use `PageHeader` and stay inside the shell.
+- UI components come from `@workspace/ui` (shadcn-style, Hugeicons only). Dark mode tokens are structured but not yet designed; no theme toggle until that pass.
+
 ## Start Checklist
 
 - Which app owns this change: `apps/web`, `apps/api`, `apps/worker`, or a shared package?

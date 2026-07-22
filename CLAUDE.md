@@ -26,3 +26,7 @@
 ## Imports
 
 - Write TypeScript imports without file extensions; do not use `.js` suffixes in source imports.
+
+## UI Components
+
+- Add new shadcn UI components through `pnpm dlx shadcn add <component>` so the configured registry and project conventions remain the source of truth. Do not hand-roll registry components.

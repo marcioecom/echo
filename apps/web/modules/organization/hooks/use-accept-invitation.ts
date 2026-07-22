@@ -32,9 +32,16 @@ export function useAcceptInvitation(invitationId: string) {
         throw new Error(error?.message ?? "Could not accept the invitation")
       }
       if (data.invitation.organizationId) {
-        await authClient.organization.setActive({
-          organizationId: data.invitation.organizationId,
-        })
+        const { error: activeOrganizationError } =
+          await authClient.organization.setActive({
+            organizationId: data.invitation.organizationId,
+          })
+        if (activeOrganizationError) {
+          throw new Error(
+            activeOrganizationError.message ??
+              "Could not switch to the organization"
+          )
+        }
       }
     },
     onSuccess: () => {

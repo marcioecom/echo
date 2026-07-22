@@ -11,6 +11,13 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select"
 import { useState } from "react"
 
 import { useInviteMemberForm } from "@/modules/organization/hooks/use-invite-member-form"
@@ -81,18 +88,27 @@ export function MembersView({ currentRole }: { currentRole: string }) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <FormControl>
-                      <select
-                        className="h-7 rounded-md border border-input bg-transparent px-2 text-sm"
-                        {...field}
-                      >
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
                         {organizationRoleNames.map((roleName) => (
-                          <option key={roleName} value={roleName}>
+                          <SelectItem
+                            key={roleName}
+                            value={roleName}
+                            className="capitalize"
+                          >
                             {roleName}
-                          </option>
+                          </SelectItem>
                         ))}
-                      </select>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
