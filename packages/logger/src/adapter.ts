@@ -16,7 +16,7 @@ type MessageFirstLog = {
   (message: string, data: object): void
 }
 
-type AdaptedLogMethod = pino.LogFn & MessageFirstLog
+type AdaptedLogMethod = MessageFirstLog & pino.LogFn
 
 function isLogLevel(property: PropertyKey): property is LogLevel {
   return typeof property === "string" && levelMethods.has(property as LogLevel)
@@ -40,9 +40,10 @@ function adaptLogMethod<CustomLevels extends string>(
 }
 
 export type LoggerAdapter<CustomLevels extends string = never> = Omit<
-  pino.Logger<CustomLevels>,
-  "trace" | "debug" | "info" | "warn" | "error" | "fatal" | "child"
-> & {
+  pino.BaseLogger,
+  "trace" | "debug" | "info" | "warn" | "error" | "fatal"
+> &
+  Omit<pino.LoggerExtras<CustomLevels>, "child"> & {
   trace: AdaptedLogMethod
   debug: AdaptedLogMethod
   info: AdaptedLogMethod
