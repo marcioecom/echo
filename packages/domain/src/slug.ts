@@ -1,4 +1,6 @@
-const SLUG_MAX_LENGTH = 48
+export const SLUG_MAX_LENGTH = 48
+
+export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export function deriveSlug(name: string): string {
   return name

@@ -5,12 +5,21 @@ import { useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/auth-client"
 
-export function SignOutButton() {
+type SignOutButtonProps = Omit<
+  React.ComponentProps<typeof Button>,
+  "onClick"
+>
+
+export function SignOutButton({
+  variant = "outline",
+  children = "Sign out",
+  ...props
+}: SignOutButtonProps) {
   const router = useRouter()
 
   return (
     <Button
-      variant="outline"
+      variant={variant}
       onClick={() =>
         authClient.signOut({
           fetchOptions: {
@@ -20,8 +29,9 @@ export function SignOutButton() {
           },
         })
       }
+      {...props}
     >
-      Sign out
+      {children}
     </Button>
   )
 }
