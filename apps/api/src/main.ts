@@ -3,7 +3,7 @@ import { createApp } from "./app"
 import { env } from "./config/env"
 import { database } from "./lib/db"
 import { redisConnection } from "./lib/redis"
-import { jobs } from "./modules/jobs/client"
+import { jobs } from "./lib/jobs-client"
 
 const logger = createLoggerWithContext("api:main")
 

@@ -13,7 +13,6 @@ vi.mock("bullmq", () => ({
 }))
 
 import { createJobClient } from "./client"
-import { sendInvitationEmailJob } from "./schemas/email"
 
 const validInvitation = {
   invitationId: "01JFXN7G8C2V1D7A0B3E4F5G6H",
@@ -30,28 +29,26 @@ describe("createJobClient", () => {
     close.mockReset()
   })
 
-  it("validates the payload and returns the BullMQ job id", async () => {
+  it("enqueues the payload and returns the BullMQ job id", async () => {
     add.mockResolvedValue({ id: "1" })
     const client = createJobClient({} as never)
 
     await expect(
-      client.enqueue(sendInvitationEmailJob, validInvitation)
+      client.enqueue("send-invitation-email", validInvitation, "email")
     ).resolves.toEqual({ id: "1" })
     expect(add).toHaveBeenCalledWith(
       "send-invitation-email",
       validInvitation,
-      sendInvitationEmailJob.options
+      {}
     )
   })
 
-  it("rejects invalid payloads before creating a queue job", async () => {
+  it("rejects when BullMQ does not return a job id", async () => {
+    add.mockResolvedValue({})
     const client = createJobClient({} as never)
 
     await expect(
-      client.enqueue(sendInvitationEmailJob, {
-        invitationId: "invalid",
-      } as never)
-    ).rejects.toThrow()
-    expect(add).not.toHaveBeenCalled()
+      client.enqueue("send-invitation-email", validInvitation, "email")
+    ).rejects.toThrow("Failed to enqueue job: send-invitation-email")
   })
 })

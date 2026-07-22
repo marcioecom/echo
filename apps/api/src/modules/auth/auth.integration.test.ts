@@ -62,7 +62,7 @@ describe("auth and organization access", () => {
       import("../../app"),
       import("../../lib/db"),
       import("../../lib/redis"),
-      import("../jobs/client"),
+      import("../../lib/jobs-client"),
     ])
     database = dbModule.database
     redis = redisModule.redisConnection
