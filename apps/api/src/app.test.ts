@@ -1,29 +1,33 @@
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import type { ApiEnv } from "./config/env"
+const { postgres, redis } = vi.hoisted(() => ({
+  postgres: vi.fn(),
+  redis: vi.fn(),
+}))
+
+vi.mock("./config/env", () => ({
+  env: {
+    LOG_LEVEL: "silent",
+    NODE_ENV: "test",
+    WEB_APP_URL: "http://localhost:3000",
+  },
+}))
+vi.mock("./lib/db", () => ({ database: { check: postgres } }))
+vi.mock("./lib/redis", () => ({ pingRedis: redis }))
+vi.mock("./modules/auth/auth", () => ({ auth: {} }))
+
 import { createApp } from "./app"
 
-const env: ApiEnv = {
-  DATABASE_URL: "postgres://localhost/test",
-  REDIS_URL: "redis://localhost:6379",
-  DEPENDENCY_TIMEOUT_MS: 5_000,
-  API_HOST: "127.0.0.1",
-  API_PORT: 3001,
-  NODE_ENV: "test",
-  LOG_LEVEL: "silent",
-  BETTER_AUTH_SECRET: "test-secret",
-  BETTER_AUTH_URL: "http://localhost:3001",
-  WEB_APP_URL: "http://localhost:3000",
-}
-
 describe("API health", () => {
+  beforeEach(() => {
+    postgres.mockReset()
+    redis.mockReset()
+  })
+
   it("separates liveness from dependency readiness", async () => {
-    const app = createApp(env, {
-      postgres: async () => undefined,
-      redis: async () => {
-        throw new Error("unavailable")
-      },
-    })
+    postgres.mockResolvedValue(undefined)
+    redis.mockRejectedValue(new Error("unavailable"))
+    const app = createApp()
 
     const live = await app.inject({ method: "GET", url: "/health/live" })
     const ready = await app.inject({ method: "GET", url: "/health/ready" })

@@ -24,7 +24,7 @@ function isLogLevel(property: PropertyKey): property is LogLevel {
 
 function adaptLogMethod<CustomLevels extends string>(
   logger: pino.Logger<CustomLevels>,
-  method: pino.LogFn,
+  method: pino.LogFn
 ) {
   const log = method as (...arguments_: unknown[]) => void
 
@@ -51,19 +51,19 @@ export type LoggerAdapter<CustomLevels extends string = never> = Omit<
   fatal: AdaptedLogMethod
   child: <ChildCustomLevels extends string = never>(
     bindings: pino.Bindings,
-    options?: pino.ChildLoggerOptions<ChildCustomLevels>,
+    options?: pino.ChildLoggerOptions<ChildCustomLevels>
   ) => LoggerAdapter<CustomLevels | ChildCustomLevels>
 }
 
-export function createLoggerAdapter<CustomLevels extends string = never>(
-  pinoLogger: pino.Logger<CustomLevels>,
+export function createLoggerAdapter<CustomLevels extends string = LogLevel>(
+  pinoLogger: pino.Logger<CustomLevels>
 ): LoggerAdapter<CustomLevels> {
   return new Proxy(pinoLogger, {
     get(target, property) {
       if (property === "child") {
         return <ChildCustomLevels extends string = never>(
           bindings: pino.Bindings,
-          options?: pino.ChildLoggerOptions<ChildCustomLevels>,
+          options?: pino.ChildLoggerOptions<ChildCustomLevels>
         ) => createLoggerAdapter(target.child(bindings, options))
       }
 
@@ -75,5 +75,5 @@ export function createLoggerAdapter<CustomLevels extends string = never>(
 
       return typeof value === "function" ? value.bind(target) : value
     },
-  }) as unknown as LoggerAdapter<CustomLevels>
+  }) as LoggerAdapter<CustomLevels>
 }

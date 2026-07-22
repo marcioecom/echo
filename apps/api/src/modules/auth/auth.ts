@@ -1,10 +1,16 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { ac, admin, operator, owner } from "@workspace/auth"
 import { schema, type Database } from "@workspace/db"
-import { createId, type SendInvitationEmailJob } from "@workspace/domain"
+import { createId } from "@workspace/domain"
+import { type SendInvitationEmailJob } from "@workspace/jobs"
+import { createLoggerWithContext } from "@workspace/logger"
 import { betterAuth } from "better-auth"
 import { organization } from "better-auth/plugins/organization"
 import { asc, eq } from "drizzle-orm"
+
+import { env } from "../../config/env"
+import { database } from "../../lib/db"
+import { jobs } from "../../lib/jobs-client"
 
 export interface CreateAuthOptions {
   db: Database
@@ -102,3 +108,21 @@ export function createAuth(options: CreateAuthOptions) {
 }
 
 export type Auth = ReturnType<typeof createAuth>
+
+const logger = createLoggerWithContext("api:auth")
+
+export const auth = createAuth({
+  db: database.db,
+  secret: env.BETTER_AUTH_SECRET,
+  baseURL: env.BETTER_AUTH_URL,
+  webAppUrl: env.WEB_APP_URL,
+  deliverInvitationEmail: async (request) => {
+    await jobs.enqueue("send-invitation-email", request, "email")
+  },
+  onDeliveryError: (error, request) => {
+    logger.error("failed to enqueue invitation email", {
+      error,
+      invitationId: request.invitationId,
+    })
+  },
+})

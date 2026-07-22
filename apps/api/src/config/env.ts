@@ -11,6 +11,8 @@ const apiEnvSchema = serverEnvSchema.extend({
 
 export type ApiEnv = z.output<typeof apiEnvSchema>
 
-export function loadApiEnv(): ApiEnv {
+function loadApiEnv(): ApiEnv {
   return loadEnv(apiEnvSchema)
 }
+
+export const env = loadApiEnv()
