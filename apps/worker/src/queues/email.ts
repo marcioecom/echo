@@ -1,5 +1,8 @@
-import { Queue } from "bullmq";
-import { emailQueueName } from "../schemas/email";
-import { emailQueueConfig } from "./email.config";
+import { emailQueueName } from "@workspace/jobs"
+import { Queue } from "bullmq"
+import { emailQueueConfig } from "./email.config"
 
-export const emailQueue = new Queue(emailQueueName, emailQueueConfig.queueOptions);
+export const emailQueue = new Queue(
+  emailQueueName,
+  emailQueueConfig.queueOptions
+)

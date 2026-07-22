@@ -1,7 +1,7 @@
 import { InviteEmail, createResendClient, renderEmail } from "@workspace/email"
+import { sendInvitationEmailJobSchema } from "@workspace/jobs"
 import type { Job } from "bullmq"
 import { env } from "../../config/env"
-import { sendInvitationEmailJobSchema } from "../../schemas/email"
 
 export async function handleSendInvitationEmail(job: Job): Promise<void> {
   const payload = sendInvitationEmailJobSchema.parse(job.data)

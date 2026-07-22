@@ -1,8 +1,9 @@
+import { emailQueueName } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import type { QueueOptions, WorkerOptions } from "bullmq"
+import { DEFAULT_JOB_OPTIONS } from "../config/job-options"
 import { redisConnection } from "../lib/redis"
 import { QueueConfig } from "../types/queue-config"
-import { DEFAULT_JOB_OPTIONS } from "../config/job-options"
 
 const logger = createLoggerWithContext("worker:queue:email")
 
@@ -32,7 +33,7 @@ const emailWorkerOptions: WorkerOptions = {
 }
 
 export const emailQueueConfig: QueueConfig = {
-  name: "email",
+  name: emailQueueName,
   queueOptions: emailQueueOptions,
   workerOptions: emailWorkerOptions,
   eventHandlers: {

@@ -1,5 +1,27 @@
 import type { Job } from "bullmq"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const { createResendClient, renderEmail, send } = vi.hoisted(() => {
+  const send = vi.fn()
+  return {
+    createResendClient: vi.fn(() => ({ emails: { send } })),
+    renderEmail: vi.fn(async () => "<html>invite</html>"),
+    send,
+  }
+})
+
+vi.mock("@workspace/email", () => ({
+  InviteEmail: vi.fn((props) => props),
+  createResendClient,
+  renderEmail,
+}))
+
+vi.mock("../../config/env", () => ({
+  env: {
+    RESEND_API_KEY: "re_test",
+    EMAIL_FROM: "Echo <invites@echo.dev>",
+  },
+}))
 
 import { handleSendInvitationEmail } from "./send-invitation-email"
 
@@ -8,7 +30,8 @@ const validPayload = {
   email: "invitee@example.com",
   inviterName: "Jane Doe",
   organizationName: "Acme",
-  inviteUrl: "http://localhost:3000/accept-invitation/01JFXN7G8C2V1D7A0B3E4F5G6H",
+  inviteUrl:
+    "http://localhost:3000/accept-invitation/01JFXN7G8C2V1D7A0B3E4F5G6H",
 }
 
 function createJob(data: unknown): Job {
@@ -16,60 +39,42 @@ function createJob(data: unknown): Job {
 }
 
 describe("handleSendInvitationEmail", () => {
+  beforeEach(() => {
+    send.mockReset()
+    renderEmail.mockClear()
+    createResendClient.mockClear()
+  })
+
   it("renders the invite template and sends it through resend", async () => {
-    const sent: Array<Record<string, unknown>> = []
-    const resend = {
-      emails: {
-        send: async (args: Record<string, unknown>) => {
-          sent.push(args)
-          return { data: { id: "email_1" }, error: null }
-        },
-      },
-    }
+    send.mockResolvedValue({ data: { id: "email_1" }, error: null })
 
-    await handleSendInvitationEmail(createJob(validPayload), {
-      resend: resend as never,
-      emailFrom: "Echo <invites@echo.dev>",
+    await handleSendInvitationEmail(createJob(validPayload))
+
+    expect(createResendClient).toHaveBeenCalledWith("re_test")
+    expect(renderEmail).toHaveBeenCalledOnce()
+    expect(send).toHaveBeenCalledWith({
+      from: "Echo <invites@echo.dev>",
+      to: "invitee@example.com",
+      subject: "Jane Doe invited you to Acme on Echo",
+      html: "<html>invite</html>",
     })
-
-    expect(sent).toHaveLength(1)
-    expect(sent[0]?.to).toBe("invitee@example.com")
-    expect(sent[0]?.from).toBe("Echo <invites@echo.dev>")
-    expect(sent[0]?.subject).toContain("Acme")
-    expect(sent[0]?.html).toContain(validPayload.inviteUrl)
-    expect(sent[0]?.html).toContain("Jane Doe")
   })
 
   it("throws when resend reports a delivery error so the job retries", async () => {
-    const resend = {
-      emails: {
-        send: async () => ({
-          data: null,
-          error: { name: "validation_error", message: "rate limited" },
-        }),
-      },
-    }
+    send.mockResolvedValue({
+      data: null,
+      error: { name: "validation_error", message: "rate limited" },
+    })
 
     await expect(
-      handleSendInvitationEmail(createJob(validPayload), {
-        resend: resend as never,
-        emailFrom: "Echo <invites@echo.dev>",
-      }),
+      handleSendInvitationEmail(createJob(validPayload))
     ).rejects.toThrow("rate limited")
   })
 
   it("rejects an invalid payload before sending", async () => {
-    const resend = {
-      emails: {
-        send: async () => ({ data: { id: "email_1" }, error: null }),
-      },
-    }
-
     await expect(
-      handleSendInvitationEmail(createJob({ invitationId: "nope" }), {
-        resend: resend as never,
-        emailFrom: "Echo <invites@echo.dev>",
-      }),
+      handleSendInvitationEmail(createJob({ invitationId: "nope" }))
     ).rejects.toThrow()
+    expect(send).not.toHaveBeenCalled()
   })
 })
