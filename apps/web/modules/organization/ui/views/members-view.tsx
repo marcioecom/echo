@@ -31,8 +31,7 @@ export function MembersView({ currentRole }: { currentRole: string }) {
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <h2 className="text-sm font-medium">Members</h2>
+      <section>
         <ul className="divide-y rounded-md border">
           {members.map((member) => (
             <li
