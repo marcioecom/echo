@@ -17,14 +17,14 @@
     "test": "vitest run src"
   },
   "dependencies": {
-    "better-auth": "^1.0.0"
+    "better-auth": "^1.6.23"
   },
   "devDependencies": {
     "@workspace/eslint-config": "workspace:*",
     "@workspace/typescript-config": "workspace:*",
-    "eslint": "^9.0.0",
-    "tsup": "^8.5.0",
-    "typescript": "^5",
-    "vitest": "^4.0.0"
+    "eslint": "^9.39.4",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }
