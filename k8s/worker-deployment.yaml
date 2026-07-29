@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo-worker
+  namespace: echo
+  labels:
+    app.kubernetes.io/name: echo-worker
+    app.kubernetes.io/part-of: echo
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: echo-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: echo-worker
+        app.kubernetes.io/part-of: echo
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: worker
+          image: ghcr.io/marcioecom/echo-worker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3002
+          envFrom:
+            - secretRef:
+                name: echo-shared-secrets
+            - secretRef:
+                name: echo-worker-secrets
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+      automountServiceAccountToken: false

@@ -3,6 +3,7 @@ import { defineConfig } from "tsup"
 export default defineConfig({
   entry: {
     index: "src/index.ts",
+    migrate: "src/migrate.ts",
     "schema/index": "src/schema/index.ts",
   },
   format: ["esm"],
