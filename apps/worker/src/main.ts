@@ -46,7 +46,12 @@ async function main(): Promise<void> {
 
   const app = createApp()
 
-  await app.register(workbench({ queues: getAllQueues() }))
+  await app.register(
+    workbench({
+      queues: getAllQueues(),
+      alerts: { persistence: "memory" },
+    })
+  )
 
   let shutdownPromise: Promise<void> | undefined
 
