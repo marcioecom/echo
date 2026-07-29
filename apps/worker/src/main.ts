@@ -49,7 +49,7 @@ async function main(): Promise<void> {
   await app.register(
     workbench({
       queues: getAllQueues(),
-      alerts: { persistence: "memory" },
+      alerts: { persistence: "redis" },
     })
   )
 

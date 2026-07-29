@@ -2,13 +2,15 @@ import { emailQueueName } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import type { QueueOptions, WorkerOptions } from "bullmq"
 import { DEFAULT_JOB_OPTIONS } from "../config/job-options"
+import { env } from "../config/env"
 import { redisConnection } from "../lib/redis"
 import { QueueConfig } from "../types/queue-config"
 
 const logger = createLoggerWithContext("worker:queue:email")
+const queueConnection = { url: env.REDIS_URL }
 
 const emailQueueOptions: QueueOptions = {
-  connection: redisConnection,
+  connection: queueConnection,
   defaultJobOptions: {
     ...DEFAULT_JOB_OPTIONS,
     removeOnComplete: {
