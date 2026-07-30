@@ -7,7 +7,6 @@
     "auth:schema:generate": "NODE_OPTIONS='--conditions=development --env-file=.env' auth generate --config src/modules/auth/auth-cli-config.ts --output ../../packages/db/src/schema/auth.ts --yes",
     "build": "tsup",
     "channel:provision:twilio": "tsx --env-file=.env src/modules/channel-connections/cli/provision-twilio-whatsapp.ts",
-    "channel:provision:twilio:production": "node dist/provision-twilio-whatsapp.js",
     "dev": "tsx watch --conditions=development --env-file=.env src/main.ts",
     "lint": "eslint . --max-warnings 0",
     "start": "node dist/main.js",
