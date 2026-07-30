@@ -1,5 +1,6 @@
 import {
 	type ActorType,
+	type ChannelProvider,
 	type ChannelConnectionStatus,
 	type ChannelType,
 	createId,
@@ -51,7 +52,7 @@ export const channelConnections = pgTable(
 	(table) => [
 		unique("channel_connections_organization_id_id_unique").on(
 			table.organizationId,
-			table.id,
+			table.id
 		),
 		uniqueIndex("channel_connections_address_uidx")
 			.on(table.organizationId, table.channelType, table.address)
@@ -59,9 +60,59 @@ export const channelConnections = pgTable(
 		index("channel_connections_organization_id_idx").on(table.organizationId),
 		check(
 			"channel_connections_active_address_check",
-			sql`${table.status} <> 'active' or ${table.address} is not null`,
+			sql`${table.status} <> 'active' or ${table.address} is not null`
 		),
-	],
+	]
+);
+
+export const channelConnectionProviderBindings = pgTable(
+	"channel_connection_provider_bindings",
+	{
+		id: text("id").primaryKey().$defaultFn(createId),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "restrict" }),
+		channelConnectionId: text("channel_connection_id").notNull(),
+		provider: text("provider").$type<ChannelProvider>().notNull(),
+		externalAccountId: text("external_account_id").notNull(),
+		externalSenderId: text("external_sender_id").notNull(),
+		routingAddress: text("routing_address").notNull(),
+		credentialsCiphertext: text("credentials_ciphertext").notNull(),
+		credentialsNonce: text("credentials_nonce").notNull(),
+		credentialsAuthTag: text("credentials_auth_tag").notNull(),
+		credentialsKeyVersion: text("credentials_key_version").notNull(),
+		...timestamps,
+	},
+	(table) => [
+		foreignKey({
+			name: "channel_connection_provider_bindings_connection_fk",
+			columns: [table.organizationId, table.channelConnectionId],
+			foreignColumns: [
+				channelConnections.organizationId,
+				channelConnections.id,
+			],
+		}).onDelete("restrict"),
+		unique("channel_connection_provider_bindings_organization_id_id_unique").on(
+			table.organizationId,
+			table.id
+		),
+		unique("channel_connection_provider_bindings_connection_unique").on(
+			table.organizationId,
+			table.channelConnectionId
+		),
+		uniqueIndex("channel_connection_provider_bindings_routing_uidx").on(
+			table.provider,
+			table.externalAccountId,
+			table.routingAddress
+		),
+		index("channel_connection_provider_bindings_organization_id_idx").on(
+			table.organizationId
+		),
+		check(
+			"channel_connection_provider_bindings_provider_check",
+			sql`${table.provider} in ('twilio')`
+		),
+	]
 );
 
 export const contacts = pgTable(
@@ -77,10 +128,10 @@ export const contacts = pgTable(
 	(table) => [
 		unique("contacts_organization_id_id_unique").on(
 			table.organizationId,
-			table.id,
+			table.id
 		),
 		index("contacts_organization_id_idx").on(table.organizationId),
-	],
+	]
 );
 
 export const channelIdentities = pgTable(
@@ -103,18 +154,18 @@ export const channelIdentities = pgTable(
 		}).onDelete("restrict"),
 		unique("channel_identities_organization_id_id_unique").on(
 			table.organizationId,
-			table.id,
+			table.id
 		),
 		uniqueIndex("channel_identities_address_uidx").on(
 			table.organizationId,
 			table.channelType,
-			table.address,
+			table.address
 		),
 		index("channel_identities_contact_id_idx").on(
 			table.organizationId,
-			table.contactId,
+			table.contactId
 		),
-	],
+	]
 );
 
 export const supportConversations = pgTable(
@@ -153,25 +204,25 @@ export const supportConversations = pgTable(
 		unique("support_conversations_message_fk_unique").on(
 			table.organizationId,
 			table.id,
-			table.channelConnectionId,
+			table.channelConnectionId
 		),
 		uniqueIndex("support_conversations_active_uidx")
 			.on(
 				table.organizationId,
 				table.channelIdentityId,
-				table.channelConnectionId,
+				table.channelConnectionId
 			)
 			.where(sql`${table.resolvedAt} is null`),
 		index("support_conversations_inbox_idx").on(
 			table.organizationId,
 			table.status,
-			table.lastActivityAt,
+			table.lastActivityAt
 		),
 		check(
 			"support_conversations_resolution_check",
-			sql`(${table.status} = 'resolved' and ${table.resolvedAt} is not null) or (${table.status} <> 'resolved' and ${table.resolvedAt} is null)`,
+			sql`(${table.status} = 'resolved' and ${table.resolvedAt} is not null) or (${table.status} <> 'resolved' and ${table.resolvedAt} is null)`
 		),
-	],
+	]
 );
 
 export const messages = pgTable(
@@ -212,25 +263,25 @@ export const messages = pgTable(
 			.on(
 				table.organizationId,
 				table.channelConnectionId,
-				table.externalMessageId,
+				table.externalMessageId
 			)
 			.where(sql`${table.externalMessageId} is not null`),
 		index("messages_conversation_timeline_idx").on(
 			table.organizationId,
 			table.supportConversationId,
 			table.occurredAt,
-			table.id,
+			table.id
 		),
 		check("messages_body_check", sql`length(btrim(${table.body})) > 0`),
 		check(
 			"messages_operator_check",
-			sql`(${table.senderType} = 'operator' and ${table.operatorUserId} is not null) or (${table.senderType} <> 'operator' and ${table.operatorUserId} is null)`,
+			sql`(${table.senderType} = 'operator' and ${table.operatorUserId} is not null) or (${table.senderType} <> 'operator' and ${table.operatorUserId} is null)`
 		),
 		check(
 			"messages_direction_sender_check",
-			sql`(${table.direction} = 'inbound' and ${table.senderType} = 'contact') or (${table.direction} = 'outbound' and ${table.senderType} in ('ai', 'operator', 'system'))`,
+			sql`(${table.direction} = 'inbound' and ${table.senderType} = 'contact') or (${table.direction} = 'outbound' and ${table.senderType} in ('ai', 'operator', 'system'))`
 		),
-	],
+	]
 );
 
 export const auditEvents = pgTable(
@@ -259,16 +310,16 @@ export const auditEvents = pgTable(
 		index("audit_events_organization_timeline_idx").on(
 			table.organizationId,
 			table.occurredAt,
-			table.id,
+			table.id
 		),
 		index("audit_events_subject_idx").on(
 			table.organizationId,
 			table.subjectType,
-			table.subjectId,
+			table.subjectId
 		),
 		check(
 			"audit_events_operator_check",
-			sql`(${table.actorType} = 'operator' and ${table.operatorUserId} is not null) or (${table.actorType} <> 'operator' and ${table.operatorUserId} is null)`,
+			sql`(${table.actorType} = 'operator' and ${table.operatorUserId} is not null) or (${table.actorType} <> 'operator' and ${table.operatorUserId} is null)`
 		),
-	],
+	]
 );

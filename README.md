@@ -28,13 +28,13 @@ pnpm dev
 
 The local services use these addresses:
 
-| Service | Address |
-| --- | --- |
-| Web | http://localhost:3000 |
-| API | http://localhost:3001 |
+| Service       | Address               |
+| ------------- | --------------------- |
+| Web           | http://localhost:3000 |
+| API           | http://localhost:3001 |
 | Worker health | http://localhost:3002 |
-| Postgres | localhost:5432 |
-| Redis | localhost:6379 |
+| Postgres      | localhost:5432        |
+| Redis         | localhost:6379        |
 
 ## Verify connectivity
 
@@ -62,6 +62,28 @@ pnpm db:studio
 
 Commit generated SQL migrations. Do not use `drizzle-kit push` as the normal schema workflow.
 Database commands load `apps/api/.env`, the app-local environment owned by the API. The same commands can be run from `packages/db` as `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:studio`.
+
+## Provision a WhatsApp Channel Connection
+
+The initial onboarding flow uses one Twilio subaccount per Organization. Provisioning is an internal operation until Meta Embedded Signup replaces it.
+
+Apply migrations first, then run the provisioning command. It prompts for the subaccount Auth Token using masked terminal input, so the token is not stored in shell history:
+
+```bash
+pnpm --filter @workspace/api channel:provision:twilio -- \
+  --organization-id 01K1EDN69NFBWCG42B2H99V2C1 \
+  --name "WhatsApp Support" \
+  --address +5511999999999 \
+  --account-sid AC00000000000000000000000000000000
+```
+
+When stdin is not an interactive terminal, the command still accepts the Auth Token from stdin for controlled automation. Never pass it as a command-line argument.
+
+The command verifies that the subaccount exposes an `ONLINE` WhatsApp Sender for the address, encrypts the Auth Token, activates the provider-neutral Channel Connection, and writes an immutable Audit Event. Rerunning it updates the existing connection rather than creating a duplicate.
+
+`PUBLIC_API_URL` must be the externally visible API origin used in Twilio's webhook configuration. Twilio signs the exact callback URL, so a proxy-only internal origin cannot be used for signature validation.
+
+Generate a deployment-specific credential encryption key with `openssl rand -base64 32`. Keep the key outside the database and increment `CHANNEL_CREDENTIALS_KEY_VERSION` when deliberately rotating it.
 
 ## Quality checks
 

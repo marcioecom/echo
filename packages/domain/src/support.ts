@@ -4,6 +4,10 @@ export const channelTypes = ["whatsapp"] as const
 export const channelTypeSchema = z.enum(channelTypes)
 export type ChannelType = z.infer<typeof channelTypeSchema>
 
+export const channelProviders = ["twilio"] as const
+export const channelProviderSchema = z.enum(channelProviders)
+export type ChannelProvider = z.infer<typeof channelProviderSchema>
+
 export const organizationStatuses = ["active", "archived"] as const
 export const organizationStatusSchema = z.enum(organizationStatuses)
 export type OrganizationStatus = z.infer<typeof organizationStatusSchema>
@@ -13,9 +17,7 @@ export const channelConnectionStatuses = [
   "active",
   "disabled",
 ] as const
-export const channelConnectionStatusSchema = z.enum(
-  channelConnectionStatuses,
-)
+export const channelConnectionStatusSchema = z.enum(channelConnectionStatuses)
 export type ChannelConnectionStatus = z.infer<
   typeof channelConnectionStatusSchema
 >
@@ -27,7 +29,7 @@ export const supportConversationStatuses = [
   "resolved",
 ] as const
 export const supportConversationStatusSchema = z.enum(
-  supportConversationStatuses,
+  supportConversationStatuses
 )
 export type SupportConversationStatus = z.infer<
   typeof supportConversationStatusSchema
