@@ -9,10 +9,13 @@ vi.mock("./config/env", () => ({
   env: {
     LOG_LEVEL: "silent",
     NODE_ENV: "test",
+    CHANNEL_CREDENTIALS_ENCRYPTION_KEY: Buffer.alloc(32, 1).toString("base64"),
+    CHANNEL_CREDENTIALS_KEY_VERSION: "v1",
+    PUBLIC_API_URL: "http://localhost:3001",
     WEB_APP_URL: "http://localhost:3000",
   },
 }))
-vi.mock("./lib/db", () => ({ database: { check: postgres } }))
+vi.mock("./lib/db", () => ({ database: { check: postgres, db: {} } }))
 vi.mock("./lib/redis", () => ({ pingRedis: redis }))
 vi.mock("./modules/auth/auth", () => ({ auth: {} }))
 

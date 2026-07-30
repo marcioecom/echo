@@ -8,6 +8,13 @@
       "when": 1784478261581,
       "tag": "0000_absent_giant_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785439072414,
+      "tag": "0001_flashy_firestar",
+      "breakpoints": true
     }
   ]
 }
