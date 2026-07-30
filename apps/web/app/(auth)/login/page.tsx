@@ -7,7 +7,7 @@ import { LoginView } from "@/modules/auth/ui/views/login-view"
 export default async function LoginPage() {
   const session = await getSession()
   if (session) {
-    redirect("/")
+    redirect("/inbox")
   }
   return (
     <Suspense>

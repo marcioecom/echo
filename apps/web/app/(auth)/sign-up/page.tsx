@@ -7,7 +7,7 @@ import { SignUpView } from "@/modules/auth/ui/views/sign-up-view"
 export default async function SignUpPage() {
   const session = await getSession()
   if (session) {
-    redirect("/")
+    redirect("/inbox")
   }
   return (
     <Suspense>

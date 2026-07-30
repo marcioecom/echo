@@ -36,7 +36,7 @@ export function useLoginForm() {
       toast.error(error.message ?? "Could not sign in")
       return
     }
-    router.push(searchParams.get("redirect") ?? "/")
+    router.push(searchParams.get("redirect") ?? "/inbox")
   }
 
   return { form, onSubmit }

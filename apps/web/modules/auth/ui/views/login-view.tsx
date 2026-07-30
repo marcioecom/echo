@@ -2,13 +2,6 @@
 
 import { Button } from "@workspace/ui/components/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import {
   Form,
   FormControl,
   FormField,
@@ -26,66 +19,64 @@ export function LoginView() {
   const isPending = form.formState.isSubmitting
 
   return (
-    <Card>
-      <CardHeader className="text-center">
-        <CardTitle>Sign in to Echo</CardTitle>
-        <CardDescription>
-          Access your organization&apos;s support workspace.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      autoComplete="email"
-                      placeholder="m@example.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      autoComplete="current-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending ? "Signing in..." : "Sign in"}
-            </Button>
-            <p className="text-center text-xs/relaxed text-muted-foreground">
-              No account yet?{" "}
-              <Link
-                href="/sign-up"
-                className="text-foreground underline underline-offset-4"
-              >
-                Create one
-              </Link>
-            </p>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div>
+      <header className="mb-8">
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <p className="mt-2 text-base text-muted-foreground">
+          Sign in to continue.
+        </p>
+      </header>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    autoComplete="email"
+                    placeholder="m@example.com"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Button type="submit" className="w-full" disabled={isPending}>
+            {isPending ? "Signing in..." : "Sign in"}
+          </Button>
+          <p className="pt-1 text-center text-sm text-muted-foreground">
+            Need an account?{" "}
+            <Link
+              href="/sign-up"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
+              Create one
+            </Link>
+          </p>
+        </form>
+      </Form>
+    </div>
   )
 }

@@ -28,7 +28,7 @@ const NAV_SECTIONS: {
 }[] = [
   {
     items: [
-      { href: "/", label: "Support Inbox", icon: InboxIcon, exact: true },
+      { href: "/inbox", label: "Support Inbox", icon: InboxIcon, exact: true },
     ],
   },
   {

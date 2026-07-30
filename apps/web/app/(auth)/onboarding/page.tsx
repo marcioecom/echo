@@ -7,7 +7,7 @@ export default async function OnboardingPage() {
   await requireUser("/onboarding")
   const workspace = await getWorkspace()
   if (workspace) {
-    redirect("/")
+    redirect("/inbox")
   }
   return <OnboardingView />
 }

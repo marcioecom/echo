@@ -1,5 +1,6 @@
 import "@workspace/ui/globals.css"
 import { Geist_Mono, Inter } from "next/font/google"
+import type { Metadata } from "next"
 
 import { Toaster } from "@workspace/ui/components/sonner"
 import { cn } from "@workspace/ui/lib/utils"
@@ -12,6 +13,15 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 })
+
+export const metadata: Metadata = {
+  title: {
+    default: "Echo | WhatsApp customer support",
+    template: "%s | Echo",
+  },
+  description:
+    "Echo is a private workspace for keeping WhatsApp customer support conversations clear and connected.",
+}
 
 export default function RootLayout({
   children,

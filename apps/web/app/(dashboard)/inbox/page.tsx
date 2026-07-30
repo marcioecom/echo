@@ -4,7 +4,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { requireWorkspace } from "@/modules/auth/server/session"
 import { PageHeader } from "@/modules/shell/ui/page-header"
 
-export default async function WorkspacePage() {
+export default async function InboxPage() {
   const workspace = await requireWorkspace()
 
   return (
