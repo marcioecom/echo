@@ -3,9 +3,11 @@ import { pingRedis } from "../lib/redis"
 import { database } from "../lib/db"
 
 export function registerHealthRoutes(app: FastifyInstance) {
-  app.get("/health/live", async () => ({ status: "ok" }))
+  app.get("/health/live", { logLevel: "silent" }, async () => ({
+    status: "ok",
+  }))
 
-  app.get("/health/ready", async (_request, reply) => {
+  app.get("/health/ready", { logLevel: "silent" }, async (_request, reply) => {
     const checks = await Promise.allSettled([database.check(), pingRedis()])
     const [postgres, redis] = checks
     const body = {
