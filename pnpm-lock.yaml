@@ -220,6 +220,9 @@ importers:
       bullmq:
         specifier: ^5.80.9
         version: 5.80.9(supports-color@7.2.0)
+      drizzle-orm:
+        specifier: ^0.45.2
+        version: 0.45.2(@prisma/client@5.22.0)(@types/pg@8.20.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.22.0)
       fastify:
         specifier: ^5.10.0
         version: 5.10.0
