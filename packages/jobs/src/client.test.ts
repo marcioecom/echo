@@ -1,12 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { add, close } = vi.hoisted(() => ({
+const { add, close, constructQueue } = vi.hoisted(() => ({
   add: vi.fn(),
   close: vi.fn(),
+  constructQueue: vi.fn(),
 }))
 
 vi.mock("bullmq", () => ({
   Queue: class {
+    constructor(name: string, options: unknown) {
+      constructQueue(name, options)
+    }
+
     add = add
     close = close
   },
@@ -27,6 +32,7 @@ describe("createJobClient", () => {
   beforeEach(() => {
     add.mockReset()
     close.mockReset()
+    constructQueue.mockReset()
   })
 
   it("validates the payload and returns the BullMQ job id", async () => {
@@ -52,5 +58,45 @@ describe("createJobClient", () => {
       } as never)
     ).rejects.toThrow()
     expect(add).not.toHaveBeenCalled()
+  })
+
+  it("applies queue defaults and a deterministic job ID", async () => {
+    add.mockResolvedValue({
+      id: "process-inbound-message--01JFXN7G8C2V1D7A0B3E4F5G6H",
+    })
+    const connection = {} as never
+    const client = createJobClient(connection)
+    const payload = {
+      organizationId: "01JFXN7G8C2V1D7A0B3E4F5G6H",
+      channelIdentityId: "01JFXN7G8C2V1D7A0B3E4F5G6J",
+      supportConversationId: "01JFXN7G8C2V1D7A0B3E4F5G6K",
+      messageId: "01JFXN7G8C2V1D7A0B3E4F5G6M",
+      senderAddress: "+5511999999999",
+      body: "sensitive",
+    }
+
+    await client.enqueue("process-inbound-message", payload)
+
+    expect(constructQueue).toHaveBeenCalledWith("support-conversations", {
+      connection,
+      defaultJobOptions: {
+        attempts: 4,
+        backoff: { type: "exponential", delay: 300_000 },
+        removeOnComplete: { age: 86_400, count: 1_000 },
+        removeOnFail: { age: 604_800 },
+      },
+    })
+    expect(add).toHaveBeenCalledWith(
+      "process-inbound-message",
+      {
+        organizationId: payload.organizationId,
+        channelIdentityId: payload.channelIdentityId,
+        supportConversationId: payload.supportConversationId,
+        messageId: payload.messageId,
+      },
+      {
+        jobId: `process-inbound-message--${payload.messageId}`,
+      }
+    )
   })
 })

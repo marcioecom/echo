@@ -7,7 +7,6 @@ export const emailQueueName = "email"
 export const emailJobNames = {
   sendInvitationEmail: "send-invitation-email",
 } as const
-export type EmailJobName = (typeof emailJobNames)[keyof typeof emailJobNames]
 
 export const sendInvitationEmailJobSchema = z.object({
   invitationId: ulidSchema,
