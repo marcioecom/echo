@@ -3,6 +3,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 
 import { BrandLogo } from "@/components/brand-logo"
+import { SignInButton } from "@/modules/auth/ui/components/sign-in-button"
 
 const workflow = [
   {
@@ -34,12 +35,7 @@ export function HomeView() {
           >
             How it works
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-3.5 text-sm font-medium text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/30"
-          >
-            Sign in
-          </Link>
+          <SignInButton className="h-9 px-3.5 text-sm" />
         </nav>
       </header>
 
