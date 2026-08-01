@@ -1,26 +1,16 @@
-import { emailQueueName } from "@workspace/jobs"
+import { emailQueueDefinition, emailQueueName } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import type { QueueOptions, WorkerOptions } from "bullmq"
-import { DEFAULT_JOB_OPTIONS } from "../config/job-options"
+
 import { env } from "../config/env"
 import { redisConnection } from "../lib/redis"
-import { QueueConfig } from "../types/queue-config"
+import type { QueueConfig } from "../types/queue-config"
 
 const logger = createLoggerWithContext("worker:queue:email")
-const queueConnection = { url: env.REDIS_URL }
 
 const emailQueueOptions: QueueOptions = {
-  connection: queueConnection,
-  defaultJobOptions: {
-    ...DEFAULT_JOB_OPTIONS,
-    removeOnComplete: {
-      age: 24 * 3600, // Keep completed jobs for 24 hours
-      count: 1000, // Keep max 1000 completed jobs
-    },
-    removeOnFail: {
-      age: 7 * 24 * 3600, // Keep failed jobs for 7 day
-    },
-  },
+  connection: { url: env.REDIS_URL },
+  defaultJobOptions: emailQueueDefinition.defaultJobOptions,
 }
 
 const emailWorkerOptions: WorkerOptions = {

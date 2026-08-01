@@ -5,7 +5,7 @@ const { postgres, redis } = vi.hoisted(() => ({
   redis: vi.fn(),
 }))
 
-vi.mock("./lib/db", () => ({ db: { check: postgres } }))
+vi.mock("./lib/db", () => ({ database: { check: postgres } }))
 vi.mock("./lib/redis", () => ({ pingRedis: redis }))
 
 import { createApp } from "./app"

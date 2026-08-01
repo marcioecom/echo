@@ -1,5 +1,5 @@
 import Fastify from "fastify"
-import { db } from "./lib/db"
+import { database } from "./lib/db"
 import { pingRedis } from "./lib/redis"
 import { createLoggerWithContext } from "@workspace/logger"
 
@@ -9,12 +9,11 @@ export function createApp() {
     loggerInstance: logger,
   })
 
-  app.get("/health/live", async () => ({ status: "ok" }))
-  app.get("/health/ready", async (_request, reply) => {
-    const checks = await Promise.allSettled([
-      db.check(),
-      pingRedis(),
-    ])
+  app.get("/health/live", { logLevel: "silent" }, async () => ({
+    status: "ok",
+  }))
+  app.get("/health/ready", { logLevel: "silent" }, async (_request, reply) => {
+    const checks = await Promise.allSettled([database.check(), pingRedis()])
     const [postgres, redis] = checks
     const body = {
       status: checks.every((check) => check.status === "fulfilled")

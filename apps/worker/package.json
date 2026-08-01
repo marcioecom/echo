@@ -9,8 +9,8 @@
     "lint": "eslint . --max-warnings 0",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src --exclude **/*.integration.test.ts",
-    "test:integration": "vitest run src/app.integration.test.ts"
+    "test": "vitest run src --exclude \"**/*.integration.test.ts\"",
+    "test:integration": "vitest run integration.test"
   },
   "dependencies": {
     "@getworkbench/fastify": "^0.9.1",
@@ -21,6 +21,7 @@
     "@workspace/jobs": "workspace:*",
     "@workspace/logger": "workspace:*",
     "bullmq": "^5.80.9",
+    "drizzle-orm": "^0.45.2",
     "fastify": "^5.10.0",
     "ioredis": "^5.11.1",
     "pino-pretty": "^13.1.3",

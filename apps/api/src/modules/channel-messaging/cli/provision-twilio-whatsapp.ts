@@ -1,13 +1,8 @@
+import { password } from "@inquirer/prompts"
 import { parseArgs } from "node:util"
 
-import { password } from "@inquirer/prompts"
-
-import { createChannelCredentialsCipher } from "../adapters/channel-credentials-cipher"
-import { createTwilioChannelProvider } from "../adapters/twilio-channel-provider"
-import { createChannelConnectionsRepository } from "../repositories/channel-connections-repository"
-import { createProvisionWhatsAppChannelConnection } from "../services/provision-whatsapp-channel-connection"
-import { env } from "../../../config/env"
 import { database } from "../../../lib/db"
+import { provisionWhatsAppChannelConnection } from "../use-cases/provision-whatsapp-channel-connection"
 import {
   formatProvisioningError,
   formatProvisioningFailure,
@@ -30,6 +25,7 @@ async function main(): Promise<void> {
       name: { type: "string" },
       address: { type: "string" },
       "account-sid": { type: "string" },
+      sandbox: { type: "boolean", default: false },
     },
     strict: true,
   })
@@ -42,21 +38,14 @@ async function main(): Promise<void> {
       }),
     readPipedInput,
   })
-  const provision = createProvisionWhatsAppChannelConnection({
-    repository: createChannelConnectionsRepository(database.db),
-    credentialsCipher: createChannelCredentialsCipher({
-      encryptionKey: env.CHANNEL_CREDENTIALS_ENCRYPTION_KEY,
-      keyVersion: env.CHANNEL_CREDENTIALS_KEY_VERSION,
-    }),
-    twilioProvider: createTwilioChannelProvider(),
-  })
 
-  const result = await provision({
+  const result = await provisionWhatsAppChannelConnection({
     organizationId: values["organization-id"] ?? "",
     name: values.name ?? "",
     address: values.address ?? "",
     accountSid: values["account-sid"] ?? "",
     authToken,
+    sandbox: values.sandbox,
   })
   process.stdout.write(`${JSON.stringify(result)}\n`)
 }

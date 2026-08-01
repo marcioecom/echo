@@ -3,7 +3,7 @@ import { createLoggerWithContext } from "@workspace/logger"
 import { Worker } from "bullmq"
 import { createApp } from "./app"
 import { env } from "./config/env"
-import { db } from "./lib/db"
+import { database } from "./lib/db"
 import { pingRedis, redisConnection } from "./lib/redis"
 import { getProcessor } from "./processors/registry"
 import { getAllQueues, queuesConfigs } from "./queues"
@@ -78,7 +78,7 @@ async function main(): Promise<void> {
       ["app.close", () => app.close()],
       ["workers.close", () => Promise.all(workers.map((w) => w.close()))],
       ["redis.quit", () => redisConnection.quit()],
-      ["database.close", () => db.close()],
+      ["database.close", () => database.close()],
     ]
 
     let failed = false
@@ -100,7 +100,7 @@ async function main(): Promise<void> {
   }
 
   try {
-    await db.check()
+    await database.check()
     await pingRedis()
 
     process.once("SIGINT", () => void shutdown("SIGINT"))

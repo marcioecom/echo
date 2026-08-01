@@ -1,8 +1,17 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
-import { createChannelCredentialsCipher } from "./channel-credentials-cipher"
+const { encryptionKey } = vi.hoisted(() => ({
+  encryptionKey: Buffer.alloc(32, 7).toString("base64"),
+}))
+vi.mock("../../../config/env", () => ({
+  env: {
+    CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKey,
+    CHANNEL_CREDENTIALS_KEY_VERSION: "v1",
+  },
+}))
 
-const encryptionKey = Buffer.alloc(32, 7).toString("base64")
+import { ChannelCredentialsCipher } from "./channel-credentials-cipher"
+
 const context = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
   channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
@@ -11,10 +20,7 @@ const context = {
 
 describe("channel credentials cipher", () => {
   it("round trips credentials with a fresh nonce", () => {
-    const cipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
-    })
+    const cipher = new ChannelCredentialsCipher()
 
     const first = cipher.encrypt("secret", context)
     const second = cipher.encrypt("secret", context)
@@ -25,10 +31,7 @@ describe("channel credentials cipher", () => {
   })
 
   it("rejects tampering and the wrong authenticated context", () => {
-    const cipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
-    })
+    const cipher = new ChannelCredentialsCipher()
     const encrypted = cipher.encrypt("secret", context)
 
     expect(() =>
@@ -49,10 +52,7 @@ describe("channel credentials cipher", () => {
   })
 
   it("rejects credentials encrypted with another key version", () => {
-    const cipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v2",
-    })
+    const cipher = new ChannelCredentialsCipher()
 
     expect(() =>
       cipher.decrypt(
@@ -60,7 +60,7 @@ describe("channel credentials cipher", () => {
           ciphertext: "",
           nonce: "",
           authTag: "",
-          keyVersion: "v1",
+          keyVersion: "v2",
         },
         context
       )

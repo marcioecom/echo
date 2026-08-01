@@ -22,7 +22,7 @@
     "db:studio": "NODE_OPTIONS=--conditions=development dotenv -e ../../apps/api/.env -- drizzle-kit studio",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src --exclude **/*.integration.test.ts --passWithNoTests",
+    "test": "vitest run src --exclude \"**/*.integration.test.ts\" --passWithNoTests",
     "test:integration": "vitest run src/schema/support.integration.test.ts"
   },
   "dependencies": {

@@ -13,6 +13,7 @@ import {
   channelConnections,
   channelIdentities,
   contacts,
+  messages,
   organizations,
   supportConversations,
 } from "./index"
@@ -236,6 +237,74 @@ describe("support schema invariants", () => {
         .update(auditEvents)
         .set({ eventType: "test.changed" })
         .where(eq(auditEvents.id, auditEventId))
+    ).rejects.toThrow()
+  })
+
+  it("enforces typed Message content", async () => {
+    const organizationId = await createOrganization("message-content")
+    const contactId = createId()
+    const channelIdentityId = createId()
+    const channelConnectionId = createId()
+    const supportConversationId = createId()
+    await database.db.insert(contacts).values({ id: contactId, organizationId })
+    await database.db.insert(channelIdentities).values({
+      id: channelIdentityId,
+      organizationId,
+      contactId,
+      channelType: "whatsapp",
+      address: "+5511777777777",
+    })
+    await database.db.insert(channelConnections).values({
+      id: channelConnectionId,
+      organizationId,
+      channelType: "whatsapp",
+      name: "Support",
+      address: "+5511000000004",
+      status: "active",
+    })
+    await database.db.insert(supportConversations).values({
+      id: supportConversationId,
+      organizationId,
+      channelIdentityId,
+      channelConnectionId,
+    })
+    const baseMessage = {
+      organizationId,
+      supportConversationId,
+      channelConnectionId,
+      direction: "inbound" as const,
+      senderType: "contact" as const,
+      status: "received" as const,
+      occurredAt: new Date(),
+    }
+
+    await expect(
+      database.db.insert(messages).values({
+        ...baseMessage,
+        contentType: "text",
+        body: "Help",
+      })
+    ).resolves.toBeDefined()
+    await expect(
+      database.db.insert(messages).values({
+        ...baseMessage,
+        contentType: "unsupported",
+        body: null,
+      })
+    ).resolves.toBeDefined()
+    await expect(
+      database.db.insert(messages).values({
+        ...baseMessage,
+        contentType: "text",
+        body: null,
+      })
+    ).rejects.toThrow()
+    await expect(
+      database.db.insert(messages).values({
+        ...baseMessage,
+        contentType: "unsupported",
+        body: "invented text",
+      })
     ).rejects.toThrow()
   })
 })

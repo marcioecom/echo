@@ -12,17 +12,43 @@ import { createId } from "@workspace/domain"
 import { count, eq } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import twilio from "twilio"
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { createChannelCredentialsCipher } from "./adapters/channel-credentials-cipher"
-import { TwilioConfigurationError } from "./adapters/twilio-channel-provider"
-import { createChannelConnectionsRepository } from "./repositories/channel-connections-repository"
-import { createAuthenticateTwilioWebhook } from "./services/authenticate-twilio-webhook"
-import { createProvisionWhatsAppChannelConnection } from "./services/provision-whatsapp-channel-connection"
+const { databaseRef, ingestInboundMessage } = vi.hoisted(() => ({
+  databaseRef: { current: {} as object },
+  ingestInboundMessage: vi.fn(),
+}))
+vi.mock("../../config/env", () => ({
+  env: {
+    CHANNEL_CREDENTIALS_ENCRYPTION_KEY: Buffer.alloc(32, 9).toString("base64"),
+    CHANNEL_CREDENTIALS_KEY_VERSION: "v1",
+  },
+}))
+vi.mock("../../lib/db", () => ({
+  database: {
+    db: new Proxy(
+      {},
+      {
+        get: (_target, property) => Reflect.get(databaseRef.current, property),
+      }
+    ),
+  },
+}))
+vi.mock("./use-cases/ingest-inbound-message", () => ({
+  ingestInboundMessage,
+}))
+
+import { ChannelCredentialsCipher } from "./adapters/channel-credentials-cipher"
+import {
+  TwilioChannelProvider,
+  TwilioConfigurationError,
+} from "./adapters/twilio-channel-provider"
+import { ChannelConnectionsRepository } from "./repositories/channel-connections-repository"
+import { processTwilioInboundMessage } from "./use-cases/process-twilio-inbound-message"
+import { provisionWhatsAppChannelConnection } from "./use-cases/provision-whatsapp-channel-connection"
 
 describe("Twilio WhatsApp Channel Connection", () => {
   const container = new PostgreSqlContainer("postgres:17-alpine")
-  const encryptionKey = Buffer.alloc(32, 9).toString("base64")
   const authToken = "twilio-auth-token"
   const accountSid = "AC11111111111111111111111111111111"
   const address = "+5511999999999"
@@ -33,6 +59,7 @@ describe("Twilio WhatsApp Channel Connection", () => {
     const postgres = await container.start()
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
+    databaseRef.current = database.db
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })
@@ -40,6 +67,11 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   afterAll(async () => {
     await Promise.allSettled([database?.close(), stop?.()])
+  })
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    ingestInboundMessage.mockReset()
   })
 
   async function createOrganization(slug: string): Promise<string> {
@@ -56,19 +88,13 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("provisions one encrypted, routable connection idempotently", async () => {
     const organizationId = await createOrganization("provisioned-channel")
-    const repository = createChannelConnectionsRepository(database.db)
-    const credentialsCipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
-    })
-    const verifyWhatsAppSender = vi.fn().mockResolvedValue({
-      externalSenderId: "XE11111111111111111111111111111111",
-    })
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher,
-      twilioProvider: { verifyWhatsAppSender },
-    })
+    const credentialsCipher = new ChannelCredentialsCipher()
+    const verifyWhatsAppSender = vi
+      .spyOn(TwilioChannelProvider.prototype, "verifyWhatsAppSender")
+      .mockResolvedValue({
+        externalSenderId: "XE11111111111111111111111111111111",
+      })
+    const provision = provisionWhatsAppChannelConnection
     const input = {
       organizationId,
       name: "WhatsApp Support",
@@ -135,25 +161,18 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("disables the previous route when replacing the WhatsApp address", async () => {
     const organizationId = await createOrganization("replaced-channel")
-    const repository = createChannelConnectionsRepository(database.db)
-    const credentialsCipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
-    })
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher,
-      twilioProvider: {
-        verifyWhatsAppSender: vi
-          .fn()
-          .mockResolvedValueOnce({
-            externalSenderId: "XE55555555555555555555555555555555",
-          })
-          .mockResolvedValueOnce({
-            externalSenderId: "XE66666666666666666666666666666666",
-          }),
-      },
-    })
+    const repository = new ChannelConnectionsRepository(database.db)
+    vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    )
+      .mockResolvedValueOnce({
+        externalSenderId: "XE55555555555555555555555555555555",
+      })
+      .mockResolvedValueOnce({
+        externalSenderId: "XE66666666666666666666666666666666",
+      })
+    const provision = provisionWhatsAppChannelConnection
     const first = await provision({
       organizationId,
       name: "Old number",
@@ -189,25 +208,15 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("preserves the active route when replacement validation fails", async () => {
     const organizationId = await createOrganization("failed-replacement")
-    const repository = createChannelConnectionsRepository(database.db)
-    const credentialsCipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
-    })
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher,
-      twilioProvider: {
-        verifyWhatsAppSender: vi
-          .fn()
-          .mockResolvedValueOnce({
-            externalSenderId: "XE77777777777777777777777777777777",
-          })
-          .mockRejectedValueOnce(
-            new TwilioConfigurationError("sender_not_online")
-          ),
-      },
-    })
+    vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    )
+      .mockResolvedValueOnce({
+        externalSenderId: "XE77777777777777777777777777777777",
+      })
+      .mockRejectedValueOnce(new TwilioConfigurationError("sender_not_online"))
+    const provision = provisionWhatsAppChannelConnection
     const current = await provision({
       organizationId,
       name: "Current",
@@ -236,19 +245,13 @@ describe("Twilio WhatsApp Channel Connection", () => {
   it("rolls back the connection when its provider routing key conflicts", async () => {
     const firstOrganizationId = await createOrganization("routing-owner")
     const secondOrganizationId = await createOrganization("routing-conflict")
-    const repository = createChannelConnectionsRepository(database.db)
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher: createChannelCredentialsCipher({
-        encryptionKey,
-        keyVersion: "v1",
-      }),
-      twilioProvider: {
-        verifyWhatsAppSender: vi.fn().mockResolvedValue({
-          externalSenderId: "XE99999999999999999999999999999999",
-        }),
-      },
+    vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    ).mockResolvedValue({
+      externalSenderId: "XE99999999999999999999999999999999",
     })
+    const provision = provisionWhatsAppChannelConnection
     const sharedRouting = {
       name: "Shared route",
       address: "+5511333333333",
@@ -275,19 +278,11 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("audits provider validation failures without activating a connection", async () => {
     const organizationId = await createOrganization("invalid-channel")
-    const repository = createChannelConnectionsRepository(database.db)
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher: createChannelCredentialsCipher({
-        encryptionKey,
-        keyVersion: "v1",
-      }),
-      twilioProvider: {
-        verifyWhatsAppSender: vi
-          .fn()
-          .mockRejectedValue(new TwilioConfigurationError("sender_not_online")),
-      },
-    })
+    vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    ).mockRejectedValue(new TwilioConfigurationError("sender_not_online"))
+    const provision = provisionWhatsAppChannelConnection
 
     await expect(
       provision({
@@ -320,15 +315,11 @@ describe("Twilio WhatsApp Channel Connection", () => {
       .update(organizations)
       .set({ status: "archived", archivedAt: new Date() })
       .where(eq(organizations.id, organizationId))
-    const verifyWhatsAppSender = vi.fn()
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository: createChannelConnectionsRepository(database.db),
-      credentialsCipher: createChannelCredentialsCipher({
-        encryptionKey,
-        keyVersion: "v1",
-      }),
-      twilioProvider: { verifyWhatsAppSender },
-    })
+    const verifyWhatsAppSender = vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    )
+    const provision = provisionWhatsAppChannelConnection
 
     await expect(
       provision({
@@ -344,20 +335,13 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("resolves and signature-validates a provisioned webhook", async () => {
     const organizationId = await createOrganization("signed-webhook")
-    const repository = createChannelConnectionsRepository(database.db)
-    const credentialsCipher = createChannelCredentialsCipher({
-      encryptionKey,
-      keyVersion: "v1",
+    vi.spyOn(
+      TwilioChannelProvider.prototype,
+      "verifyWhatsAppSender"
+    ).mockResolvedValue({
+      externalSenderId: "XE33333333333333333333333333333333",
     })
-    const provision = createProvisionWhatsAppChannelConnection({
-      repository,
-      credentialsCipher,
-      twilioProvider: {
-        verifyWhatsAppSender: vi.fn().mockResolvedValue({
-          externalSenderId: "XE33333333333333333333333333333333",
-        }),
-      },
-    })
+    const provision = provisionWhatsAppChannelConnection
     const connection = await provision({
       organizationId,
       name: "Signed",
@@ -365,53 +349,91 @@ describe("Twilio WhatsApp Channel Connection", () => {
       accountSid: "AC33333333333333333333333333333333",
       authToken,
     })
-    const authenticate = createAuthenticateTwilioWebhook({
-      repository,
-      credentialsCipher,
-    })
     const url = "https://api.example.com/webhooks/twilio/whatsapp/inbound"
     const form = {
+      MessageSid: "SM33333333333333333333333333333333",
       AccountSid: "AC33333333333333333333333333333333",
       To: `whatsapp:${address}`,
       From: "whatsapp:+5511888888888",
       Body: "Hello",
+      NumMedia: "0",
     }
     const signature = twilio.getExpectedTwilioSignature(authToken, url, form)
-
-    await expect(authenticate({ signature, url, form })).resolves.toMatchObject(
-      {
+    ingestInboundMessage.mockResolvedValue({
+      ok: true,
+      value: {
         organizationId,
         channelConnectionId: connection.channelConnectionId,
-        address,
-      }
+        contactId: createId(),
+        channelIdentityId: createId(),
+        supportConversationId: createId(),
+        messageId: createId(),
+        duplicate: false,
+        jobId: "job-id",
+      },
+    })
+
+    await expect(
+      processTwilioInboundMessage({
+        signature,
+        url,
+        form,
+        receivedAt: new Date(),
+      })
+    ).resolves.toMatchObject({ ok: true })
+    expect(ingestInboundMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId,
+        channelConnectionId: connection.channelConnectionId,
+      })
     )
     await expect(
-      authenticate({ signature: "invalid", url, form })
-    ).rejects.toMatchObject({ reason: "invalid_signature" })
+      processTwilioInboundMessage({
+        signature: "invalid",
+        url,
+        form,
+        receivedAt: new Date(),
+      })
+    ).resolves.toEqual({
+      ok: false,
+      error: { type: "rejected", reason: "invalid_signature" },
+    })
     await expect(
-      authenticate({
+      processTwilioInboundMessage({
         signature,
         url,
         form: { ...form, Body: "Tampered" },
+        receivedAt: new Date(),
       })
-    ).rejects.toMatchObject({ reason: "invalid_signature" })
+    ).resolves.toEqual({
+      ok: false,
+      error: { type: "rejected", reason: "invalid_signature" },
+    })
     await expect(
-      authenticate({
+      processTwilioInboundMessage({
         signature: twilio.getExpectedTwilioSignature("wrong-token", url, form),
         url,
         form,
+        receivedAt: new Date(),
       })
-    ).rejects.toMatchObject({ reason: "invalid_signature" })
+    ).resolves.toEqual({
+      ok: false,
+      error: { type: "rejected", reason: "invalid_signature" },
+    })
     await expect(
-      authenticate({
+      processTwilioInboundMessage({
         signature,
         url,
         form: {
           ...form,
           AccountSid: "AC99999999999999999999999999999999",
         },
+        receivedAt: new Date(),
       })
-    ).rejects.toMatchObject({ reason: "unknown_connection" })
+    ).resolves.toEqual({
+      ok: false,
+      error: { type: "rejected", reason: "unknown_connection" },
+    })
 
     const invalidSignatureAudits = await database.db
       .select()

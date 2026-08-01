@@ -45,7 +45,7 @@ describe("worker readiness with real dependencies", () => {
       import("./lib/redis"),
     ])
     app = appModule.createApp()
-    database = dbModule.db
+    database = dbModule.database
     redis = redisModule.redisConnection
   }, 60_000)
 

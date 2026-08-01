@@ -6,18 +6,19 @@
   "scripts": {
     "auth:schema:generate": "NODE_OPTIONS='--conditions=development --env-file=.env' auth generate --config src/modules/auth/auth-cli-config.ts --output ../../packages/db/src/schema/auth.ts --yes",
     "build": "tsup",
-    "channel:provision:twilio": "tsx --env-file=.env src/modules/channel-connections/cli/provision-twilio-whatsapp.ts",
+    "channel:provision:twilio": "tsx --env-file=.env src/modules/channel-messaging/cli/provision-twilio-whatsapp.ts",
     "dev": "tsx watch --conditions=development --env-file=.env src/main.ts",
     "lint": "eslint . --max-warnings 0",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src --exclude **/*.integration.test.ts",
+    "test": "vitest run src --exclude \"**/*.integration.test.ts\"",
     "test:integration": "vitest run integration.test"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.23",
     "@fastify/cors": "^11.2.0",
     "@fastify/formbody": "^8.0.2",
+    "@fastify/rate-limit": "^11.2.0",
     "@inquirer/prompts": "^8.5.2",
     "@workspace/auth": "workspace:*",
     "@workspace/config": "workspace:*",

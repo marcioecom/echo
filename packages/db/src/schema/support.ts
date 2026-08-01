@@ -1,9 +1,10 @@
 import {
 	type ActorType,
-	type ChannelProvider,
 	type ChannelConnectionStatus,
+	type ChannelProvider,
 	type ChannelType,
 	createId,
+	type MessageContentType,
 	type MessageDirection,
 	type MessageStatus,
 	type SupportConversationStatus,
@@ -239,7 +240,11 @@ export const messages = pgTable(
 		operatorUserId: text("operator_user_id").references(() => users.id, {
 			onDelete: "restrict",
 		}),
-		body: text("body").notNull(),
+		contentType: text("content_type")
+			.$type<MessageContentType>()
+			.default("text")
+			.notNull(),
+		body: text("body"),
 		status: text("status").$type<MessageStatus>().notNull(),
 		externalMessageId: text("external_message_id"),
 		occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
@@ -272,7 +277,18 @@ export const messages = pgTable(
 			table.occurredAt,
 			table.id
 		),
-		check("messages_body_check", sql`length(btrim(${table.body})) > 0`),
+		check(
+			"messages_content_type_check",
+			sql`${table.contentType} in ('text', 'unsupported')`
+		),
+		check(
+			"messages_content_body_check",
+			sql`(${table.contentType} = 'text' and ${table.body} is not null and length(btrim(${table.body})) > 0) or (${table.contentType} = 'unsupported' and ${table.body} is null)`
+		),
+		check(
+			"messages_unsupported_inbound_check",
+			sql`${table.contentType} <> 'unsupported' or (${table.direction} = 'inbound' and ${table.senderType} = 'contact' and ${table.status} = 'received')`
+		),
 		check(
 			"messages_operator_check",
 			sql`(${table.senderType} = 'operator' and ${table.operatorUserId} is not null) or (${table.senderType} <> 'operator' and ${table.operatorUserId} is null)`
