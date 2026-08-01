@@ -1,12 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { authenticateWebhook, ingestInboundMessage, postgres, redis } =
-  vi.hoisted(() => ({
-    authenticateWebhook: vi.fn(),
-    ingestInboundMessage: vi.fn(),
-    postgres: vi.fn(),
-    redis: vi.fn(),
-  }))
+const { processTwilioInboundMessage, postgres, redis } = vi.hoisted(() => ({
+  processTwilioInboundMessage: vi.fn(),
+  postgres: vi.fn(),
+  redis: vi.fn(),
+}))
 
 vi.mock("./config/env", () => ({
   env: {
@@ -23,16 +21,11 @@ vi.mock("./lib/jobs-client", () => ({ jobs: { enqueue: vi.fn() } }))
 vi.mock("./lib/redis", () => ({ pingRedis: redis }))
 vi.mock("./modules/auth/auth", () => ({ auth: {} }))
 vi.mock(
-  "./modules/channel-connections/services/authenticate-twilio-webhook",
+  "./modules/inbound-messages/use-cases/process-twilio-inbound-message",
   () => ({
-    createAuthenticateTwilioWebhook: () => authenticateWebhook,
-    TwilioWebhookRejectedError: class extends Error {},
+    processTwilioInboundMessage,
   })
 )
-vi.mock("./modules/messages/services/ingest-inbound-message", () => ({
-  ingestInboundMessage,
-  InboundMessageEnqueueError: class extends Error {},
-}))
 
 import { createApp } from "./app"
 
@@ -40,8 +33,7 @@ describe("API health", () => {
   beforeEach(() => {
     postgres.mockReset()
     redis.mockReset()
-    authenticateWebhook.mockReset()
-    ingestInboundMessage.mockReset()
+    processTwilioInboundMessage.mockReset()
   })
 
   it("separates liveness from dependency readiness", async () => {
@@ -62,20 +54,18 @@ describe("API health", () => {
     await app.close()
   })
 
-  it("wires authenticated inbound Messages to ingestion", async () => {
-    authenticateWebhook.mockImplementation(async ({ form }) => ({
-      organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
-      channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
-      channelType: "whatsapp",
-      address: "+5511999999999",
-      form,
-    }))
-    ingestInboundMessage.mockResolvedValue({
-      organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
-      channelIdentityId: "01K1EDN69NFBWCG42B2H99V2C2",
-      supportConversationId: "01K1EDN69NFBWCG42B2H99V2C3",
-      messageId: "01K1EDN69NFBWCG42B2H99V2C4",
-      jobId: "process-inbound-message--01K1EDN69NFBWCG42B2H99V2C4",
+  it("wires inbound Messages to the module use case", async () => {
+    processTwilioInboundMessage.mockResolvedValue({
+      ok: true,
+      value: {
+        organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
+        contactId: "01K1EDN69NFBWCG42B2H99V2C2",
+        channelIdentityId: "01K1EDN69NFBWCG42B2H99V2C3",
+        supportConversationId: "01K1EDN69NFBWCG42B2H99V2C4",
+        messageId: "01K1EDN69NFBWCG42B2H99V2C5",
+        duplicate: false,
+        jobId: "process-inbound-message--01K1EDN69NFBWCG42B2H99V2C4",
+      },
     })
     const app = createApp()
 
@@ -91,7 +81,27 @@ describe("API health", () => {
     })
 
     expect(response.statusCode).toBe(200)
-    expect(ingestInboundMessage).toHaveBeenCalledOnce()
+    expect(processTwilioInboundMessage).toHaveBeenCalledOnce()
+    await app.close()
+  })
+
+  it("sanitizes unexpected inbound webhook failures", async () => {
+    processTwilioInboundMessage.mockRejectedValue(new Error("internal detail"))
+    const app = createApp()
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/webhooks/twilio/whatsapp/inbound",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-twilio-signature": "signature",
+      },
+      payload: "AccountSid=AC11111111111111111111111111111111",
+    })
+
+    expect(response.statusCode).toBe(503)
+    expect(response.json()).toEqual({ error: "webhook_processing_unavailable" })
+    expect(response.body).not.toContain("internal detail")
     await app.close()
   })
 })
