@@ -23,6 +23,7 @@ describe("Twilio WhatsApp webhook route", () => {
       ok: true,
       value: {
         organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
+        channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
         contactId: "01K1EDN69NFBWCG42B2H99V2C2",
         channelIdentityId: "01K1EDN69NFBWCG42B2H99V2C3",
         supportConversationId: "01K1EDN69NFBWCG42B2H99V2C4",
@@ -79,18 +80,21 @@ describe("Twilio WhatsApp webhook route", () => {
   })
 
   it("returns a generic 503 for queue unavailability", async () => {
+    const cause = new Error("Redis unavailable")
     processTwilioInboundMessage.mockResolvedValue({
       ok: false,
       error: {
         type: "queue_unavailable",
         ingested: {
           organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
+          channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
           contactId: "01K1EDN69NFBWCG42B2H99V2C2",
           channelIdentityId: "01K1EDN69NFBWCG42B2H99V2C3",
           supportConversationId: "01K1EDN69NFBWCG42B2H99V2C4",
           messageId: "01K1EDN69NFBWCG42B2H99V2C5",
           duplicate: false,
         },
+        cause,
       },
     })
     const app = Fastify()
@@ -109,6 +113,32 @@ describe("Twilio WhatsApp webhook route", () => {
 
     expect(response.statusCode).toBe(503)
     expect(response.json()).toEqual({ error: "webhook_processing_unavailable" })
+    expect(response.body).not.toContain(cause.message)
+    await app.close()
+  })
+
+  it("returns a generic 403 for a rejected webhook", async () => {
+    processTwilioInboundMessage.mockResolvedValue({
+      ok: false,
+      error: { type: "rejected", reason: "invalid_signature" },
+    })
+    const app = Fastify()
+    app.register(formbody)
+    registerInboundMessageRoutes(app)
+
+    const response = await app.inject({
+      method: "POST",
+      url: "/webhooks/twilio/whatsapp/inbound",
+      headers: {
+        "content-type": "application/x-www-form-urlencoded",
+        "x-twilio-signature": "invalid",
+      },
+      payload: "AccountSid=AC11111111111111111111111111111111",
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json()).toEqual({ error: "webhook_rejected" })
+    expect(response.body).not.toContain("invalid_signature")
     await app.close()
   })
 })

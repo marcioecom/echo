@@ -1,9 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("../../../lib/db", () => ({ database: { db: {} } }))
-vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue: vi.fn() } }))
+const { enqueue, logError, logInfo, repositoryIngest } = vi.hoisted(() => ({
+  enqueue: vi.fn(),
+  logError: vi.fn(),
+  logInfo: vi.fn(),
+  repositoryIngest: vi.fn(),
+}))
 
-import { createIngestInboundMessage } from "./ingest-inbound-message"
+vi.mock("@workspace/logger", () => ({
+  createLoggerWithContext: () => ({ error: logError, info: logInfo }),
+}))
+vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("../repositories/inbound-message-repository", () => ({
+  inboundMessageRepository: { ingest: repositoryIngest },
+}))
+
+import { ingestInboundMessage } from "./ingest-inbound-message"
 
 const input = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
@@ -16,6 +28,7 @@ const input = {
 }
 const ingested = {
   organizationId: input.organizationId,
+  channelConnectionId: input.channelConnectionId,
   contactId: "01K1EDN69NFBWCG42B2H99V2C2",
   channelIdentityId: "01K1EDN69NFBWCG42B2H99V2C3",
   supportConversationId: "01K1EDN69NFBWCG42B2H99V2C4",
@@ -24,41 +37,49 @@ const ingested = {
 }
 
 describe("ingestInboundMessage", () => {
-  const persist = vi.fn()
-  const enqueue = vi.fn()
-  const ingestInboundMessage = createIngestInboundMessage({
-    repository: { persist },
-    enqueue,
-  })
-
   beforeEach(() => {
-    enqueue.mockReset()
-    persist.mockReset()
+    vi.clearAllMocks()
   })
 
   it("publishes an IDs-only job after persistence", async () => {
-    persist.mockResolvedValue(ingested)
+    repositoryIngest.mockResolvedValue(ingested)
     enqueue.mockResolvedValue({ id: "job-id" })
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: true,
       value: { ...ingested, jobId: "job-id" },
     })
+    expect(repositoryIngest).toHaveBeenCalledWith(input)
     expect(enqueue).toHaveBeenCalledWith("process-inbound-message", {
       organizationId: ingested.organizationId,
       channelIdentityId: ingested.channelIdentityId,
       supportConversationId: ingested.supportConversationId,
       messageId: ingested.messageId,
     })
+    expect(repositoryIngest.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueue.mock.invocationCallOrder[0]!
+    )
+    expect(logInfo).toHaveBeenCalledWith(
+      "Inbound Message ingested",
+      expect.objectContaining({
+        channelConnectionId: ingested.channelConnectionId,
+        jobId: "job-id",
+      })
+    )
   })
 
-  it("preserves committed IDs when enqueue fails", async () => {
-    persist.mockResolvedValue(ingested)
-    enqueue.mockRejectedValue(new Error("Redis unavailable"))
+  it("preserves committed IDs and the cause when enqueue fails", async () => {
+    const cause = new Error("Redis unavailable")
+    repositoryIngest.mockResolvedValue(ingested)
+    enqueue.mockRejectedValue(cause)
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: false,
-      error: { type: "queue_unavailable", ingested },
+      error: { type: "queue_unavailable", ingested, cause },
     })
+    expect(logError).toHaveBeenCalledWith(
+      "Inbound Message processing failed",
+      expect.objectContaining({ err: cause, messageId: ingested.messageId })
+    )
   })
 })

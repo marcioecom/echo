@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
-import { createTwilioChannelProvider } from "./twilio-channel-provider"
+import { TwilioChannelProvider } from "./twilio-channel-provider"
 
 const input = {
   accountSid: "AC11111111111111111111111111111111",
@@ -10,34 +10,38 @@ const input = {
 
 describe("Twilio channel provider", () => {
   it("accepts an online WhatsApp sender owned by the subaccount", async () => {
-    const listSenders = vi.fn().mockResolvedValue([
+    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const listSenders = vi.spyOn(provider, "listSenders").mockResolvedValue([
       {
         sid: "XE11111111111111111111111111111111",
         senderId: "whatsapp:+5511999999999",
         status: "ONLINE",
       },
-    ])
-    const provider = createTwilioChannelProvider({ listSenders })
+    ] as never)
 
     await expect(provider.verifyWhatsAppSender(input)).resolves.toEqual({
       externalSenderId: "XE11111111111111111111111111111111",
     })
-    expect(listSenders).toHaveBeenCalledWith(input.accountSid, input.authToken)
+    expect(listSenders).toHaveBeenCalledWith()
   })
 
   it("rejects missing and non-online senders", async () => {
-    const missingProvider = createTwilioChannelProvider({
-      listSenders: vi.fn().mockResolvedValue([]),
-    })
-    const offlineProvider = createTwilioChannelProvider({
-      listSenders: vi.fn().mockResolvedValue([
-        {
-          sid: "XE11111111111111111111111111111111",
-          senderId: "whatsapp:+5511999999999",
-          status: "OFFLINE",
-        },
-      ]),
-    })
+    const missingProvider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
+    vi.spyOn(missingProvider, "listSenders").mockResolvedValue([])
+    const offlineProvider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
+    vi.spyOn(offlineProvider, "listSenders").mockResolvedValue([
+      {
+        sid: "XE11111111111111111111111111111111",
+        senderId: "whatsapp:+5511999999999",
+        status: "OFFLINE",
+      },
+    ] as never)
 
     await expect(
       missingProvider.verifyWhatsAppSender(input)
@@ -48,14 +52,13 @@ describe("Twilio channel provider", () => {
   })
 
   it("redacts provider failures behind a stable error", async () => {
-    const provider = createTwilioChannelProvider({
-      listSenders: vi
-        .fn()
-        .mockRejectedValue(new Error("secret provider detail")),
-    })
+    const cause = new Error("secret provider detail")
+    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    vi.spyOn(provider, "listSenders").mockRejectedValue(cause)
 
     await expect(provider.verifyWhatsAppSender(input)).rejects.toEqual(
       expect.objectContaining({
+        cause,
         message: "Twilio WhatsApp configuration could not be verified",
         reason: "provider_request_failed",
       })
@@ -63,15 +66,12 @@ describe("Twilio channel provider", () => {
   })
 
   it("verifies the shared Sandbox through the owning Twilio Account", async () => {
-    const listSenders = vi.fn().mockResolvedValue([])
-    const fetchAccount = vi.fn().mockResolvedValue({
+    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const listSenders = vi.spyOn(provider, "listSenders")
+    const fetchAccount = vi.spyOn(provider, "fetchAccount").mockResolvedValue({
       sid: input.accountSid,
       status: "active",
-    })
-    const provider = createTwilioChannelProvider({
-      listSenders,
-      fetchAccount,
-    })
+    } as never)
 
     await expect(
       provider.verifyWhatsAppSender({
@@ -80,13 +80,13 @@ describe("Twilio channel provider", () => {
         sandbox: true,
       })
     ).resolves.toEqual({ externalSenderId: input.accountSid })
-    expect(fetchAccount).toHaveBeenCalledWith(input.accountSid, input.authToken)
+    expect(fetchAccount).toHaveBeenCalledWith()
     expect(listSenders).not.toHaveBeenCalled()
   })
 
   it("rejects Sandbox mode for any other address", async () => {
-    const fetchAccount = vi.fn()
-    const provider = createTwilioChannelProvider({ fetchAccount })
+    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const fetchAccount = vi.spyOn(provider, "fetchAccount")
 
     await expect(
       provider.verifyWhatsAppSender({ ...input, sandbox: true })

@@ -22,18 +22,20 @@ const { databaseRef, enqueue } = vi.hoisted(() => ({
 }))
 
 vi.mock("../../lib/db", () => ({
-  database: new Proxy(
-    {},
-    {
-      get: (_target, property) => Reflect.get(databaseRef.current, property),
-    }
-  ),
+  database: {
+    db: new Proxy(
+      {},
+      {
+        get: (_target, property) => Reflect.get(databaseRef.current, property),
+      }
+    ),
+  },
 }))
 vi.mock("../../lib/jobs-client", () => ({ jobs: { enqueue } }))
 
 import { InboundMessageRepository } from "./repositories/inbound-message-repository"
 import type { NormalizedInboundMessage } from "@workspace/domain"
-import { createIngestInboundMessage } from "./use-cases/ingest-inbound-message"
+import { ingestInboundMessage } from "./use-cases/ingest-inbound-message"
 
 describe("inbound Message persistence", () => {
   const container = new PostgreSqlContainer("postgres:17-alpine")
@@ -44,7 +46,7 @@ describe("inbound Message persistence", () => {
     const postgres = await container.start()
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
-    databaseRef.current = database
+    databaseRef.current = database.db
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })
@@ -313,17 +315,13 @@ describe("inbound Message persistence", () => {
       if (enqueueAttempts++ === 0) throw new Error("Redis unavailable")
       return { id: "process-inbound-message--retry" }
     })
-    const ingest = createIngestInboundMessage({
-      repository: new InboundMessageRepository(database.db),
-      enqueue,
-    })
     const input = inbound(
       { organizationId, channelConnectionId },
       "SM99999999999999999999999999999999",
       new Date("2026-07-30T12:00:00.000Z")
     )
-    const failed = await ingest(input)
-    const retried = await ingest(input)
+    const failed = await ingestInboundMessage(input)
+    const retried = await ingestInboundMessage(input)
 
     expect(failed).toMatchObject({
       ok: false,
