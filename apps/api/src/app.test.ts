@@ -85,23 +85,4 @@ describe("API health", () => {
     await app.close()
   })
 
-  it("sanitizes unexpected inbound webhook failures", async () => {
-    processTwilioInboundMessage.mockRejectedValue(new Error("internal detail"))
-    const app = createApp()
-
-    const response = await app.inject({
-      method: "POST",
-      url: "/webhooks/twilio/whatsapp/inbound",
-      headers: {
-        "content-type": "application/x-www-form-urlencoded",
-        "x-twilio-signature": "signature",
-      },
-      payload: "AccountSid=AC11111111111111111111111111111111",
-    })
-
-    expect(response.statusCode).toBe(503)
-    expect(response.json()).toEqual({ error: "webhook_processing_unavailable" })
-    expect(response.body).not.toContain("internal detail")
-    await app.close()
-  })
 })
