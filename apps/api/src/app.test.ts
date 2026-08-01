@@ -21,7 +21,7 @@ vi.mock("./lib/jobs-client", () => ({ jobs: { enqueue: vi.fn() } }))
 vi.mock("./lib/redis", () => ({ pingRedis: redis }))
 vi.mock("./modules/auth/auth", () => ({ auth: {} }))
 vi.mock(
-  "./modules/inbound-messages/use-cases/process-twilio-inbound-message",
+  "./modules/channel-messaging/use-cases/process-twilio-inbound-message",
   () => ({
     processTwilioInboundMessage,
   })

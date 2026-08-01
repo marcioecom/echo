@@ -12,12 +12,14 @@ import { createId } from "@workspace/domain"
 import { and, eq, isNull, sql } from "drizzle-orm"
 
 import { database } from "../../../lib/db"
-import type { InboundChannelMessage, IngestedInboundMessage } from "../types"
+import type { NormalizedInboundMessage } from "@workspace/domain"
+
+import type { IngestedInboundMessage } from "../types"
 
 export class InboundMessageRepository {
   constructor(private readonly db: Database = database.db) {}
 
-  async persist(input: InboundChannelMessage): Promise<IngestedInboundMessage> {
+  async ingest(input: NormalizedInboundMessage): Promise<IngestedInboundMessage> {
     return this.db.transaction(async (transaction) => {
       const [activeConnection] = await transaction
         .select({ id: channelConnections.id })
@@ -87,6 +89,7 @@ export class InboundMessageRepository {
       if (existingMessage) {
         return {
           organizationId: input.organizationId,
+          channelConnectionId: input.channelConnectionId,
           ...existingMessage,
           duplicate: true,
         }
@@ -209,6 +212,7 @@ export class InboundMessageRepository {
 
       return {
         organizationId: input.organizationId,
+        channelConnectionId: input.channelConnectionId,
         contactId: identity.contactId,
         channelIdentityId: identity.id,
         supportConversationId: conversation.id,
