@@ -30,6 +30,7 @@ async function main(): Promise<void> {
       name: { type: "string" },
       address: { type: "string" },
       "account-sid": { type: "string" },
+      sandbox: { type: "boolean", default: false },
     },
     strict: true,
   })
@@ -57,6 +58,7 @@ async function main(): Promise<void> {
     address: values.address ?? "",
     accountSid: values["account-sid"] ?? "",
     authToken,
+    sandbox: values.sandbox,
   })
   process.stdout.write(`${JSON.stringify(result)}\n`)
 }

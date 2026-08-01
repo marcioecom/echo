@@ -19,6 +19,7 @@ export const provisionTwilioWhatsAppSchema = z.object({
   address: z.string().transform(normalizeWhatsAppAddress),
   accountSid: twilioAccountSidSchema,
   authToken: z.string().min(1),
+  sandbox: z.boolean().default(false),
 })
 
 export type ProvisionTwilioWhatsAppInput = z.input<

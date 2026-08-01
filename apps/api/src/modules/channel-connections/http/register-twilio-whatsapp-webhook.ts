@@ -1,7 +1,15 @@
 import type { FastifyInstance } from "fastify"
 
+import {
+  normalizeTwilioInboundMessage,
+  TwilioInboundMessageNormalizationError,
+} from "../adapters/normalize-twilio-inbound-message"
 import { twilioWebhookFormSchema } from "../schemas"
 import { TwilioWebhookRejectedError } from "../services/authenticate-twilio-webhook"
+import {
+  ingestInboundMessage,
+  InboundMessageEnqueueError,
+} from "../../messages/services/ingest-inbound-message"
 
 export interface AuthenticatedTwilioWebhook {
   organizationId: string
@@ -20,7 +28,6 @@ export function registerTwilioWhatsAppWebhook(
       url: string
       form: Record<string, string>
     }) => Promise<AuthenticatedTwilioWebhook>
-    onAuthenticated?: (webhook: AuthenticatedTwilioWebhook) => Promise<void>
   }
 ): void {
   app.post(
@@ -34,6 +41,7 @@ export function registerTwilioWhatsAppWebhook(
       },
     },
     async (request, reply) => {
+      const receivedAt = new Date()
       const signature = request.headers["x-twilio-signature"]
       const form = twilioWebhookFormSchema.safeParse(request.body)
       if (typeof signature !== "string" || !form.success) {
@@ -46,14 +54,13 @@ export function registerTwilioWhatsAppWebhook(
 
       const webhookUrl = new URL(request.url, options.publicApiUrl).toString()
 
+      let authenticated: AuthenticatedTwilioWebhook
       try {
-        const authenticated = await options.authenticate({
+        authenticated = await options.authenticate({
           signature,
           url: webhookUrl,
           form: form.data,
         })
-        await options.onAuthenticated?.(authenticated)
-        return reply.code(204).send()
       } catch (error) {
         const reason =
           error instanceof TwilioWebhookRejectedError
@@ -64,6 +71,61 @@ export function registerTwilioWhatsAppWebhook(
           "Twilio webhook rejected"
         )
         return reply.code(403).send({ error: "webhook_rejected" })
+      }
+
+      try {
+        const processed = await ingestInboundMessage(
+          normalizeTwilioInboundMessage(authenticated, receivedAt)
+        )
+        request.log.info(
+          {
+            eventType: "inbound_message.ingested",
+            organizationId: processed.organizationId,
+            channelConnectionId: authenticated.channelConnectionId,
+            channelIdentityId: processed.channelIdentityId,
+            conversationId: processed.supportConversationId,
+            messageId: processed.messageId,
+            jobId: processed.jobId,
+          },
+          "Inbound Message ingested"
+        )
+        return reply
+          .code(200)
+          .type("text/xml")
+          .send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>')
+      } catch (error) {
+        if (
+          error instanceof TwilioWebhookRejectedError ||
+          error instanceof TwilioInboundMessageNormalizationError
+        ) {
+          const reason =
+            error instanceof TwilioWebhookRejectedError
+              ? error.reason
+              : "malformed_event"
+          request.log.warn(
+            { eventType: "twilio.webhook.rejected", reason },
+            "Twilio webhook rejected"
+          )
+          return reply.code(403).send({ error: "webhook_rejected" })
+        }
+
+        const ingested =
+          error instanceof InboundMessageEnqueueError
+            ? error.ingested
+            : undefined
+        request.log.error(
+          {
+            eventType: "inbound_message.processing_failed",
+            organizationId: ingested?.organizationId,
+            channelConnectionId: authenticated.channelConnectionId,
+            channelIdentityId: ingested?.channelIdentityId,
+            conversationId: ingested?.supportConversationId,
+            messageId: ingested?.messageId,
+            error,
+          },
+          "Inbound Message processing failed"
+        )
+        return reply.code(503).send({ error: "webhook_processing_unavailable" })
       }
     }
   )

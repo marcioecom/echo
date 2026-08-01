@@ -11,7 +11,7 @@
     "lint": "eslint . --max-warnings 0",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src --exclude **/*.integration.test.ts",
+    "test": "vitest run src --exclude \"**/*.integration.test.ts\"",
     "test:integration": "vitest run integration.test"
   },
   "dependencies": {

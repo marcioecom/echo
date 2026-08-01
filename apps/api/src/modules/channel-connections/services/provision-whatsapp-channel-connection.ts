@@ -35,6 +35,7 @@ export function createProvisionWhatsAppChannelConnection(dependencies: {
         accountSid: input.accountSid,
         authToken: input.authToken,
         address: input.address,
+        sandbox: input.sandbox,
       })
     } catch (error) {
       const reason =

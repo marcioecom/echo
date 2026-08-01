@@ -61,4 +61,36 @@ describe("Twilio channel provider", () => {
       })
     )
   })
+
+  it("verifies the shared Sandbox through the owning Twilio Account", async () => {
+    const listSenders = vi.fn().mockResolvedValue([])
+    const fetchAccount = vi.fn().mockResolvedValue({
+      sid: input.accountSid,
+      status: "active",
+    })
+    const provider = createTwilioChannelProvider({
+      listSenders,
+      fetchAccount,
+    })
+
+    await expect(
+      provider.verifyWhatsAppSender({
+        ...input,
+        address: "+14155238886",
+        sandbox: true,
+      })
+    ).resolves.toEqual({ externalSenderId: input.accountSid })
+    expect(fetchAccount).toHaveBeenCalledWith(input.accountSid, input.authToken)
+    expect(listSenders).not.toHaveBeenCalled()
+  })
+
+  it("rejects Sandbox mode for any other address", async () => {
+    const fetchAccount = vi.fn()
+    const provider = createTwilioChannelProvider({ fetchAccount })
+
+    await expect(
+      provider.verifyWhatsAppSender({ ...input, sandbox: true })
+    ).rejects.toMatchObject({ reason: "invalid_sandbox_address" })
+    expect(fetchAccount).not.toHaveBeenCalled()
+  })
 })

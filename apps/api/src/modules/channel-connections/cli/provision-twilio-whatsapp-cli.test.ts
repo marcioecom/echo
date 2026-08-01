@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 
+import { TwilioConfigurationError } from "../adapters/twilio-channel-provider"
 import {
   formatProvisioningError,
   formatProvisioningFailure,
@@ -65,6 +66,14 @@ describe("Twilio provisioning CLI", () => {
 
     expect(formatProvisioningError(error)).toBe(
       "Unexpected positional argument"
+    )
+  })
+
+  it("explains when Sandbox mode is required", () => {
+    expect(
+      formatProvisioningError(new TwilioConfigurationError("sender_not_found"))
+    ).toBe(
+      "The WhatsApp sender was not found in this Twilio Account. Use `--sandbox` for the Twilio Sandbox."
     )
   })
 

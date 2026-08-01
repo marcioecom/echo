@@ -7,6 +7,7 @@ import { twilioWebhookRoutingSchema } from "../schemas"
 export type TwilioWebhookRejectionReason =
   | "unknown_connection"
   | "invalid_signature"
+  | "malformed_event"
 
 export class TwilioWebhookRejectedError extends Error {
   constructor(readonly reason: TwilioWebhookRejectionReason) {

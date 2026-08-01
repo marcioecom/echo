@@ -1,3 +1,5 @@
+import { TwilioConfigurationError } from "../adapters/twilio-channel-provider"
+
 interface AuthTokenInput {
   interactive: boolean
   prompt: () => Promise<string>
@@ -49,6 +51,20 @@ function findPostgresError(error: unknown): PostgresError | null {
 }
 
 export function formatProvisioningError(error: unknown): string {
+  if (error instanceof TwilioConfigurationError) {
+    const messages: Record<TwilioConfigurationError["reason"], string> = {
+      provider_request_failed:
+        "Twilio credentials could not be verified for this Account SID.",
+      sender_not_found:
+        "The WhatsApp sender was not found in this Twilio Account. Use `--sandbox` for the Twilio Sandbox.",
+      sender_not_online: "The Twilio WhatsApp sender is not online.",
+      invalid_sandbox_address:
+        "The Twilio Sandbox must use the shared number +14155238886.",
+      account_not_active: "The Twilio Account is not active.",
+    }
+    return messages[error.reason]
+  }
+
   const postgresError = findPostgresError(error)
   if (postgresError?.code === "42P01") {
     return "Database migrations are not up to date. Run `pnpm db:migrate` and try again."
