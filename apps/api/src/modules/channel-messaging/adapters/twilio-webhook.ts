@@ -1,13 +1,13 @@
 import { normalizedInboundMessageSchema } from "@workspace/domain"
-import type { NormalizedInboundMessage, UnsupportedMediaKind } from "@workspace/domain"
-import { validateRequest } from "twilio"
+import type {
+  NormalizedInboundMessage,
+  UnsupportedMediaKind,
+} from "@workspace/domain"
+import twilio from "twilio"
 import { z } from "zod"
 
 import { err, ok, type Result } from "../../../common/result"
-import {
-  twilioAccountSidSchema,
-  whatsAppAddressSchema,
-} from "../schemas"
+import { twilioAccountSidSchema, whatsAppAddressSchema } from "../schemas"
 
 export const twilioWebhookRequestSchema = z.object({
   signature: z.string().min(1),
@@ -49,7 +49,12 @@ export function verifyTwilioWebhook(input: {
   url: string
   form: Record<string, string>
 }): boolean {
-  return validateRequest(input.authToken, input.signature, input.url, input.form)
+  return twilio.validateRequest(
+    input.authToken,
+    input.signature,
+    input.url,
+    input.form
+  )
 }
 
 export function normalizeTwilioInboundMessage(input: {
