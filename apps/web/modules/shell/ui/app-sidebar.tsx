@@ -24,7 +24,12 @@ type AppSidebarProps = {
 
 const NAV_SECTIONS: {
   label?: string
-  items: { href: string; label: string; icon: typeof InboxIcon; exact?: boolean }[]
+  items: {
+    href: string
+    label: string
+    icon: typeof InboxIcon
+    exact?: boolean
+  }[]
 }[] = [
   {
     items: [
@@ -72,7 +77,10 @@ export function AppSidebar({
         />
       </div>
 
-      <nav aria-label="Primary" className="flex-1 space-y-5 overflow-y-auto p-3">
+      <nav
+        aria-label="Primary"
+        className="flex-1 space-y-5 overflow-y-auto p-3"
+      >
         {NAV_SECTIONS.map((section, index) => (
           <div key={section.label ?? index} className="space-y-0.5">
             {section.label ? (
@@ -90,7 +98,7 @@ export function AppSidebar({
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] outline-none transition-colors duration-150",
+                    "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 outline-none",
                     "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     "focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
                     active &&

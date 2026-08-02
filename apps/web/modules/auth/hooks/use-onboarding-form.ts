@@ -1,11 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  deriveSlug,
-  SLUG_MAX_LENGTH,
-  SLUG_PATTERN,
-} from "@workspace/domain"
+import { deriveSlug, SLUG_MAX_LENGTH, SLUG_PATTERN } from "@workspace/domain"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"

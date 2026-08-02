@@ -2,8 +2,13 @@ import { requireWorkspace } from "@/modules/auth/server/session"
 import { InboxView } from "@/modules/inbox/ui/views/inbox-view"
 import { PageHeader } from "@/modules/shell/ui/page-header"
 
-export default async function InboxPage() {
-  const workspace = await requireWorkspace()
+export default async function InboxConversationPage({
+  params,
+}: PageProps<"/inbox/[conversationId]">) {
+  const [workspace, { conversationId }] = await Promise.all([
+    requireWorkspace(),
+    params,
+  ])
 
   return (
     <>
@@ -13,7 +18,7 @@ export default async function InboxPage() {
       />
       <InboxView
         organizationId={workspace.organization.id}
-        selectedConversationId={null}
+        selectedConversationId={conversationId}
       />
     </>
   )

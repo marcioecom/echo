@@ -53,17 +53,17 @@ export function AppShell({
         <div className="fixed inset-0 z-(--z-overlay) md:hidden">
           <div
             aria-hidden
-            className="animate-in fade-in duration-150 absolute inset-0 bg-foreground/40"
+            className="absolute inset-0 animate-in bg-foreground/40 duration-150 fade-in"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="animate-in slide-in-from-left duration-200 absolute inset-y-0 left-0 w-60 border-r border-sidebar-border">
+          <aside className="absolute inset-y-0 left-0 w-60 animate-in border-r border-sidebar-border duration-200 slide-in-from-left">
             <AppSidebar {...sidebarProps} organizationSwitcherSide="bottom" />
           </aside>
           <button
             type="button"
             aria-label="Close navigation"
             onClick={() => setSidebarOpen(false)}
-            className="absolute top-3.5 left-64 flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors duration-150 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="absolute top-3.5 left-64 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/30"
           >
             <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={1.8} />
           </button>
@@ -76,7 +76,7 @@ export function AppShell({
             type="button"
             aria-label="Open navigation"
             onClick={() => setSidebarOpen(true)}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
           >
             <HugeiconsIcon icon={Menu01Icon} size={16} strokeWidth={1.8} />
           </button>

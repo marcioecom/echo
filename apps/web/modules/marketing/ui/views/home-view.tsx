@@ -28,10 +28,13 @@ export function HomeView() {
     <div className="min-h-svh bg-background text-foreground">
       <header className="mx-auto flex h-18 max-w-6xl items-center justify-between px-5 sm:px-8">
         <BrandLogo priority imageClassName="h-8 w-auto sm:h-9" />
-        <nav aria-label="Main navigation" className="flex items-center gap-4 sm:gap-6">
+        <nav
+          aria-label="Main navigation"
+          className="flex items-center gap-4 sm:gap-6"
+        >
           <Link
             href="#how-it-works"
-            className="hidden text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30 sm:inline"
+            className="hidden text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30 sm:inline"
           >
             How it works
           </Link>
@@ -49,7 +52,7 @@ export function HomeView() {
             <h1 className="max-w-2xl text-4xl font-semibold tracking-[-0.035em] text-balance sm:text-5xl md:text-6xl">
               Support conversations, kept clear.
             </h1>
-            <p className="mt-6 max-w-[62ch] text-base leading-7 text-muted-foreground text-pretty sm:text-lg">
+            <p className="mt-6 max-w-[62ch] text-base leading-7 text-pretty text-muted-foreground sm:text-lg">
               Echo gives you a focused place to follow customer support on
               WhatsApp, decide when AI can help, and bring in a person when it
               matters.
@@ -57,14 +60,18 @@ export function HomeView() {
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link
                 href="/login"
-                className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring/30"
               >
                 Open Echo
-                <HugeiconsIcon icon={ArrowRight01Icon} size={16} strokeWidth={1.8} />
+                <HugeiconsIcon
+                  icon={ArrowRight01Icon}
+                  size={16}
+                  strokeWidth={1.8}
+                />
               </Link>
               <Link
                 href="#how-it-works"
-                className="inline-flex h-10 items-center rounded-md px-3 text-sm font-medium text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="inline-flex h-10 items-center rounded-md px-3 text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/30"
               >
                 See the workflow
               </Link>
@@ -74,16 +81,13 @@ export function HomeView() {
           <InboxPreview />
         </section>
 
-        <section
-          id="how-it-works"
-          className="border-y bg-sidebar scroll-mt-6"
-        >
+        <section id="how-it-works" className="scroll-mt-6 border-y bg-sidebar">
           <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 md:grid-cols-[0.8fr_1.2fr] md:gap-20 md:py-24">
             <div>
               <h2 className="max-w-sm text-2xl font-semibold tracking-[-0.025em] text-balance sm:text-3xl">
                 A quieter way to stay close to your customers.
               </h2>
-              <p className="mt-4 max-w-[45ch] text-sm leading-6 text-muted-foreground text-pretty">
+              <p className="mt-4 max-w-[45ch] text-sm leading-6 text-pretty text-muted-foreground">
                 Echo is a private workspace for support teams that want to keep
                 their WhatsApp conversations organized without turning service
                 into a complicated operation.
@@ -95,12 +99,12 @@ export function HomeView() {
                   key={step.title}
                   className="grid grid-cols-[2.5rem_1fr] gap-4 border-b py-5 sm:grid-cols-[3.5rem_1fr] sm:gap-6"
                 >
-                  <span className="pt-0.5 text-sm font-medium tabular-nums text-primary">
+                  <span className="pt-0.5 text-sm font-medium text-primary tabular-nums">
                     0{index + 1}
                   </span>
                   <div>
                     <h3 className="text-base font-medium">{step.title}</h3>
-                    <p className="mt-1.5 max-w-[58ch] text-sm leading-6 text-muted-foreground text-pretty">
+                    <p className="mt-1.5 max-w-[58ch] text-sm leading-6 text-pretty text-muted-foreground">
                       {step.description}
                     </p>
                   </div>
@@ -147,18 +151,31 @@ function InboxPreview() {
       </div>
       <div className="grid min-h-85 grid-cols-[42%_58%]">
         <div className="border-r bg-sidebar p-2">
-          <PreviewConversation active name="Marina Costa" message="Could you help me with my order?" />
-          <PreviewConversation name="Lucas Almeida" message="Thank you, that worked." />
-          <PreviewConversation name="Ana Ribeiro" message="I need to change my delivery address." />
+          <PreviewConversation
+            active
+            name="Marina Costa"
+            message="Could you help me with my order?"
+          />
+          <PreviewConversation
+            name="Lucas Almeida"
+            message="Thank you, that worked."
+          />
+          <PreviewConversation
+            name="Ana Ribeiro"
+            message="I need to change my delivery address."
+          />
         </div>
         <div className="flex min-w-0 flex-col p-4">
           <div className="border-b pb-3">
             <p className="text-sm font-medium">Marina Costa</p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">Needs a reply</p>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">
+              Needs a reply
+            </p>
           </div>
           <div className="flex flex-1 flex-col justify-end gap-3 py-4 text-xs leading-5">
             <p className="max-w-[85%] rounded-md bg-muted px-3 py-2 text-muted-foreground">
-              Hi, could you help me with my order? I have not received an update.
+              Hi, could you help me with my order? I have not received an
+              update.
             </p>
             <p className="ml-auto max-w-[85%] rounded-md bg-primary px-3 py-2 text-primary-foreground">
               I&apos;ll check the latest status for you now.
@@ -183,12 +200,18 @@ function PreviewConversation({
   message: string
 }) {
   return (
-    <div className={`rounded-md px-2.5 py-2 ${active ? "bg-sidebar-accent" : ""}`}>
+    <div
+      className={`rounded-md px-2.5 py-2 ${active ? "bg-sidebar-accent" : ""}`}
+    >
       <div className="flex items-center justify-between gap-2">
         <p className="truncate text-xs font-medium">{name}</p>
-        {active ? <span className="size-1.5 shrink-0 rounded-full bg-primary" /> : null}
+        {active ? (
+          <span className="size-1.5 shrink-0 rounded-full bg-primary" />
+        ) : null}
       </div>
-      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{message}</p>
+      <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+        {message}
+      </p>
     </div>
   )
 }
