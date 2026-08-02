@@ -1,12 +1,14 @@
 import cors from "@fastify/cors"
 import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
+import websocket from "@fastify/websocket"
+import { createLoggerWithContext } from "@workspace/logger"
 import Fastify, { type FastifyBaseLogger } from "fastify"
 
-import { createLoggerWithContext } from "@workspace/logger"
 import { env } from "./config/env"
 import { auth } from "./modules/auth/auth"
 import { registerInboundMessageRoutes } from "./modules/channel-messaging/http/routes"
+import { registerSupportInboxRoutes } from "./modules/support-inbox/http/routes"
 import { registerAuthRoutes } from "./plugins/auth"
 import { registerHealthRoutes } from "./plugins/health"
 
@@ -16,14 +18,18 @@ export function createApp() {
 
   app.register(formbody)
   app.register(rateLimit, { global: false })
+  app.register(websocket)
   app.register(cors, {
     origin: env.WEB_APP_URL,
     credentials: true,
   })
 
-  registerHealthRoutes(app)
-  registerAuthRoutes(app, auth)
-  registerInboundMessageRoutes(app)
+  app.register(async (routes) => {
+    registerHealthRoutes(routes)
+    registerAuthRoutes(routes, auth)
+    registerInboundMessageRoutes(routes)
+    registerSupportInboxRoutes(routes)
+  })
 
   return app
 }

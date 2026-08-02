@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { enqueue, logError, logInfo, repositoryIngest } = vi.hoisted(() => ({
-  enqueue: vi.fn(),
-  logError: vi.fn(),
-  logInfo: vi.fn(),
-  repositoryIngest: vi.fn(),
-}))
+const { enqueue, logError, logInfo, publish, repositoryIngest } = vi.hoisted(
+  () => ({
+    enqueue: vi.fn(),
+    logError: vi.fn(),
+    logInfo: vi.fn(),
+    publish: vi.fn(),
+    repositoryIngest: vi.fn(),
+  })
+)
 
 vi.mock("@workspace/logger", () => ({
   createLoggerWithContext: () => ({ error: logError, info: logInfo }),
@@ -13,6 +16,9 @@ vi.mock("@workspace/logger", () => ({
 vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../repositories/inbound-message-repository", () => ({
   inboundMessageRepository: { ingest: repositoryIngest },
+}))
+vi.mock("../../support-inbox/events/support-inbox-event-broker", () => ({
+  supportInboxEventBroker: { publish },
 }))
 
 import { ingestInboundMessage } from "./ingest-inbound-message"
@@ -50,6 +56,10 @@ describe("ingestInboundMessage", () => {
       value: { ...ingested, jobId: "job-id" },
     })
     expect(repositoryIngest).toHaveBeenCalledWith(input)
+    expect(publish).toHaveBeenCalledWith(ingested.organizationId, {
+      type: "support_conversation.updated",
+      conversationId: ingested.supportConversationId,
+    })
     expect(enqueue).toHaveBeenCalledWith("process-inbound-message", {
       organizationId: ingested.organizationId,
       channelIdentityId: ingested.channelIdentityId,
@@ -81,5 +91,6 @@ describe("ingestInboundMessage", () => {
       "Inbound Message processing failed",
       expect.objectContaining({ err: cause, messageId: ingested.messageId })
     )
+    expect(publish).toHaveBeenCalledOnce()
   })
 })
