@@ -20,13 +20,14 @@ export interface Workspace {
 
 export const getSession = cache(async () => {
   const requestHeaders = await headers()
-  if (!requestHeaders.get("cookie")) {
+  const cookie = requestHeaders.get("cookie")
+  if (!cookie) {
     return null
   }
 
   const { data: session, error } = await authClient.getSession({
     fetchOptions: {
-      headers: requestHeaders,
+      headers: { cookie },
     },
   })
   if (error || !session) {
@@ -43,7 +44,7 @@ export const getWorkspace = cache(async (): Promise<Workspace | null> => {
   const { data: organization, error } =
     await authClient.organization.getFullOrganization({
       fetchOptions: {
-        headers: await headers(),
+        headers: { cookie: (await headers()).get("cookie") ?? "" },
       },
     })
   if (error || !organization) return null
