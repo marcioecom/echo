@@ -17,7 +17,10 @@ export function createApp() {
   const app = Fastify({ loggerInstance: logger })
 
   app.register(formbody)
-  app.register(rateLimit, { global: false })
+  app.register(rateLimit, {
+    max: 120,
+    timeWindow: "1 minute",
+  })
   app.register(websocket)
   app.register(cors, {
     origin: env.WEB_APP_URL,
