@@ -34,6 +34,12 @@ export function createAuth(options: CreateAuthOptions) {
       database: {
         generateId: createId,
       },
+      ...(env.NODE_ENV !== "development" && {
+        crossSubDomainCookies: {
+          enabled: true,
+          domain: env.BETTER_AUTH_COOKIE_DOMAIN,
+        },
+      }),
     },
     emailAndPassword: {
       enabled: true,

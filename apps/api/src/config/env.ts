@@ -11,6 +11,7 @@ const apiEnvSchema = serverEnvSchema.extend({
   API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
   WEB_APP_URL: z.url(),
   PUBLIC_API_URL: z.url(),
+  BETTER_AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   BETTER_AUTH_SECRET: z.string().min(1),
   CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
   CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),

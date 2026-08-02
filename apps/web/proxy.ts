@@ -7,8 +7,7 @@ const publicRoutes = new Set(["/", "/login", "/sign-up"])
 export function proxy(request: NextRequest) {
   const sessionCookie = getSessionCookie(request)
   const { pathname } = request.nextUrl
-  const isPublicRoute =
-    publicRoutes.has(pathname) || pathname.startsWith("/api/auth/")
+  const isPublicRoute = publicRoutes.has(pathname)
 
   if (!sessionCookie && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url)
