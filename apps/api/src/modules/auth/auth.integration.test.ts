@@ -54,7 +54,6 @@ describe("auth and organization access", () => {
     vi.stubEnv("NODE_ENV", "test")
     vi.stubEnv("LOG_LEVEL", "silent")
     vi.stubEnv("BETTER_AUTH_SECRET", "integration-test-secret-integration-test")
-    vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3001")
     vi.stubEnv(
       "CHANNEL_CREDENTIALS_ENCRYPTION_KEY",
       Buffer.alloc(32, 1).toString("base64")

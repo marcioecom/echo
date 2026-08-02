@@ -68,7 +68,7 @@ Resolved in the planning interview:
 
 | Variable | App | Purpose |
 |---|---|---|
-| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | `apps/api` | auth instance |
+| `BETTER_AUTH_SECRET`, `PUBLIC_API_URL` | `apps/api` | auth instance |
 | `WEB_APP_URL` | `apps/api` | trusted origin, CORS, invite link base |
 | `RESEND_API_KEY`, `EMAIL_FROM` | `apps/worker` | the worker sends email; the API never sees the key |
 | `NEXT_PUBLIC_API_URL` | `apps/web` | auth client and DAL base URL |

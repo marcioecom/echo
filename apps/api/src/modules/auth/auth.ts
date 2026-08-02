@@ -114,7 +114,7 @@ const logger = createLoggerWithContext("api:auth")
 export const auth = createAuth({
   db: database.db,
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL: env.PUBLIC_API_URL,
   webAppUrl: env.WEB_APP_URL,
   deliverInvitationEmail: async (request) => {
     await jobs.enqueue("send-invitation-email", request)
