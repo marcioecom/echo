@@ -11,7 +11,7 @@ import type { Database } from "@workspace/db"
 import { createId } from "@workspace/domain"
 import { and, eq, isNull, sql } from "drizzle-orm"
 
-import { database } from "../../../lib/db"
+import { database } from "@/lib/db"
 import type { NormalizedInboundMessage } from "@workspace/domain"
 
 import type { IngestedInboundMessage } from "../types"

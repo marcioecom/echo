@@ -1,12 +1,12 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
 
-import { matchResult } from "../../../common/match"
-import { env } from "../../../config/env"
+import { matchResult } from "@/common/match"
+import { env } from "@/config/env"
 import {
   getOrganizationAuth,
   guards,
   type OrganizationRequestAuth,
-} from "../../../plugins/auth"
+} from "@/plugins/auth"
 import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
 import { listSupportConversationsQuerySchema, supportConversationParamsSchema } from "../schemas"
 import { getSupportConversationDetail } from "../use-cases/get-support-conversation-detail"

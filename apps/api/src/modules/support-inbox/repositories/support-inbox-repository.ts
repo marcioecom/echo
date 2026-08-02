@@ -14,7 +14,7 @@ import type {
 } from "@workspace/domain"
 import { and, asc, desc, eq, lt, or, sql } from "drizzle-orm"
 
-import { database } from "../../../lib/db"
+import { database } from "@/lib/db"
 import type {
   SupportInboxConversation,
   SupportInboxConversationDetail,

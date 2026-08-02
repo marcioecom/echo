@@ -6,7 +6,7 @@ import type {
 import twilio from "twilio"
 import { z } from "zod"
 
-import { err, ok, type Result } from "../../../common/result"
+import { err, ok, type Result } from "@/common/result"
 import { twilioAccountSidSchema, whatsAppAddressSchema } from "../schemas"
 
 export const twilioWebhookRequestSchema = z.object({

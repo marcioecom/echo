@@ -8,9 +8,9 @@ import { betterAuth } from "better-auth"
 import { organization } from "better-auth/plugins/organization"
 import { asc, eq } from "drizzle-orm"
 
-import { env } from "../../config/env"
-import { database } from "../../lib/db"
-import { jobs } from "../../lib/jobs-client"
+import { env } from "@/config/env"
+import { database } from "@/lib/db"
+import { jobs } from "@/lib/jobs-client"
 
 export interface CreateAuthOptions {
   db: Database

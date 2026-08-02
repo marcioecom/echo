@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify"
 
-import { matchResult, matchTag } from "../../../common/match"
-import { env } from "../../../config/env"
+import { matchResult, matchTag } from "@/common/match"
+import { env } from "@/config/env"
 import { twilioWebhookRequestSchema } from "../adapters/twilio-webhook"
 import { processTwilioInboundMessage } from "../use-cases/process-twilio-inbound-message"
 

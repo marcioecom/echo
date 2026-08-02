@@ -1,6 +1,6 @@
 import type { SupportConversationStatus } from "@workspace/domain"
 
-import { err, ok } from "../../../common/result"
+import { err, ok } from "@/common/result"
 import { supportInboxRepository } from "../repositories/support-inbox-repository"
 import { decodeSupportInboxCursor, encodeSupportInboxCursor } from "../schemas"
 import type { SupportInboxCursor } from "../types"
