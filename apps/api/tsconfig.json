@@ -1,6 +1,7 @@
 {
   "extends": "@workspace/typescript-config/node.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "noEmit": true,
     "paths": {
