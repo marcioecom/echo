@@ -66,8 +66,8 @@ export function OnboardingView() {
       <CardHeader className="text-center">
         <CardTitle>Create your organization</CardTitle>
         <CardDescription>
-          Your organization is the tenant that holds your support workspace.
-          To join an existing one instead, open the link from your invitation
+          Your organization is the tenant that holds your support workspace. To
+          join an existing one instead, open the link from your invitation
           email.
         </CardDescription>
       </CardHeader>

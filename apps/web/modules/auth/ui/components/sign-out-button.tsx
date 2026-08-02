@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/auth-client"
 
-type SignOutButtonProps = Omit<
-  React.ComponentProps<typeof Button>,
-  "onClick"
->
+type SignOutButtonProps = Omit<React.ComponentProps<typeof Button>, "onClick">
 
 export function SignOutButton({
   variant = "outline",

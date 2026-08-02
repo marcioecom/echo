@@ -7,7 +7,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import type { createApp } from "../../app"
+import type { createApp } from "@/app"
 
 function extractCookies(
   headers: Record<string, string | string[] | number | undefined>

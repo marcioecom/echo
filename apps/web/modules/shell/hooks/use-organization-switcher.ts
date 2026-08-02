@@ -46,7 +46,7 @@ export function useOrganizationSwitcher(activeOrganizationId: string) {
       await switchMutation.mutateAsync(organizationId)
       await queryClient.invalidateQueries({ queryKey: ["organization"] })
       startTransition(() => {
-        router.replace("/")
+        router.replace("/inbox")
         router.refresh()
       })
       return true

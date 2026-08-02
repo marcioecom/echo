@@ -1,11 +1,8 @@
 import { fromNodeHeaders } from "better-auth/node"
-import type {
-  FastifyInstance,
-  FastifyReply,
-  FastifyRequest,
-} from "fastify"
+import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
 
-import type { Auth } from "../modules/auth/auth"
+import { err, ok, type Result } from "../common/result"
+import { type Auth, auth } from "../modules/auth/auth"
 
 export interface RequestAuthUser {
   id: string
@@ -24,10 +21,27 @@ export interface RequestAuthMember {
   role: string
 }
 
-export interface RequestAuth {
+export interface UserRequestAuth {
   user: RequestAuthUser
-  member: RequestAuthMember | null
-  organization: RequestAuthOrganization | null
+  member: null
+  organization: null
+}
+
+export interface OrganizationRequestAuth {
+  user: RequestAuthUser
+  member: RequestAuthMember
+  organization: RequestAuthOrganization
+}
+
+export type RequestAuth = UserRequestAuth | OrganizationRequestAuth
+
+export function getOrganizationAuth(
+  request: FastifyRequest
+): Result<OrganizationRequestAuth, { type: "membership_required" }> {
+  const auth = request.auth
+  return auth?.organization
+    ? ok(auth)
+    : err({ type: "membership_required" })
 }
 
 declare module "fastify" {
@@ -37,10 +51,7 @@ declare module "fastify" {
 }
 
 export interface AuthGuards {
-  requireUser: (
-    request: FastifyRequest,
-    reply: FastifyReply,
-  ) => Promise<void>
+  requireUser: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
   requireMembership: (options?: {
     roles?: string[]
   }) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>
@@ -52,7 +63,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: Auth): void {
   app.all("/api/auth/*", async (request, reply) => {
     const url = new URL(
       request.url,
-      `http://${request.headers.host ?? "localhost"}`,
+      `http://${request.headers.host ?? "localhost"}`
     )
     const fetchRequest = new Request(url, {
       method: request.method,
@@ -78,65 +89,71 @@ export function registerAuthRoutes(app: FastifyInstance, auth: Auth): void {
   })
 }
 
-export function createAuthGuards(auth: Auth): AuthGuards {
-  async function requireUser(
+async function requireUser(
+  request: FastifyRequest,
+  reply: FastifyReply
+): Promise<void> {
+  const session = await auth.api.getSession({
+    headers: fromNodeHeaders(request.headers),
+  })
+  if (!session) {
+    return reply.code(401).send({ error: "unauthenticated" })
+  }
+  request.auth = {
+    user: {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+    },
+    member: null,
+    organization: null,
+  }
+}
+
+function requireMembership(options?: { roles?: string[] }) {
+  return async (
     request: FastifyRequest,
-    reply: FastifyReply,
-  ): Promise<void> {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(request.headers),
-    })
-    if (!session) {
+    reply: FastifyReply
+  ): Promise<void> => {
+    const organization = await auth.api
+      .getFullOrganization({
+        headers: fromNodeHeaders(request.headers),
+      })
+      .catch(() => null)
+
+    const member = organization?.members.find(
+      (entry) => entry.userId === request.auth?.user.id
+    )
+    if (!organization || !member) {
+      return reply.code(403).send({ error: "membership_required" })
+    }
+
+    const memberRoles = member.role.split(",").map((role) => role.trim())
+    if (
+      options?.roles &&
+      !memberRoles.some((role) => options.roles?.includes(role))
+    ) {
+      return reply.code(403).send({ error: "insufficient_role" })
+    }
+
+    const user = request.auth?.user
+    if (!user) {
       return reply.code(401).send({ error: "unauthenticated" })
     }
+
     request.auth = {
-      user: {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
+      user,
+      member: { id: member.id, role: member.role },
+      organization: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
       },
-      member: null,
-      organization: null,
     }
   }
+}
 
-  function requireMembership(options?: { roles?: string[] }) {
-    return async (
-      request: FastifyRequest,
-      reply: FastifyReply,
-    ): Promise<void> => {
-      const organization = await auth.api
-        .getFullOrganization({
-          headers: fromNodeHeaders(request.headers),
-        })
-        .catch(() => null)
-
-      const member = organization?.members.find(
-        (entry) => entry.userId === request.auth?.user.id,
-      )
-      if (!organization || !member) {
-        return reply.code(403).send({ error: "membership_required" })
-      }
-
-      const memberRoles = member.role.split(",").map((role) => role.trim())
-      if (
-        options?.roles &&
-        !memberRoles.some((role) => options.roles?.includes(role))
-      ) {
-        return reply.code(403).send({ error: "insufficient_role" })
-      }
-
-      request.auth = {
-        user: request.auth!.user,
-        member: { id: member.id, role: member.role },
-        organization: {
-          id: organization.id,
-          name: organization.name,
-          slug: organization.slug,
-        },
-      }
-    }
-  }
-
-  return { requireUser, requireMembership }
+export const guards = {
+  requireUser,
+  requireMembership,
 }

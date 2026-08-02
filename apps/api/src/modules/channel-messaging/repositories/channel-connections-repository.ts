@@ -9,7 +9,7 @@ import { createId } from "@workspace/domain"
 import { and, eq, ne, sql } from "drizzle-orm"
 
 import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
-import { database } from "../../../lib/db"
+import { database } from "@/lib/db"
 
 export interface StoredTwilioBinding {
   organizationId: string

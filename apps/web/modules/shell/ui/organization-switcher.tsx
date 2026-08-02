@@ -58,7 +58,7 @@ export function OrganizationSwitcher({
         <button
           type="button"
           aria-label={`Switch organization. Current organization: ${activeOrganizationName}`}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold tracking-tight outline-none transition-colors duration-150 hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold tracking-tight transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30"
         >
           <span className="truncate">{activeOrganizationName}</span>
           <HugeiconsIcon
@@ -120,7 +120,7 @@ export function OrganizationSwitcher({
                     disabled={active || isSwitching}
                     onClick={() => handleOrganizationSelect(organization.id)}
                     className={cn(
-                      "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left outline-none transition-colors duration-150",
+                      "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left transition-colors duration-150 outline-none",
                       active
                         ? "bg-accent text-accent-foreground"
                         : "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30",

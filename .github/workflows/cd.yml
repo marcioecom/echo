@@ -72,7 +72,7 @@ jobs:
           chmod 600 ~/.kube/config
 
       - name: Apply manifests
-        run: kubectl apply -f k8s/api-deployment.yaml -f k8s/api-service.yaml -f k8s/worker-deployment.yaml -f k8s/worker-service.yaml -f k8s/ingress.yaml
+        run: kubectl apply -f k8s/api-deployment.yaml -f k8s/api-service.yaml -f k8s/worker-deployment.yaml -f k8s/worker-service.yaml
 
       - name: Run database migrations
         run: |

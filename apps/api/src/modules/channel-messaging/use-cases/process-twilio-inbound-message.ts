@@ -1,6 +1,6 @@
 import { createLoggerWithContext } from "@workspace/logger"
 
-import { err, ok, type Result } from "../../../common/result"
+import { err, ok, type Result } from "@/common/result"
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
 import {
   normalizeTwilioInboundMessage,

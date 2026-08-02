@@ -1,8 +1,9 @@
 import type { NormalizedInboundMessage } from "@workspace/domain"
 import { createLoggerWithContext } from "@workspace/logger"
 
-import { err, ok, type Result } from "../../../common/result"
-import { jobs } from "../../../lib/jobs-client"
+import { err, ok, type Result } from "@/common/result"
+import { jobs } from "@/lib/jobs-client"
+import { supportInboxEventBroker } from "@/modules/support-inbox/events/support-inbox-event-broker"
 import { inboundMessageRepository } from "../repositories/inbound-message-repository"
 import type { IngestedInboundMessage } from "../types"
 
@@ -20,6 +21,11 @@ export async function ingestInboundMessage(
   Result<IngestedInboundMessage & { jobId: string }, IngestInboundMessageError>
 > {
   const ingested = await inboundMessageRepository.ingest(input)
+
+  supportInboxEventBroker.publish(ingested.organizationId, {
+    type: "support_conversation.updated",
+    conversationId: ingested.supportConversationId,
+  })
 
   try {
     const job = await jobs.enqueue("process-inbound-message", {
