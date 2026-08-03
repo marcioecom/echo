@@ -46,7 +46,7 @@ export function useSignUpForm() {
       toast.error(error.message ?? "Could not create your account")
       return
     }
-    router.push(searchParams.get("redirect") ?? "/")
+    router.push(searchParams.get("redirect") ?? "/onboarding")
   }
 
   return { form, onSubmit }

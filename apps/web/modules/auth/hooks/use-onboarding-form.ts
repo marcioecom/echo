@@ -103,7 +103,7 @@ export function useOnboardingForm() {
       })
       return
     }
-    router.push("/")
+    router.push("/inbox")
   }
 
   return {
