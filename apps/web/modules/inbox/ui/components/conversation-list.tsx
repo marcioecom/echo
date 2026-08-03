@@ -22,6 +22,10 @@ const filters: Array<{ value: InboxStatusFilter; label: string }> = [
   { value: "resolved", label: "Resolved" },
 ]
 
+function getFilterHref(status: InboxStatusFilter): string {
+  return status === "all" ? "/inbox" : `/inbox?status=${status}`
+}
+
 const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
 
 function formatRelativeTime(value: string): string {
@@ -77,19 +81,13 @@ export function ConversationList({
           {filters.map((filter) => (
             <Button
               key={filter.value}
-              asChild
               variant={status === filter.value ? "secondary" : "ghost"}
               size="sm"
+              onClick={() => {
+                window.history.pushState(null, "", getFilterHref(filter.value))
+              }}
             >
-              <Link
-                href={
-                  filter.value === "all"
-                    ? "/inbox"
-                    : `/inbox?status=${filter.value}`
-                }
-              >
-                {filter.label}
-              </Link>
+              {filter.label}
             </Button>
           ))}
         </div>
