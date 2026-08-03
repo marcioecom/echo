@@ -37,10 +37,10 @@ export function useInboxEvents(organizationId: string): void {
         const parsed = supportConversationUpdatedEventSchema.safeParse(event)
         if (!parsed.success) return
 
-        void queryClient.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: inboxQueryKeys.lists(organizationId),
         })
-        void queryClient.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: inboxQueryKeys.detail(
             organizationId,
             parsed.data.conversationId

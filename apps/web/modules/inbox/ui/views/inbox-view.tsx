@@ -59,8 +59,8 @@ export function InboxView({
           isError={conversationsQuery.isError}
           isFetchingNextPage={conversationsQuery.isFetchingNextPage}
           hasNextPage={conversationsQuery.hasNextPage}
-          onRetry={() => void conversationsQuery.refetch()}
-          onLoadMore={() => void conversationsQuery.fetchNextPage()}
+          onRetry={() => conversationsQuery.refetch()}
+          onLoadMore={() => conversationsQuery.fetchNextPage()}
         />
       </div>
       <div
@@ -75,7 +75,7 @@ export function InboxView({
             detail={detailQuery.data}
             isLoading={detailQuery.isPending}
             error={detailQuery.error}
-            onRetry={() => void detailQuery.refetch()}
+            onRetry={() => detailQuery.refetch()}
           />
         ) : (
           <EmptyConversationDetail />

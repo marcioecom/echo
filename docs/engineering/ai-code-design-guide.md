@@ -360,6 +360,18 @@ Echo splits auth across two runtimes: `apps/api` owns the Better Auth server, `a
 - Forms use `react-hook-form` + `zod` with `@workspace/ui/components/form`. The form definition (schema, `useForm`, submit handler) lives in `modules/<feature>/hooks/use-*-form.ts`; the view only renders it.
 - `apps/web/proxy.ts` is only an optimistic gate using `getSessionCookie` from `better-auth/cookies`. Authoritative auth and membership checks stay in server components and layouts.
 
+#### Navigation And URL State
+
+Treat a route navigation and a client-owned URL state change as different operations:
+
+- Use `Link` or the Next router when the destination needs a new server render, crosses a route boundary, or changes server-owned data.
+- When a client component already owns the data query, use the native History API to synchronize view state such as filters, sorting, and pagination with the URL. `window.history.pushState` preserves browser history and updates `useSearchParams` without waiting for a server render.
+- Do not use route navigation only to change a query parameter consumed by a client-side React Query query. It makes the visual update depend on server latency, including remote session and workspace checks.
+- Keep the loading state next to the client query. A filter change should update immediately, then show its query loading state while the new data is fetched.
+- If a URL change must render on the server, provide a `loading.tsx` or a nested `Suspense` fallback so the transition has immediate feedback rather than appearing unresponsive.
+
+Example: the Support Inbox status filter is client-owned. It uses `window.history.pushState(null, "", "/inbox?status=ai_active")`; `useSearchParams` updates the React Query key and the list skeleton represents the pending API request.
+
 ### `apps/api`
 
 Rules:
