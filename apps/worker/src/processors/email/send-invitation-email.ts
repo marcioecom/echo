@@ -11,6 +11,7 @@ export async function handleSendInvitationEmail(job: Job): Promise<void> {
       inviterName: payload.inviterName,
       organizationName: payload.organizationName,
       inviteUrl: payload.inviteUrl,
+      logoUrl: payload.logoUrl,
     })
   )
 

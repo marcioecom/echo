@@ -2,6 +2,7 @@ import {
   emailJobNames,
   emailQueueName,
   sendInvitationEmailJobSchema,
+  sendPasswordResetEmailJobSchema,
 } from "./email"
 import {
   type ProcessInboundMessageJob,
@@ -19,6 +20,10 @@ export const jobDefinitions = {
   [emailJobNames.sendInvitationEmail]: {
     queueName: emailQueueName,
     schema: sendInvitationEmailJobSchema,
+  },
+  [emailJobNames.sendPasswordResetEmail]: {
+    queueName: emailQueueName,
+    schema: sendPasswordResetEmailJobSchema,
   },
   [supportConversationJobNames.processInboundMessage]: {
     queueName: supportConversationsQueueName,

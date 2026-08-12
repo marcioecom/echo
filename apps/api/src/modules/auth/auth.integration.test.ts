@@ -61,6 +61,7 @@ describe("auth and organization access", () => {
     vi.stubEnv("CHANNEL_CREDENTIALS_KEY_VERSION", "v1")
     vi.stubEnv("PUBLIC_API_URL", "http://localhost:3001")
     vi.stubEnv("WEB_APP_URL", "http://localhost:3000")
+    vi.stubEnv("EMAIL_ASSET_BASE_URL", "https://assets.echo.test")
 
     vi.resetModules()
     const [appModule, dbModule, redisModule, jobsModule] = await Promise.all([
@@ -223,5 +224,31 @@ describe("auth and organization access", () => {
       payload: { email: "another@acme.test", role: "operator" },
     })
     expect(operatorInviteAttempt.statusCode).toBe(403)
+  })
+
+  it("accepts password reset requests without revealing whether an email exists", async () => {
+    await signUp("reset-owner@acme.test", "Reset Owner")
+
+    const [registered, unknown] = await Promise.all([
+      app.inject({
+        method: "POST",
+        url: "/api/auth/request-password-reset",
+        payload: {
+          email: "reset-owner@acme.test",
+          redirectTo: "http://localhost:3000/reset-password",
+        },
+      }),
+      app.inject({
+        method: "POST",
+        url: "/api/auth/request-password-reset",
+        payload: {
+          email: "unknown@acme.test",
+          redirectTo: "http://localhost:3000/reset-password",
+        },
+      }),
+    ])
+
+    expect(registered.statusCode).toBe(200)
+    expect(unknown.statusCode).toBe(200)
   })
 })

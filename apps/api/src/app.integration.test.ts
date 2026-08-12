@@ -43,6 +43,7 @@ describe("API readiness with real dependencies", () => {
     vi.stubEnv("CHANNEL_CREDENTIALS_KEY_VERSION", "v1")
     vi.stubEnv("PUBLIC_API_URL", "http://localhost:3001")
     vi.stubEnv("WEB_APP_URL", "http://localhost:3000")
+    vi.stubEnv("EMAIL_ASSET_BASE_URL", "https://assets.echo.test")
 
     vi.resetModules()
     const [appModule, dbModule, redisModule] = await Promise.all([

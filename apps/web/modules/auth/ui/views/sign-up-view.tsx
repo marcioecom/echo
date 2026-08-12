@@ -13,6 +13,7 @@ import { Input } from "@workspace/ui/components/input"
 import Link from "next/link"
 
 import { useSignUpForm } from "@/modules/auth/hooks/use-sign-up-form"
+import { PasswordInput } from "@/modules/auth/ui/components/password-input"
 
 export function SignUpView() {
   const { form, onSubmit } = useSignUpForm()
@@ -72,8 +73,7 @@ export function SignUpView() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     {...field}
                   />
@@ -89,8 +89,7 @@ export function SignUpView() {
               <FormItem>
                 <FormLabel>Confirm password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="new-password"
                     {...field}
                   />

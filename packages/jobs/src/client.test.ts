@@ -26,6 +26,7 @@ const validInvitation = {
   organizationName: "Acme",
   inviteUrl:
     "http://localhost:3000/accept-invitation/01JFXN7G8C2V1D7A0B3E4F5G6H",
+  logoUrl: "http://localhost:3000/brand/echo-logo-horizontal.png",
 }
 
 describe("createJobClient", () => {
@@ -58,6 +59,21 @@ describe("createJobClient", () => {
       } as never)
     ).rejects.toThrow()
     expect(add).not.toHaveBeenCalled()
+  })
+
+  it("queues a validated password reset email", async () => {
+    add.mockResolvedValue({ id: "2" })
+    const client = createJobClient({} as never)
+    const payload = {
+      email: "operator@example.com",
+      logoUrl: "http://localhost:3000/brand/echo-logo-horizontal.png",
+      resetUrl: "http://localhost:3000/reset-password?token=secret",
+    }
+
+    await expect(
+      client.enqueue("send-password-reset-email", payload)
+    ).resolves.toEqual({ id: "2" })
+    expect(add).toHaveBeenCalledWith("send-password-reset-email", payload, {})
   })
 
   it("applies queue defaults and a deterministic job ID", async () => {

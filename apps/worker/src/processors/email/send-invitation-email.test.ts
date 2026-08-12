@@ -32,6 +32,7 @@ const validPayload = {
   organizationName: "Acme",
   inviteUrl:
     "http://localhost:3000/accept-invitation/01JFXN7G8C2V1D7A0B3E4F5G6H",
+  logoUrl: "http://localhost:3000/brand/echo-logo-horizontal.png",
 }
 
 function createJob(data: unknown): Job {

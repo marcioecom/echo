@@ -14,6 +14,7 @@ vi.mock("./config/env", () => ({
     CHANNEL_CREDENTIALS_KEY_VERSION: "v1",
     PUBLIC_API_URL: "http://localhost:3001",
     WEB_APP_URL: "http://localhost:3000",
+    EMAIL_ASSET_BASE_URL: "https://assets.echo.test",
   },
 }))
 vi.mock("./lib/db", () => ({ database: { check: postgres, db: {} } }))
