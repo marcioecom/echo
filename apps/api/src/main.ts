@@ -2,18 +2,15 @@ import { createLoggerWithContext } from "@workspace/logger"
 import { createApp } from "./app"
 import { env } from "./config/env"
 import { database } from "./lib/db"
-import { redisConnection } from "./lib/redis"
 import { jobs } from "./lib/jobs-client"
-import {
-  createInboxEventBridge,
-  startInboxEventBridge,
-} from "./modules/support-inbox/events/inbox-event-bridge"
+import { redisConnection } from "./lib/redis"
+import { startInboxEventBridge } from "./modules/support-inbox/events/inbox-event-bridge"
 
 const logger = createLoggerWithContext("api:main")
 
 async function main(): Promise<void> {
   const app = createApp()
-  const inboxEventBridge = createInboxEventBridge()
+  const inboxEventBridge = await startInboxEventBridge()
 
   async function shutdown(signal?: NodeJS.Signals): Promise<void> {
     if (signal) {
@@ -48,7 +45,6 @@ async function main(): Promise<void> {
   process.once("SIGINT", () => shutdown("SIGINT"))
   process.once("SIGTERM", () => shutdown("SIGTERM"))
 
-  await startInboxEventBridge(inboxEventBridge)
   await app.listen({ host: env.API_HOST, port: env.API_PORT })
 }
 
