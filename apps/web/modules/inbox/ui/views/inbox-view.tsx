@@ -72,6 +72,7 @@ export function InboxView({
       >
         {selectedConversationId ? (
           <ConversationDetail
+            organizationId={organizationId}
             detail={detailQuery.data}
             isLoading={detailQuery.isPending}
             error={detailQuery.error}

@@ -19,6 +19,27 @@ const twilioWebhookRoutingSchema = z.object({
   To: whatsAppAddressSchema,
 })
 
+const twilioStatusWebhookRoutingSchema = z.object({
+  AccountSid: twilioAccountSidSchema,
+  From: whatsAppAddressSchema,
+})
+
+export const twilioStatusWebhookSchema = z
+  .object({
+    MessageSid: z.string().regex(/^SM[a-fA-F0-9]{32}$/),
+    MessageStatus: z.enum([
+      "queued",
+      "sent",
+      "delivered",
+      "read",
+      "failed",
+      "undelivered",
+    ]),
+    AccountSid: twilioAccountSidSchema,
+    From: whatsAppAddressSchema,
+  })
+  .loose()
+
 const twilioInboundMessageSchema = z
   .object({
     MessageSid: z.string().regex(/^SM[a-fA-F0-9]{32}$/),
@@ -40,6 +61,18 @@ export function parseTwilioWebhookRouting(
   return ok({
     accountSid: routing.data.AccountSid,
     address: routing.data.To,
+  })
+}
+
+export function parseTwilioStatusWebhookRouting(
+  form: Record<string, string>
+): Result<{ accountSid: string; address: string }, "unknown_connection"> {
+  const routing = twilioStatusWebhookRoutingSchema.safeParse(form)
+  if (!routing.success) return err("unknown_connection")
+
+  return ok({
+    accountSid: routing.data.AccountSid,
+    address: routing.data.From,
   })
 }
 

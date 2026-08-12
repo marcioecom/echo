@@ -4,6 +4,8 @@ import {
   AlertCircleIcon,
   ArrowLeft01Icon,
   BotIcon,
+  CheckmarkCircle01Icon,
+  Clock01Icon,
   Message01Icon,
   ReloadIcon,
   UserIcon,
@@ -15,8 +17,10 @@ import { cn } from "@workspace/ui/lib/utils"
 import Link from "next/link"
 
 import { InboxApiError } from "../../hooks/api"
+import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
 import type { InboxConversationDetail } from "../../types"
 import { ConversationStatus } from "./conversation-status"
+import { ReplyComposer } from "./reply-composer"
 
 const timestamp = new Intl.DateTimeFormat("en", {
   dateStyle: "medium",
@@ -24,16 +28,22 @@ const timestamp = new Intl.DateTimeFormat("en", {
 })
 
 export function ConversationDetail({
+  organizationId,
   detail,
   isLoading,
   error,
   onRetry,
 }: {
+  organizationId: string
   detail: InboxConversationDetail | undefined
   isLoading: boolean
   error: Error | null
   onRetry: () => void
 }) {
+  const conversationId = detail?.conversation.id ?? null
+  const lastMessageId = detail?.messages.at(-1)?.id ?? null
+  const timelineRef = useTimelineAutoScroll(conversationId, lastMessageId)
+
   if (isLoading) return <ConversationDetailSkeleton />
   if (error && !detail) {
     const notFound = error instanceof InboxApiError && error.status === 404
@@ -111,6 +121,7 @@ export function ConversationDetail({
       ) : null}
 
       <div
+        ref={timelineRef}
         className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6"
         role="log"
         aria-label="Conversation messages"
@@ -185,9 +196,9 @@ export function ConversationDetail({
                         message.body
                       )}
                     </div>
-                    <p className="mt-1 text-[10px] text-muted-foreground capitalize">
-                      {message.status}
-                    </p>
+                    {message.direction === "outbound" ? (
+                      <MessageDeliveryStatus status={message.status} />
+                    ) : null}
                   </div>
                 </article>
               )
@@ -195,7 +206,33 @@ export function ConversationDetail({
           </div>
         )}
       </div>
+      <ReplyComposer
+        organizationId={organizationId}
+        conversationId={detail.conversation.id}
+        disabled={detail.conversation.status === "resolved"}
+      />
     </section>
+  )
+}
+
+function MessageDeliveryStatus({ status }: { status: InboxConversationDetail["messages"][number]["status"] }) {
+  if (status === "received") return null
+  const failed = status === "failed"
+  const label = failed ? "Not delivered" : status
+  return (
+    <p
+      className={cn(
+        "mt-1 flex items-center justify-end gap-1 text-[10px] capitalize",
+        failed ? "text-destructive" : "text-muted-foreground"
+      )}
+    >
+      <HugeiconsIcon
+        icon={failed ? AlertCircleIcon : status === "pending" ? Clock01Icon : CheckmarkCircle01Icon}
+        size={11}
+        strokeWidth={1.8}
+      />
+      {label}
+    </p>
   )
 }
 

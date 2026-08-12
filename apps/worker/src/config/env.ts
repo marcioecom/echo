@@ -1,13 +1,21 @@
-import { loadEnv, serverEnvSchema } from "@workspace/config";
-import { z } from "zod";
+import { loadEnv, serverEnvSchema } from "@workspace/config"
+import { z } from "zod"
+
+const encryptionKeySchema = z.string().refine((value) => {
+  const decoded = Buffer.from(value, "base64")
+  return decoded.length === 32 && decoded.toString("base64") === value
+}, "must be a canonical base64-encoded 32-byte key")
 
 const workerEnvSchema = serverEnvSchema.extend({
   WORKER_HOST: z.string().default("0.0.0.0"),
   WORKER_PORT: z.coerce.number().int().min(1).max(65_535).default(3002),
   RESEND_API_KEY: z.string().min(1),
   EMAIL_FROM: z.string().min(1),
+  PUBLIC_API_URL: z.url(),
+  CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
+  CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),
 })
 
 export type WorkerEnv = z.output<typeof workerEnvSchema>
 
-export const env = loadEnv(workerEnvSchema);
+export const env = loadEnv(workerEnvSchema)

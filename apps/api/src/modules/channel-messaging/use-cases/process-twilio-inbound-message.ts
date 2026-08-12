@@ -61,17 +61,18 @@ export async function processTwilioInboundMessage(input: {
   return ingestInboundMessage(normalized.value)
 }
 
-async function resolveAndVerifyTwilioWebhook(input: {
+export async function resolveAndVerifyTwilioWebhook(input: {
   signature: string
   url: string
   form: Record<string, string>
+  routing?: Result<{ accountSid: string; address: string }, "unknown_connection">
 }): Promise<
   Result<
     { organizationId: string; channelConnectionId: string },
     Exclude<TwilioWebhookRejectionReason, "malformed_event">
   >
 > {
-  const routing = parseTwilioWebhookRouting(input.form)
+  const routing = input.routing ?? parseTwilioWebhookRouting(input.form)
   if (!routing.ok) return routing
 
   const binding = await channelConnectionsRepository.findActiveTwilioBinding({

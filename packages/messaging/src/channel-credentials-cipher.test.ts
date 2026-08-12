@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest"
 
+import { ChannelCredentialsCipher } from "./channel-credentials-cipher"
+
 const encryptionKey = Buffer.alloc(32, 7).toString("base64")
-
-import { ChannelCredentialsCipher } from "@workspace/messaging"
-
 const context = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
   channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
@@ -28,10 +27,7 @@ describe("channel credentials cipher", () => {
 
     expect(() =>
       cipher.decrypt(
-        {
-          ...encrypted,
-          ciphertext: Buffer.from("tampered").toString("base64"),
-        },
+        { ...encrypted, ciphertext: Buffer.from("tampered").toString("base64") },
         context
       )
     ).toThrow()
@@ -48,12 +44,7 @@ describe("channel credentials cipher", () => {
 
     expect(() =>
       cipher.decrypt(
-        {
-          ciphertext: "",
-          nonce: "",
-          authTag: "",
-          keyVersion: "v2",
-        },
+        { ciphertext: "", nonce: "", authTag: "", keyVersion: "v2" },
         context
       )
     ).toThrow("Unsupported channel credentials key version")

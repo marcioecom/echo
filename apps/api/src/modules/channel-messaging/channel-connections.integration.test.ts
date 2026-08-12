@@ -88,7 +88,10 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("provisions one encrypted, routable connection idempotently", async () => {
     const organizationId = await createOrganization("provisioned-channel")
-    const credentialsCipher = new ChannelCredentialsCipher()
+    const credentialsCipher = new ChannelCredentialsCipher({
+      encryptionKey: Buffer.alloc(32, 9).toString("base64"),
+      keyVersion: "v1",
+    })
     const verifyWhatsAppSender = vi
       .spyOn(TwilioChannelProvider.prototype, "verifyWhatsAppSender")
       .mockResolvedValue({
