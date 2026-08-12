@@ -9,15 +9,23 @@ export class InboxApiError extends Error {
   }
 }
 
-export async function inboxApiRequest<T>(path: string): Promise<T> {
+export async function inboxApiRequest<T>(
+  path: string,
+  options?: { method?: "POST"; body?: unknown }
+): Promise<T> {
   const response = await fetch(new URL(path, apiUrl), {
+    method: options?.method,
     credentials: "include",
-    headers: { accept: "application/json" },
+    headers: {
+      accept: "application/json",
+      ...(options?.body ? { "content-type": "application/json" } : {}),
+    },
+    ...(options?.body ? { body: JSON.stringify(options.body) } : {}),
   })
 
   if (!response.ok) {
     throw new InboxApiError(
-      "The Support Inbox could not be loaded.",
+      "The Support Inbox request could not be completed.",
       response.status
     )
   }

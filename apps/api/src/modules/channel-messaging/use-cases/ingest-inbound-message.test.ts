@@ -17,8 +17,8 @@ vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../repositories/inbound-message-repository", () => ({
   inboundMessageRepository: { ingest: repositoryIngest },
 }))
-vi.mock("../../support-inbox/events/support-inbox-event-broker", () => ({
-  supportInboxEventBroker: { publish },
+vi.mock("../../support-inbox/events/publish-support-conversation-updated", () => ({
+  publishSupportConversationUpdated: publish,
 }))
 
 import { ingestInboundMessage } from "./ingest-inbound-message"
@@ -56,8 +56,8 @@ describe("ingestInboundMessage", () => {
       value: { ...ingested, jobId: "job-id" },
     })
     expect(repositoryIngest).toHaveBeenCalledWith(input)
-    expect(publish).toHaveBeenCalledWith(ingested.organizationId, {
-      type: "support_conversation.updated",
+    expect(publish).toHaveBeenCalledWith({
+      organizationId: ingested.organizationId,
       conversationId: ingested.supportConversationId,
     })
     expect(enqueue).toHaveBeenCalledWith("process-inbound-message", {

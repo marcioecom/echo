@@ -6,6 +6,8 @@ import {
 import {
   type ProcessInboundMessageJob,
   processInboundMessageJobSchema,
+  type SendOutboundMessageJob,
+  sendOutboundMessageJobSchema,
   supportConversationJobNames,
   supportConversationsQueueName,
 } from "./support-conversations"
@@ -23,6 +25,12 @@ export const jobDefinitions = {
     schema: processInboundMessageJobSchema,
     jobId: (payload: ProcessInboundMessageJob) =>
       `${supportConversationJobNames.processInboundMessage}--${payload.messageId}`,
+  },
+  [supportConversationJobNames.sendOutboundMessage]: {
+    queueName: supportConversationsQueueName,
+    schema: sendOutboundMessageJobSchema,
+    jobId: (payload: SendOutboundMessageJob) =>
+      `${supportConversationJobNames.sendOutboundMessage}--${payload.messageId}`,
   },
 } as const
 

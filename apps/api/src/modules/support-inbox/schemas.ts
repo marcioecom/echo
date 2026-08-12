@@ -15,6 +15,10 @@ export const supportConversationParamsSchema = z.object({
   conversationId: ulidSchema,
 })
 
+export const createOperatorReplyBodySchema = z.object({
+  body: z.string().trim().min(1).max(1600),
+})
+
 export function encodeSupportInboxCursor(input: SupportInboxCursor): string {
   return Buffer.from(
     JSON.stringify({

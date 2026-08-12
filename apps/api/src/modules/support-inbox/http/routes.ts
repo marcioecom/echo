@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
 
-import { matchResult } from "@/common/match"
+import { matchResult, matchTag } from "@/common/match"
 import { env } from "@/config/env"
 import {
   getOrganizationAuth,
@@ -8,7 +8,12 @@ import {
   type OrganizationRequestAuth,
 } from "@/plugins/auth"
 import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
-import { listSupportConversationsQuerySchema, supportConversationParamsSchema } from "../schemas"
+import {
+  createOperatorReplyBodySchema,
+  listSupportConversationsQuerySchema,
+  supportConversationParamsSchema,
+} from "../schemas"
+import { createOperatorReply } from "../use-cases/create-operator-reply"
 import { getSupportConversationDetail } from "../use-cases/get-support-conversation-detail"
 import { listSupportConversations } from "../use-cases/list-support-conversations"
 
@@ -37,6 +42,40 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         return matchResult(result, {
           err: (error) => reply.code(400).send({ error: error.type }),
           ok: (value) => reply.send(value),
+        })
+      })
+    }
+  )
+
+  app.post(
+    "/v1/support-conversations/:conversationId/messages",
+    { preHandler },
+    async (request, reply) => {
+      const params = supportConversationParamsSchema.safeParse(request.params)
+      const body = createOperatorReplyBodySchema.safeParse(request.body)
+      if (!params.success || !body.success) {
+        return reply.code(400).send({ error: "invalid_reply" })
+      }
+
+      return withOrganizationAuth(request, reply, async (auth) => {
+        const result = await createOperatorReply({
+          organizationId: auth.organization.id,
+          conversationId: params.data.conversationId,
+          operatorUserId: auth.user.id,
+          body: body.data.body,
+        })
+
+        return matchResult(result, {
+          err: (error) =>
+            matchTag(error, {
+              resolved: () => reply.code(409).send({ error: "support_conversation_resolved" }),
+              not_found: () => reply.code(404).send({ error: "support_conversation_not_found" }),
+              queue_unavailable: (value) => reply.code(503).send({
+                error: "outbound_message_dispatch_unavailable",
+                messageId: value.messageId,
+              }),
+            }),
+          ok: (value) => reply.code(201).send({ messageId: value.messageId }),
         })
       })
     }
@@ -91,8 +130,8 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
 function withOrganizationAuth(
   request: FastifyRequest,
   reply: FastifyReply,
-  handler: (auth: OrganizationRequestAuth) => Promise<FastifyReply>
-): Promise<FastifyReply> {
+  handler: (auth: OrganizationRequestAuth) => Promise<unknown>
+): Promise<unknown> {
   return matchResult(getOrganizationAuth(request), {
     err: async (error) => reply.code(403).send({ error: error.type }),
     ok: handler,

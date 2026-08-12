@@ -6,6 +6,7 @@ export const supportConversationsQueueName = "support-conversations"
 
 export const supportConversationJobNames = {
   processInboundMessage: "process-inbound-message",
+  sendOutboundMessage: "send-outbound-message",
 } as const
 
 export const processInboundMessageJobSchema = z.object({
@@ -16,4 +17,14 @@ export const processInboundMessageJobSchema = z.object({
 })
 export type ProcessInboundMessageJob = z.infer<
   typeof processInboundMessageJobSchema
+>
+
+export const sendOutboundMessageJobSchema = z.object({
+  organizationId: ulidSchema,
+  channelConnectionId: ulidSchema,
+  supportConversationId: ulidSchema,
+  messageId: ulidSchema,
+})
+export type SendOutboundMessageJob = z.infer<
+  typeof sendOutboundMessageJobSchema
 >

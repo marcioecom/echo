@@ -4,6 +4,7 @@ import { matchResult, matchTag } from "@/common/match"
 import { env } from "@/config/env"
 import { twilioWebhookRequestSchema } from "../adapters/twilio-webhook"
 import { processTwilioInboundMessage } from "../use-cases/process-twilio-inbound-message"
+import { processTwilioMessageStatus } from "../use-cases/process-twilio-message-status"
 
 export function registerInboundMessageRoutes(app: FastifyInstance): void {
   app.post("/webhooks/twilio/whatsapp/inbound", async (request, reply) => {
@@ -35,6 +36,26 @@ export function registerInboundMessageRoutes(app: FastifyInstance): void {
           .code(200)
           .type("text/xml")
           .send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>'),
+    })
+  })
+
+  app.post("/webhooks/twilio/whatsapp/status", async (request, reply) => {
+    const webhook = twilioWebhookRequestSchema.safeParse({
+      signature: request.headers["x-twilio-signature"],
+      form: request.body,
+    })
+    if (!webhook.success) {
+      return reply.code(403).send({ error: "webhook_rejected" })
+    }
+
+    const result = await processTwilioMessageStatus({
+      signature: webhook.data.signature,
+      url: new URL(request.url, env.PUBLIC_API_URL).toString(),
+      form: webhook.data.form,
+    })
+    return matchResult(result, {
+      err: () => reply.code(403).send({ error: "webhook_rejected" }),
+      ok: () => reply.code(204).send(),
     })
   })
 }

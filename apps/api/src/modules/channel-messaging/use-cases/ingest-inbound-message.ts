@@ -3,7 +3,7 @@ import { createLoggerWithContext } from "@workspace/logger"
 
 import { err, ok, type Result } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
-import { supportInboxEventBroker } from "@/modules/support-inbox/events/support-inbox-event-broker"
+import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"
 import { inboundMessageRepository } from "../repositories/inbound-message-repository"
 import type { IngestedInboundMessage } from "../types"
 
@@ -22,8 +22,8 @@ export async function ingestInboundMessage(
 > {
   const ingested = await inboundMessageRepository.ingest(input)
 
-  supportInboxEventBroker.publish(ingested.organizationId, {
-    type: "support_conversation.updated",
+  await publishSupportConversationUpdated({
+    organizationId: ingested.organizationId,
     conversationId: ingested.supportConversationId,
   })
 

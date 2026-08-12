@@ -67,6 +67,13 @@ export function useInboxEvents(organizationId: string): void {
         socket?.close()
         return
       }
+
+      queryClient.invalidateQueries({
+        queryKey: inboxQueryKeys.lists(organizationId),
+      })
+      queryClient.invalidateQueries({
+        queryKey: inboxQueryKeys.details(organizationId),
+      })
       if (!socket) connect()
     }
 

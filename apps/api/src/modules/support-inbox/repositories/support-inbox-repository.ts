@@ -12,6 +12,7 @@ import type {
   MessageContentType,
   SupportConversationStatus,
 } from "@workspace/domain"
+import { createId } from "@workspace/domain"
 import { and, asc, desc, eq, lt, or, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
@@ -231,6 +232,82 @@ export class SupportInboxRepository {
       },
       messages: timeline,
     }
+  }
+
+  async createOperatorReply(input: {
+    organizationId: string
+    conversationId: string
+    operatorUserId: string
+    body: string
+    occurredAt: Date
+  }): Promise<
+    | { type: "not_found" }
+    | { type: "resolved" }
+    | {
+        type: "created"
+        messageId: string
+        channelConnectionId: string
+        supportConversationId: string
+      }
+  > {
+    return this.db.transaction(async (transaction) => {
+      const [conversation] = await transaction
+        .select({
+          id: supportConversations.id,
+          channelConnectionId: supportConversations.channelConnectionId,
+          status: supportConversations.status,
+        })
+        .from(supportConversations)
+        .where(
+          and(
+            eq(supportConversations.organizationId, input.organizationId),
+            eq(supportConversations.id, input.conversationId)
+          )
+        )
+        .limit(1)
+        .for("update")
+
+      if (!conversation) return { type: "not_found" }
+      if (conversation.status === "resolved") return { type: "resolved" }
+
+      const messageId = createId()
+      await transaction.insert(messages).values({
+        id: messageId,
+        organizationId: input.organizationId,
+        supportConversationId: conversation.id,
+        channelConnectionId: conversation.channelConnectionId,
+        direction: "outbound",
+        senderType: "operator",
+        operatorUserId: input.operatorUserId,
+        contentType: "text",
+        body: input.body,
+        status: "pending",
+        occurredAt: input.occurredAt,
+      })
+
+      await transaction
+        .update(supportConversations)
+        .set({
+          lastActivityAt: sql`greatest(${supportConversations.lastActivityAt}, ${input.occurredAt})`,
+        })
+        .where(
+          and(
+            eq(supportConversations.organizationId, input.organizationId),
+            eq(supportConversations.id, conversation.id),
+            eq(
+              supportConversations.channelConnectionId,
+              conversation.channelConnectionId
+            )
+          )
+        )
+
+      return {
+        type: "created",
+        messageId,
+        channelConnectionId: conversation.channelConnectionId,
+        supportConversationId: conversation.id,
+      }
+    })
   }
 }
 
