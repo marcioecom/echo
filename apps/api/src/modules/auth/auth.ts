@@ -2,7 +2,10 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { ac, admin, operator, owner } from "@workspace/auth"
 import { schema, type Database } from "@workspace/db"
 import { createId } from "@workspace/domain"
-import { type SendInvitationEmailJob } from "@workspace/jobs"
+import {
+  type SendInvitationEmailJob,
+  type SendPasswordResetEmailJob,
+} from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import { betterAuth } from "better-auth"
 import { organization } from "better-auth/plugins/organization"
@@ -17,7 +20,9 @@ export interface CreateAuthOptions {
   secret: string
   baseURL: string
   webAppUrl: string
+  emailAssetBaseUrl: string
   deliverInvitationEmail: (request: SendInvitationEmailJob) => Promise<void>
+  deliverPasswordResetEmail: (request: SendPasswordResetEmailJob) => Promise<void>
   onDeliveryError?: (error: unknown, request: SendInvitationEmailJob) => void
 }
 
@@ -49,6 +54,18 @@ export function createAuth(options: CreateAuthOptions) {
     },
     emailAndPassword: {
       enabled: true,
+      resetPasswordTokenExpiresIn: 30 * 60,
+      revokeSessionsOnPasswordReset: true,
+      async sendResetPassword({ user, url }) {
+        await options.deliverPasswordResetEmail({
+          email: user.email,
+          resetUrl: url,
+          logoUrl: new URL(
+            "/brand/echo-logo-horizontal.png",
+            options.emailAssetBaseUrl
+          ).toString(),
+        })
+      },
     },
     databaseHooks: {
       session: {
@@ -90,6 +107,10 @@ export function createAuth(options: CreateAuthOptions) {
             inviterName: data.inviter.user.name,
             organizationName: data.organization.name,
             inviteUrl: `${options.webAppUrl}/accept-invitation/${data.id}`,
+            logoUrl: new URL(
+              "/brand/echo-logo-horizontal.png",
+              options.emailAssetBaseUrl
+            ).toString(),
           }
           try {
             await options.deliverInvitationEmail(request)
@@ -128,8 +149,12 @@ export const auth = createAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.PUBLIC_API_URL,
   webAppUrl: env.WEB_APP_URL,
+  emailAssetBaseUrl: env.EMAIL_ASSET_BASE_URL,
   deliverInvitationEmail: async (request) => {
     await jobs.enqueue("send-invitation-email", request)
+  },
+  deliverPasswordResetEmail: async (request) => {
+    await jobs.enqueue("send-password-reset-email", request)
   },
   onDeliveryError: (error, request) => {
     logger.error("failed to enqueue invitation email", {

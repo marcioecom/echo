@@ -13,6 +13,7 @@ import { Input } from "@workspace/ui/components/input"
 import Link from "next/link"
 
 import { useLoginForm } from "@/modules/auth/hooks/use-login-form"
+import { PasswordInput } from "@/modules/auth/ui/components/password-input"
 
 export function LoginView() {
   const { form, onSubmit } = useLoginForm()
@@ -53,13 +54,18 @@ export function LoginView() {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input
-                    type="password"
+                  <PasswordInput
                     autoComplete="current-password"
                     {...field}
                   />
                 </FormControl>
                 <FormMessage />
+                <Link
+                  href="/forgot-password"
+                  className="ml-auto block w-fit text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                >
+                  Forgot your password?
+                </Link>
               </FormItem>
             )}
           />
