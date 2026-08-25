@@ -247,6 +247,7 @@ export const messages = pgTable(
 		body: text("body"),
 		status: text("status").$type<MessageStatus>().notNull(),
 		externalMessageId: text("external_message_id"),
+		replyToMessageId: text("reply_to_message_id"),
 		occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
 		...timestamps,
 	},
@@ -264,6 +265,30 @@ export const messages = pgTable(
 				supportConversations.channelConnectionId,
 			],
 		}).onDelete("restrict"),
+		unique("messages_organization_conversation_connection_id_unique").on(
+			table.organizationId,
+			table.supportConversationId,
+			table.channelConnectionId,
+			table.id
+		),
+		foreignKey({
+			name: "messages_reply_to_message_fk",
+			columns: [
+				table.organizationId,
+				table.supportConversationId,
+				table.channelConnectionId,
+				table.replyToMessageId,
+			],
+			foreignColumns: [
+				table.organizationId,
+				table.supportConversationId,
+				table.channelConnectionId,
+				table.id,
+			],
+		}).onDelete("restrict"),
+		uniqueIndex("messages_ai_reply_to_message_uidx")
+			.on(table.organizationId, table.replyToMessageId)
+			.where(sql`${table.senderType} = 'ai' and ${table.replyToMessageId} is not null`),
 		uniqueIndex("messages_external_message_id_uidx")
 			.on(
 				table.organizationId,
@@ -296,6 +321,10 @@ export const messages = pgTable(
 		check(
 			"messages_direction_sender_check",
 			sql`(${table.direction} = 'inbound' and ${table.senderType} = 'contact') or (${table.direction} = 'outbound' and ${table.senderType} in ('ai', 'operator', 'system'))`
+		),
+		check(
+			"messages_ai_reply_to_message_check",
+			sql`(${table.senderType} = 'ai' and ${table.direction} = 'outbound' and ${table.replyToMessageId} is not null) or (${table.senderType} <> 'ai' and ${table.replyToMessageId} is null)`
 		),
 	]
 );

@@ -2,7 +2,7 @@ import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { createId } from "@workspace/domain"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
@@ -19,7 +19,7 @@ import {
 } from "./index"
 
 describe("support schema invariants", () => {
-  const container = new PostgreSqlContainer("postgres:17-alpine")
+  const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
   let stop: () => Promise<void>
 
@@ -27,6 +27,7 @@ describe("support schema invariants", () => {
     const postgres = await container.start()
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
+    await database.db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "migrations"),
     })

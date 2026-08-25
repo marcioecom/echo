@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: echo
       POSTGRES_PASSWORD: postgres
@@ -15,6 +15,25 @@ services:
     volumes:
       - echo-postgres:/var/lib/postgresql/data
 
+  postgres-extensions:
+    image: pgvector/pgvector:pg18
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: postgres
+    command:
+      [
+        "psql",
+        "-h",
+        "postgres",
+        "-U",
+        "postgres",
+        "-d",
+        "echo",
+        "-c",
+        "CREATE EXTENSION IF NOT EXISTS vector",
+      ]
   redis:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]

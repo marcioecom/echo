@@ -1,0 +1,5 @@
+ALTER TABLE "messages" ADD COLUMN "reply_to_message_id" text;--> statement-breakpoint
+ALTER TABLE "messages" ADD CONSTRAINT "messages_organization_conversation_connection_id_unique" UNIQUE("organization_id","support_conversation_id","channel_connection_id","id");--> statement-breakpoint
+ALTER TABLE "messages" ADD CONSTRAINT "messages_reply_to_message_fk" FOREIGN KEY ("organization_id","support_conversation_id","channel_connection_id","reply_to_message_id") REFERENCES "public"."messages"("organization_id","support_conversation_id","channel_connection_id","id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "messages_ai_reply_to_message_uidx" ON "messages" USING btree ("organization_id","reply_to_message_id") WHERE "messages"."sender_type" = 'ai' and "messages"."reply_to_message_id" is not null;--> statement-breakpoint
+ALTER TABLE "messages" ADD CONSTRAINT "messages_ai_reply_to_message_check" CHECK (("messages"."sender_type" = 'ai' and "messages"."direction" = 'outbound' and "messages"."reply_to_message_id" is not null) or ("messages"."sender_type" <> 'ai' and "messages"."reply_to_message_id" is null));

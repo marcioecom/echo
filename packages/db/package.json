@@ -23,7 +23,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src --exclude \"**/*.integration.test.ts\" --passWithNoTests",
-    "test:integration": "vitest run src/schema/support.integration.test.ts"
+    "test:integration": "vitest run src/schema/*.integration.test.ts"
   },
   "dependencies": {
     "@workspace/domain": "workspace:*",
