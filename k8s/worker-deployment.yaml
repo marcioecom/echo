@@ -32,6 +32,8 @@ spec:
                 name: echo-shared-secrets
             - secretRef:
                 name: echo-worker-secrets
+            - secretRef:
+                name: r2-echo-storage-worker
           livenessProbe:
             httpGet:
               path: /health/live

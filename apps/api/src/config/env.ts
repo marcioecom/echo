@@ -16,6 +16,14 @@ const apiEnvSchema = serverEnvSchema.extend({
   BETTER_AUTH_SECRET: z.string().min(1),
   CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
   CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),
+  R2_ENDPOINT: z.url(),
+  R2_BUCKET_NAME: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
+  KNOWLEDGE_UPLOAD_TOKEN_SECRET: z.string().refine(
+    (value) => Buffer.byteLength(value) >= 32,
+    "must be at least 32 bytes"
+  ),
 })
 
 export type ApiEnv = z.output<typeof apiEnvSchema>

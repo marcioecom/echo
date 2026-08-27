@@ -27,6 +27,7 @@
     "@workspace/domain": "workspace:*",
     "@workspace/jobs": "workspace:*",
     "@workspace/logger": "workspace:*",
+    "@workspace/object-storage": "workspace:*",
     "@workspace/messaging": "workspace:*",
     "better-auth": "^1.6.23",
     "bullmq": "^5.80.9",
