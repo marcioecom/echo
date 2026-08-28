@@ -8,6 +8,7 @@ import Fastify, { type FastifyBaseLogger } from "fastify"
 import { env } from "./config/env"
 import { auth } from "./modules/auth/auth"
 import { registerInboundMessageRoutes } from "./modules/channel-messaging/http/routes"
+import { registerKnowledgeBaseRoutes } from "./modules/knowledge-base/http/routes"
 import { registerSupportInboxRoutes } from "./modules/support-inbox/http/routes"
 import { registerAuthRoutes } from "./plugins/auth"
 import { registerHealthRoutes } from "./plugins/health"
@@ -32,6 +33,7 @@ export function createApp() {
     registerAuthRoutes(routes, auth)
     registerInboundMessageRoutes(routes)
     registerSupportInboxRoutes(routes)
+    registerKnowledgeBaseRoutes(routes)
   })
 
   return app

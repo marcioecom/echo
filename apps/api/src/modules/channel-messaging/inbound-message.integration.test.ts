@@ -12,13 +12,18 @@ import {
   supportConversations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import { and, asc, count, eq } from "drizzle-orm"
+import { and, asc, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
 const { databaseRef, enqueue } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
   enqueue: vi.fn(),
+}))
+vi.mock("../../config/env", () => ({
+  env: {
+    KNOWLEDGE_UPLOAD_TOKEN_SECRET: "knowledge-upload-token-secret-at-least-32",
+  },
 }))
 
 vi.mock("../../lib/db", () => ({
@@ -38,7 +43,7 @@ import type { NormalizedInboundMessage } from "@workspace/domain"
 import { ingestInboundMessage } from "./use-cases/ingest-inbound-message"
 
 describe("inbound Message persistence", () => {
-  const container = new PostgreSqlContainer("postgres:17-alpine")
+  const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
   let stop: () => Promise<void>
 
@@ -47,6 +52,7 @@ describe("inbound Message persistence", () => {
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
     databaseRef.current = database.db
+    await database.db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })

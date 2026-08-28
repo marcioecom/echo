@@ -15,6 +15,11 @@ vi.mock("./config/env", () => ({
     PUBLIC_API_URL: "http://localhost:3001",
     WEB_APP_URL: "http://localhost:3000",
     EMAIL_ASSET_BASE_URL: "https://assets.echo.test",
+    R2_ENDPOINT: "https://r2.echo.test",
+    R2_BUCKET_NAME: "echo-storage",
+    R2_ACCESS_KEY_ID: "test-access-key",
+    R2_SECRET_ACCESS_KEY: "test-secret-key",
+    KNOWLEDGE_UPLOAD_TOKEN_SECRET: "knowledge-upload-token-secret-at-least-32",
   },
 }))
 vi.mock("./lib/db", () => ({ database: { check: postgres, db: {} } }))

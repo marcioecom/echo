@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { createApp } from "./app"
 
 describe("API readiness with real dependencies", () => {
-  const postgresContainer = new PostgreSqlContainer("postgres:17-alpine")
+  const postgresContainer = new PostgreSqlContainer("pgvector/pgvector:pg18")
   const redisContainer = new GenericContainer(
     "redis:7.4-alpine"
   ).withExposedPorts(6379)
@@ -44,6 +44,11 @@ describe("API readiness with real dependencies", () => {
     vi.stubEnv("PUBLIC_API_URL", "http://localhost:3001")
     vi.stubEnv("WEB_APP_URL", "http://localhost:3000")
     vi.stubEnv("EMAIL_ASSET_BASE_URL", "https://assets.echo.test")
+    vi.stubEnv("R2_ENDPOINT", "https://r2.echo.test")
+    vi.stubEnv("R2_BUCKET_NAME", "echo-storage")
+    vi.stubEnv("R2_ACCESS_KEY_ID", "test-access-key")
+    vi.stubEnv("R2_SECRET_ACCESS_KEY", "test-secret-key")
+    vi.stubEnv("KNOWLEDGE_UPLOAD_TOKEN_SECRET", "knowledge-upload-token-secret-at-least-32")
 
     vi.resetModules()
     const [appModule, dbModule, redisModule] = await Promise.all([
