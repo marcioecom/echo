@@ -5,6 +5,12 @@ import {
   sendPasswordResetEmailJobSchema,
 } from "./email"
 import {
+  type IndexKnowledgeDocumentJob,
+  indexKnowledgeDocumentJobSchema,
+  knowledgeBaseJobNames,
+  knowledgeBaseQueueName,
+} from "./knowledge-base"
+import {
   type ProcessInboundMessageJob,
   processInboundMessageJobSchema,
   type SendOutboundMessageJob,
@@ -15,6 +21,7 @@ import {
 
 export * from "./email"
 export * from "./support-conversations"
+export * from "./knowledge-base"
 
 export const jobDefinitions = {
   [emailJobNames.sendInvitationEmail]: {
@@ -36,6 +43,12 @@ export const jobDefinitions = {
     schema: sendOutboundMessageJobSchema,
     jobId: (payload: SendOutboundMessageJob) =>
       `${supportConversationJobNames.sendOutboundMessage}--${payload.messageId}`,
+  },
+  [knowledgeBaseJobNames.indexKnowledgeDocument]: {
+    queueName: knowledgeBaseQueueName,
+    schema: indexKnowledgeDocumentJobSchema,
+    jobId: (payload: IndexKnowledgeDocumentJob) =>
+      `${knowledgeBaseJobNames.indexKnowledgeDocument}--${payload.documentId}--${payload.revision}`,
   },
 } as const
 

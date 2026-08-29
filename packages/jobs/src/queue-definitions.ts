@@ -1,6 +1,7 @@
 import type { JobsOptions } from "bullmq"
 
 import { emailQueueName } from "./schemas/email"
+import { knowledgeBaseQueueName } from "./schemas/knowledge-base"
 import { supportConversationsQueueName } from "./schemas/support-conversations"
 
 const defaultJobOptions = {
@@ -28,9 +29,15 @@ export const supportConversationsQueueDefinition = {
   defaultJobOptions,
 }
 
+export const knowledgeBaseQueueDefinition = {
+  name: knowledgeBaseQueueName,
+  defaultJobOptions,
+}
+
 export const queueDefinitions = {
   [emailQueueName]: emailQueueDefinition,
   [supportConversationsQueueName]: supportConversationsQueueDefinition,
+  [knowledgeBaseQueueName]: knowledgeBaseQueueDefinition,
 }
 
 export type QueueName = keyof typeof queueDefinitions

@@ -2,6 +2,7 @@ import { createLoggerWithContext } from "@workspace/logger"
 import type { Processor } from "bullmq"
 
 import { emailProcessors } from "./email"
+import { knowledgeBaseProcessors } from "./knowledge-base"
 import { supportConversationProcessors } from "./support-conversations"
 
 const logger = createLoggerWithContext("worker:registry")
@@ -10,6 +11,7 @@ const processors: Map<string, Processor> = new Map()
 const registered = {
   ...emailProcessors,
   ...supportConversationProcessors,
+  ...knowledgeBaseProcessors,
 }
 
 for (const [jobName, processor] of Object.entries(registered)) {
