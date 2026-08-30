@@ -2,6 +2,7 @@
 
 import { cn } from "@workspace/ui/lib/utils"
 import {
+  BookOpen01Icon,
   InboxIcon,
   Logout01Icon,
   UserMultiple02Icon,
@@ -12,6 +13,7 @@ import { usePathname } from "next/navigation"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
+import { canManageOrganization } from "@/modules/auth/permissions"
 import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
@@ -29,6 +31,7 @@ const NAV_SECTIONS: {
     label: string
     icon: typeof InboxIcon
     exact?: boolean
+    requiresManage?: boolean
   }[]
 }[] = [
   {
@@ -40,6 +43,12 @@ const NAV_SECTIONS: {
     label: "Settings",
     items: [
       { href: "/settings/members", label: "Members", icon: UserMultiple02Icon },
+      {
+        href: "/settings/knowledge",
+        label: "Knowledge Base",
+        icon: BookOpen01Icon,
+        requiresManage: true,
+      },
     ],
   },
 ]
@@ -61,6 +70,12 @@ export function AppSidebar({
   organizationSwitcherSide,
 }: AppSidebarProps) {
   const pathname = usePathname()
+  const navSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !item.requiresManage || canManageOrganization(userRole)
+    ),
+  })).filter((section) => section.items.length > 0)
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
@@ -81,7 +96,7 @@ export function AppSidebar({
         aria-label="Primary"
         className="flex-1 space-y-5 overflow-y-auto p-3"
       >
-        {NAV_SECTIONS.map((section, index) => (
+        {navSections.map((section, index) => (
           <div key={section.label ?? index} className="space-y-0.5">
             {section.label ? (
               <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">

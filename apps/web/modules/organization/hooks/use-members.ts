@@ -4,16 +4,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { canManageOrganization } from "@/modules/auth/permissions"
 
-function canManage(role: string): boolean {
-  return role
-    .split(",")
-    .some((entry) => ["owner", "admin"].includes(entry.trim()))
-}
 
 export function useMembers(currentRole: string) {
   const queryClient = useQueryClient()
-  const manageable = canManage(currentRole)
+  const manageable = canManageOrganization(currentRole)
 
   const organizationQuery = useQuery({
     queryKey: ["organization", "full"],
