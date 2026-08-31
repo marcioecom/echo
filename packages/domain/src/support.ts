@@ -37,6 +37,28 @@ export type SupportConversationStatus = z.infer<
   typeof supportConversationStatusSchema
 >
 
+export const supportConversationHandoffReasons = [
+  "human_requested",
+  "low_confidence",
+  "unsupported_policy",
+  "ai_failure",
+  "unsupported_content",
+  "operator_takeover",
+] as const
+export const supportConversationHandoffReasonSchema = z.enum(
+  supportConversationHandoffReasons
+)
+export type SupportConversationHandoffReason = z.infer<
+  typeof supportConversationHandoffReasonSchema
+>
+
+export function supportConversationDispatchLockKey(input: {
+  organizationId: string
+  conversationId: string
+}): string {
+  return `support-conversation-dispatch:${input.organizationId}:${input.conversationId}`
+}
+
 export const messageDirections = ["inbound", "outbound"] as const
 export const messageDirectionSchema = z.enum(messageDirections)
 export type MessageDirection = z.infer<typeof messageDirectionSchema>

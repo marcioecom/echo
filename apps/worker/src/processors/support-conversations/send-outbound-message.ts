@@ -17,7 +17,7 @@ import {
   TwilioChannelProvider,
 } from "@workspace/messaging"
 import type { Job } from "bullmq"
-import { and, eq } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { database } from "../../lib/db"
@@ -175,7 +175,7 @@ async function loadOutboundMessage(input: {
         eq(messages.supportConversationId, input.supportConversationId),
         eq(messages.channelConnectionId, input.channelConnectionId),
         eq(messages.direction, "outbound"),
-        eq(messages.senderType, "operator"),
+        inArray(messages.senderType, ["operator", "ai"]),
         eq(channelConnections.status, "active"),
         eq(organizations.status, "active")
       )
