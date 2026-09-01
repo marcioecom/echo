@@ -14,11 +14,14 @@ import {
 import { createId } from "@workspace/domain"
 import type { ProcessInboundMessageJob } from "@workspace/jobs"
 import type { Job } from "bullmq"
-import { and, count, eq } from "drizzle-orm"
+import { and, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
-const databaseRef = vi.hoisted(() => ({ current: {} as object }))
+const { databaseRef, supportAgentGraph } = vi.hoisted(() => ({
+  databaseRef: { current: {} as object },
+  supportAgentGraph: { invoke: vi.fn() },
+}))
 
 vi.mock("../../lib/db", () => ({
   database: new Proxy(
@@ -28,11 +31,15 @@ vi.mock("../../lib/db", () => ({
     }
   ),
 }))
+vi.mock("./orchestration/support-agent-graph", () => ({ supportAgentGraph }))
+vi.mock("../../queues/support-conversations", () => ({
+  supportConversationsQueue: { add: vi.fn() },
+}))
 
 import { handleProcessInboundMessage } from "./process-inbound-message"
 
 describe("process inbound Message", () => {
-  const container = new PostgreSqlContainer("postgres:17-alpine")
+  const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
   let stop: () => Promise<void>
 
@@ -41,6 +48,7 @@ describe("process inbound Message", () => {
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
     databaseRef.current = database
+    await database.db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })
@@ -116,6 +124,10 @@ describe("process inbound Message", () => {
     await handleProcessInboundMessage({ data: payload } as Job)
   }
 
+  beforeEach(() => {
+    supportAgentGraph.invoke.mockReset()
+  })
+
   it("moves unsupported content to human_required exactly once", async () => {
     const payload = await createState("worker-unsupported", "unsupported")
 
@@ -139,7 +151,10 @@ describe("process inbound Message", () => {
     expect(events?.value).toBe(1)
   })
 
-  it("does not change Conversation state for text content", async () => {
+  it("hands text content to a human when knowledge is insufficient", async () => {
+    supportAgentGraph.invoke.mockResolvedValue({
+      decision: { action: "handoff", reason: "low_confidence" },
+    })
     const payload = await createState("worker-text", "text")
 
     await processInboundMessage(payload)
@@ -148,7 +163,7 @@ describe("process inbound Message", () => {
       .select()
       .from(supportConversations)
       .where(eq(supportConversations.id, payload.supportConversationId))
-    expect(conversation?.status).toBe("open")
+    expect(conversation?.status).toBe("human_required")
   })
 
   it("does not reopen a resolved Conversation for unsupported content", async () => {

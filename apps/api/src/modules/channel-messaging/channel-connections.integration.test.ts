@@ -9,7 +9,7 @@ import {
   organizations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import { count, eq } from "drizzle-orm"
+import { count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import twilio from "twilio"
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -48,7 +48,7 @@ import { processTwilioInboundMessage } from "./use-cases/process-twilio-inbound-
 import { provisionWhatsAppChannelConnection } from "./use-cases/provision-whatsapp-channel-connection"
 
 describe("Twilio WhatsApp Channel Connection", () => {
-  const container = new PostgreSqlContainer("postgres:17-alpine")
+  const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   const authToken = "twilio-auth-token"
   const accountSid = "AC11111111111111111111111111111111"
   const address = "+5511999999999"
@@ -60,6 +60,7 @@ describe("Twilio WhatsApp Channel Connection", () => {
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
     databaseRef.current = database.db
+    await database.db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })

@@ -11,6 +11,7 @@ import {
   supportConversations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
+import { sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
@@ -32,7 +33,7 @@ vi.mock("../../lib/db", () => ({
 import { SupportInboxRepository } from "./repositories/support-inbox-repository"
 
 describe("Support Inbox projections", () => {
-  const container = new PostgreSqlContainer("postgres:17-alpine")
+  const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
   let stop: () => Promise<void>
 
@@ -41,6 +42,7 @@ describe("Support Inbox projections", () => {
     stop = () => postgres.stop().then(() => undefined)
     database = createDatabase(postgres.getConnectionUri(), 10_000)
     databaseRef.current = database.db
+    await database.db.execute(sql`CREATE EXTENSION IF NOT EXISTS vector`)
     await migrate(database.db, {
       migrationsFolder: resolve(process.cwd(), "../../packages/db/migrations"),
     })
