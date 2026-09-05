@@ -16,7 +16,6 @@ import {
   text,
   timestamp,
   unique,
-  uniqueIndex,
 } from "drizzle-orm/pg-core"
 
 import { organizations, users } from "./auth"
@@ -46,15 +45,21 @@ export const knowledgeDocuments = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     title: text("title").notNull(),
-    sourceType: text("source_type").$type<KnowledgeDocumentSourceType>().notNull(),
+    sourceType: text("source_type")
+      .$type<KnowledgeDocumentSourceType>()
+      .notNull(),
     content: text("content"),
     sourceName: text("source_name"),
     mimeType: text("mime_type"),
     sourceObjectKey: text("source_object_key"),
     sourceObjectEtag: text("source_object_etag"),
     sourceSizeBytes: bigint("source_size_bytes", { mode: "number" }),
-    status: text("status").$type<KnowledgeDocumentStatus>().default("pending").notNull(),
-    failureReason: text("failure_reason").$type<KnowledgeDocumentFailureReason>(),
+    status: text("status")
+      .$type<KnowledgeDocumentStatus>()
+      .default("pending")
+      .notNull(),
+    failureReason:
+      text("failure_reason").$type<KnowledgeDocumentFailureReason>(),
     revision: integer("revision").default(1).notNull(),
     ...timestamps,
   },
@@ -95,7 +100,10 @@ export const knowledgeDocumentChunks = pgTable(
     foreignKey({
       name: "knowledge_document_chunks_document_fk",
       columns: [table.organizationId, table.knowledgeDocumentId],
-      foreignColumns: [knowledgeDocuments.organizationId, knowledgeDocuments.id],
+      foreignColumns: [
+        knowledgeDocuments.organizationId,
+        knowledgeDocuments.id,
+      ],
     }).onDelete("restrict"),
     unique("knowledge_document_chunks_organization_document_ordinal_unique").on(
       table.organizationId,
@@ -106,7 +114,9 @@ export const knowledgeDocumentChunks = pgTable(
       table.organizationId,
       table.knowledgeDocumentId
     ),
-    index("knowledge_document_chunks_embedding_hnsw_idx")
-      .using("hnsw", table.embedding.op("vector_cosine_ops")),
+    index("knowledge_document_chunks_embedding_hnsw_idx").using(
+      "hnsw",
+      table.embedding.op("vector_cosine_ops")
+    ),
   ]
 )
