@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg17
+    image: pgvector/pgvector:pg18
     environment:
       POSTGRES_DB: echo
       POSTGRES_PASSWORD: postgres
@@ -14,26 +14,8 @@ services:
       - "5432:5432"
     volumes:
       - echo-postgres:/var/lib/postgresql/data
+      - ./docker/postgres/init-vector.sql:/docker-entrypoint-initdb.d/10-vector.sql:ro
 
-  postgres-extensions:
-    image: pgvector/pgvector:pg18
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PGPASSWORD: postgres
-    command:
-      [
-        "psql",
-        "-h",
-        "postgres",
-        "-U",
-        "postgres",
-        "-d",
-        "echo",
-        "-c",
-        "CREATE EXTENSION IF NOT EXISTS vector",
-      ]
   redis:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes"]
