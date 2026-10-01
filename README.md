@@ -9,6 +9,20 @@ Echo is a tenant-aware, WhatsApp-first support platform. The monorepo contains:
 - `packages/db`: Drizzle schema, migrations, and Postgres client
 - `packages/config`: shared server environment validation
 
+## Implemented today
+
+This section tracks what is actually built and tested, not the product vision. See [`docs/architecture.md`](docs/architecture.md) for the system diagram.
+
+- **Authentication & organizations.** Better Auth-backed sign-up, sign-in, invitations, and member management, covered by `apps/api/src/modules/auth/auth.integration.test.ts`.
+- **WhatsApp channel provisioning.** A CLI command (`channel:provision:twilio`) creates and encrypts per-organization Twilio subaccount credentials, verifies the WhatsApp Sender is `ONLINE`, and writes an immutable audit event. Covered by `channel-connections.integration.test.ts`.
+- **Inbound WhatsApp ingestion.** Twilio webhook signature verification, message normalization, and conversation threading, covered by `twilio-webhook.test.ts` and `inbound-message.integration.test.ts`. Inbound processing and outbound delivery are dispatched as BullMQ jobs (`process-inbound-message`, `send-outbound-message`) consumed by `apps/worker`.
+- **Support inbox.** Paginated conversation listing with cursor-based pagination, conversation detail, and operator replies, covered by `support-inbox.integration.test.ts` and `create-operator-reply.test.ts`. The web UI exposes this at `/inbox` and `/inbox/[conversationId]`.
+- **Knowledge base ingestion.** Document upload with a scoped upload token and indexing dispatched via the `index-knowledge-document` job. This module has no automated test coverage yet — treat it as the least mature part of the system.
+- **Operational health.** Both the API and worker expose `/health/live` and `/health/ready` probes that fail closed when Postgres or Redis is unavailable, and only report sanitized dependency state.
+- **CI.** `.github/workflows/ci.yml` runs lint, typecheck, test, and build on every pull request and push to `main`.
+
+Not yet built: AI-assisted first-line responses described in the public landing page copy, Meta Embedded Signup (channel provisioning is still an internal CLI operation), and a production deployment of this exact codebase — Echo has not been verified running against real customer traffic.
+
 ## Prerequisites
 
 - Node.js 20 or newer
