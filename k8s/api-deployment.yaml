@@ -32,8 +32,6 @@ spec:
                 name: echo-shared-secrets
             - secretRef:
                 name: echo-api-secrets
-            - secretRef:
-                name: r2-echo-storage-api
           livenessProbe:
             httpGet:
               path: /health/live
