@@ -9,8 +9,9 @@ import { BrandLogo } from "@/components/brand-logo"
 
 const navLinks = [
   { href: "#how-it-works", label: "How it works" },
-  { href: "#inbox", label: "Inbox" },
-  { href: "#knowledge", label: "Knowledge" },
+  { href: "#features", label: "Features" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
 ] as const
 
 type LandingNavProps = {
@@ -27,7 +28,7 @@ export function LandingNav({ signedIn }: LandingNavProps) {
 
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-(--z-sticky) flex justify-center px-3 pt-4 sm:px-5 sm:pt-5">
-      <div className="pointer-events-auto w-full max-w-4xl">
+      <div className="pointer-events-auto w-full max-w-5xl">
         <div className="flex items-center justify-between gap-3 rounded-full border border-white/70 bg-white/50 px-3 py-2 shadow-[0_8px_32px_oklch(0.4_0.04_230_/_0.1)] backdrop-blur-xl sm:px-4">
           <BrandLogo
             priority

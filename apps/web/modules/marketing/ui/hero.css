@@ -131,11 +131,31 @@
   }
 }
 
+.landing-section {
+  animation: landing-section-in 0.7s ease-out both;
+}
+
+details > summary {
+  list-style: none;
+}
+
+@keyframes landing-section-in {
+  from {
+    opacity: 0.72;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-float,
   .hero-float-delay-1,
   .hero-float-delay-2,
-  .hero-float-delay-3 {
+  .hero-float-delay-3,
+  .landing-section {
     animation: none;
   }
 
