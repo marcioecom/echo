@@ -2,7 +2,7 @@
 
 import { Cancel01Icon, Menu01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { usePathname } from "next/navigation"
+import { useRouterState } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { BrandLogo } from "@/components/brand-logo"
@@ -24,7 +24,9 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const pathname = usePathname()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
 
   const [lastPathname, setLastPathname] = useState(pathname)
   if (lastPathname !== pathname) {

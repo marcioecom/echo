@@ -1,4 +1,6 @@
-import { getSession } from "@/modules/auth/server/session"
+"use client"
+
+import { authClient } from "@/lib/auth-client"
 import { DemoSection } from "@/modules/marketing/ui/components/demo-section"
 import { FaqSection } from "@/modules/marketing/ui/components/faq-section"
 import { FeaturesSection } from "@/modules/marketing/ui/components/features-section"
@@ -13,9 +15,9 @@ import { ProblemSection } from "@/modules/marketing/ui/components/problem-sectio
 
 import "../hero.css"
 
-export async function HomeView() {
-  const session = await getSession()
-  const signedIn = Boolean(session)
+export function HomeView() {
+  const { data } = authClient.useSession()
+  const signedIn = Boolean(data?.session)
 
   return (
     <div className="min-h-svh bg-[oklch(0.99_0.01_220)] text-neutral-950">

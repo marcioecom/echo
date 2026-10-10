@@ -12,9 +12,9 @@ import {
   WhatsappIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import Link from "next/link"
 
 import { InboxApiError } from "../../hooks/api"
 import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
@@ -59,7 +59,7 @@ export function ConversationDetail({
         action={
           notFound ? (
             <Button asChild variant="outline">
-              <Link href="/inbox">Back to inbox</Link>
+              <Link to="/inbox">Back to inbox</Link>
             </Button>
           ) : (
             <Button
@@ -85,7 +85,7 @@ export function ConversationDetail({
     <section className="flex min-h-0 flex-1 flex-col bg-muted/20">
       <header className="flex min-h-16 items-center gap-3 border-b bg-background px-4 py-3">
         <Button asChild variant="ghost" size="icon" className="md:hidden">
-          <Link href="/inbox" aria-label="Back to inbox">
+          <Link to="/inbox" aria-label="Back to inbox">
             <HugeiconsIcon icon={ArrowLeft01Icon} />
           </Link>
         </Button>

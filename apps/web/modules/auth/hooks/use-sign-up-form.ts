@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearch } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -24,7 +24,11 @@ type SignUpFormValues = z.infer<typeof signUpSchema>
 
 export function useSignUpForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const search = useSearch({ strict: false })
+  const redirectTo =
+    typeof search.redirect === "string" && search.redirect.startsWith("/")
+      ? search.redirect
+      : "/onboarding"
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -46,7 +50,7 @@ export function useSignUpForm() {
       toast.error(error.message ?? "Could not create your account")
       return
     }
-    router.push(searchParams.get("redirect") ?? "/onboarding")
+    router.history.push(redirectTo)
   }
 
   return { form, onSubmit }

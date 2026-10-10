@@ -7,9 +7,9 @@ import {
   WhatsappIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
-import Link from "next/link"
 
 import type { InboxConversation, InboxStatusFilter } from "../../types"
 import { ConversationStatus } from "./conversation-status"
@@ -21,10 +21,6 @@ const filters: Array<{ value: InboxStatusFilter; label: string }> = [
   { value: "human_required", label: "Human" },
   { value: "resolved", label: "Resolved" },
 ]
-
-function getFilterHref(status: InboxStatusFilter): string {
-  return status === "all" ? "/inbox" : `/inbox?status=${status}`
-}
 
 const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
 
@@ -71,6 +67,8 @@ export function ConversationList({
   onRetry: () => void
   onLoadMore: () => void
 }) {
+  const navigate = useNavigate()
+
   return (
     <aside className="flex min-h-0 flex-col border-r bg-background md:w-80 lg:w-96">
       <div className="border-b px-3 py-3">
@@ -84,7 +82,10 @@ export function ConversationList({
               variant={status === filter.value ? "secondary" : "ghost"}
               size="sm"
               onClick={() => {
-                window.history.pushState(null, "", getFilterHref(filter.value))
+                void navigate({
+                  to: ".",
+                  search: { status: filter.value },
+                })
               }}
             >
               {filter.label}
@@ -137,7 +138,9 @@ export function ConversationList({
           return (
             <Link
               key={conversation.id}
-              href={`/inbox/${conversation.id}${status === "all" ? "" : `?status=${status}`}`}
+              to="/inbox/$conversationId"
+              params={{ conversationId: conversation.id }}
+              search={{ status }}
               aria-current={selected ? "page" : undefined}
               className={cn(
                 "block border-b px-4 py-3 transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:ring-inset",

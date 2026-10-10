@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { deriveSlug, SLUG_MAX_LENGTH, SLUG_PATTERN } from "@workspace/domain"
-import { useRouter } from "next/navigation"
+import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
@@ -32,7 +32,7 @@ function isTakenSlugError(error: unknown) {
 }
 
 export function useOnboardingForm() {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const form = useForm<OrganizationFormValues>({
     resolver: zodResolver(organizationSchema),
@@ -103,7 +103,7 @@ export function useOnboardingForm() {
       })
       return
     }
-    router.push("/inbox")
+    void navigate({ to: "/inbox" })
   }
 
   return {

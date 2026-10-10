@@ -1,4 +1,4 @@
-import { nextJsConfig } from "@workspace/eslint-config/next-js"
+import { reactAppConfig } from "@workspace/eslint-config/react-app"
 
 /** @type {import("eslint").Linter.Config} */
-export default nextJsConfig
+export default reactAppConfig

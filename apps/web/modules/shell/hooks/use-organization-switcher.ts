@@ -1,11 +1,12 @@
 "use client"
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
-import { startTransition, useState } from "react"
+import { useNavigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { workspaceQueryKey } from "@/modules/auth/queries"
 
 export type OrganizationOption = {
   id: string
@@ -14,7 +15,7 @@ export type OrganizationOption = {
 }
 
 export function useOrganizationSwitcher(activeOrganizationId: string) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [switchingOrganizationId, setSwitchingOrganizationId] = useState<
     string | null
@@ -44,11 +45,9 @@ export function useOrganizationSwitcher(activeOrganizationId: string) {
     setSwitchingOrganizationId(organizationId)
     try {
       await switchMutation.mutateAsync(organizationId)
+      await queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
       await queryClient.invalidateQueries({ queryKey: ["organization"] })
-      startTransition(() => {
-        router.replace("/inbox")
-        router.refresh()
-      })
+      await navigate({ to: "/inbox" })
       return true
     } catch (error) {
       toast.error(

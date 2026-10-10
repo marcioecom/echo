@@ -350,27 +350,24 @@ Apply them this way in Echo:
 
 #### Auth And Data Fetching
 
-Echo splits auth across two runtimes: `apps/api` owns the Better Auth server, `apps/web` owns the UI. The reference repos co-locate both in one Next.js runtime, so their patterns are adapted as follows:
+Echo splits auth across two runtimes: `apps/api` owns the Better Auth server, `apps/web` owns the UI.
 
-- All auth-domain calls (session, sign-in, sign-up, sign-out, organization, invitations) go through `authClient` from `@/lib/auth-client`, which points at `apps/api`. Never hand-roll `fetch` calls to `/api/auth/*`.
+- All auth-domain calls (session, sign-in, sign-up, sign-out, organization, invitations) go through `authClient` from `@/lib/auth-client`. Feature code should not hand-roll `fetch` calls to `/api/auth/*`. The `/api/auth/$` server route exists only to keep the session cookie first-party on Cloudflare Workers.
+- Protected routes gate in the layout `beforeLoad` and load workspace once with `queryClient.ensureQueryData` from `modules/auth/queries.ts`. Child pages read that workspace from route context or the same query. Do not call session/workspace fetches in every page.
 - Client components act through `authClient` methods and read auth state through its hooks (for example `authClient.useSession()`).
-- Server components read session and workspace through the helpers in `modules/auth/server/session.ts` (`getSession`, `requireUser`, `getWorkspace`, `requireWorkspace`). These helpers call `authClient` with the incoming request headers forwarded, never raw HTTP.
 - Better Auth built-ins are the source of truth for auth state. Do not create custom aggregation endpoints such as `/v1/me`; compose `getSession` with `organization.getFullOrganization` instead.
 - Backend API calls outside the auth domain use `@tanstack/react-query` (`useQuery`/`useMutation`) inside `modules/<feature>/hooks`. `authClient` calls may also be wrapped in react-query when the UI needs loading, error, or invalidation handling.
 - Forms use `react-hook-form` + `zod` with `@workspace/ui/components/form`. The form definition (schema, `useForm`, submit handler) lives in `modules/<feature>/hooks/use-*-form.ts`; the view only renders it.
-- `apps/web/proxy.ts` is only an optimistic gate using `getSessionCookie` from `better-auth/cookies`. Authoritative auth and membership checks stay in server components and layouts.
 
 #### Navigation And URL State
 
 Treat a route navigation and a client-owned URL state change as different operations:
 
-- Use `Link` or the Next router when the destination needs a new server render, crosses a route boundary, or changes server-owned data.
-- When a client component already owns the data query, use the native History API to synchronize view state such as filters, sorting, and pagination with the URL. `window.history.pushState` preserves browser history and updates `useSearchParams` without waiting for a server render.
-- Do not use route navigation only to change a query parameter consumed by a client-side React Query query. It makes the visual update depend on server latency, including remote session and workspace checks.
+- Use TanStack `Link` / `navigate` when the destination is a real route change.
+- Inbox filters use typed `validateSearch` on the inbox routes. Changing `status` updates the URL on the client with no server round-trip.
 - Keep the loading state next to the client query. A filter change should update immediately, then show its query loading state while the new data is fetched.
-- If a URL change must render on the server, provide a `loading.tsx` or a nested `Suspense` fallback so the transition has immediate feedback rather than appearing unresponsive.
 
-Example: the Support Inbox status filter is client-owned. It uses `window.history.pushState(null, "", "/inbox?status=ai_active")`; `useSearchParams` updates the React Query key and the list skeleton represents the pending API request.
+Example: the Support Inbox status filter is a typed search param. The list buttons call `navigate({ to: ".", search: { status } })`; React Query uses that value as the query key.
 
 ### `apps/api`
 

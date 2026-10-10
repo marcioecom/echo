@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { SectionHeading } from "./section-heading"
 
@@ -61,7 +61,7 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
             ))}
           </ul>
           <Link
-            href={href}
+            to={href}
             className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-neutral-950 px-7 text-sm font-medium text-white outline-none hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-neutral-950/35"
           >
             {label}
