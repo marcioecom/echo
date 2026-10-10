@@ -56,7 +56,7 @@ export function FaqSection() {
                 {faq.question}
                 <span
                   aria-hidden
-                  className="text-xl leading-none text-neutral-400 group-open:rotate-45"
+                  className="text-xl leading-none text-neutral-600 group-open:rotate-45"
                 >
                   +
                 </span>

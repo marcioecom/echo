@@ -39,7 +39,7 @@ export function HowItWorksSection() {
               key={step.title}
               className="rounded-3xl border border-white/70 bg-white/55 p-6 backdrop-blur-xl sm:p-8"
             >
-              <span className="font-instrument-serif text-4xl text-neutral-400 italic">
+              <span className="font-instrument-serif text-4xl text-neutral-600 italic">
                 0{index + 1}
               </span>
               <h3 className="mt-5 text-lg font-semibold tracking-tight text-balance">

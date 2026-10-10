@@ -60,7 +60,7 @@ export function DemoSection() {
           <ol className="mt-10 space-y-5">
             {beats.map((beat, index) => (
               <li key={beat.label} className="flex gap-4">
-                <span className="font-instrument-serif w-8 shrink-0 text-2xl text-neutral-400 italic">
+                <span className="font-instrument-serif w-8 shrink-0 text-2xl text-neutral-600 italic">
                   0{index + 1}
                 </span>
                 <div>
