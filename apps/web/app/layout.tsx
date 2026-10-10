@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s | Echo",
   },
   description:
-    "Echo is a private workspace for keeping WhatsApp customer support conversations clear and connected.",
+    "Echo answers customer questions on WhatsApp from your business knowledge, and hands off to a human when it needs to.",
 }
 
 export default function RootLayout({
