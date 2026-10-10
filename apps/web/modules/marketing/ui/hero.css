@@ -2,6 +2,27 @@
   font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
+.whatsapp-wallpaper {
+  background-color: #efeae2;
+  background-image: radial-gradient(
+    oklch(0.45 0.03 130 / 0.06) 0.8px,
+    transparent 0.8px
+  );
+  background-size: 10px 10px;
+}
+
+.phone-tilt-left {
+  rotate: -16deg;
+  scale: 0.88;
+  transform-origin: bottom center;
+}
+
+.phone-tilt-right {
+  rotate: 16deg;
+  scale: 0.88;
+  transform-origin: bottom center;
+}
+
 .landing-sky {
   position: absolute;
   inset: 0;
@@ -28,10 +49,10 @@
     ),
     linear-gradient(
       180deg,
-      oklch(0.93 0.045 228) 0%,
-      oklch(0.955 0.03 220) 42%,
-      oklch(0.94 0.028 210) 72%,
-      oklch(0.99 0.01 200) 100%
+      oklch(0.9 0.055 228) 0%,
+      oklch(0.93 0.042 220) 38%,
+      oklch(0.94 0.032 210) 68%,
+      oklch(0.98 0.016 200) 100%
     );
 }
 

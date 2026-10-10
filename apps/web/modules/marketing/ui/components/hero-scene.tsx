@@ -38,7 +38,7 @@ export function HeroScene() {
   return (
     <div
       ref={sceneRef}
-      className="relative mx-auto mt-10 w-full max-w-5xl px-4 pb-6 sm:mt-14 sm:pb-10"
+      className="relative mx-auto mt-8 w-full max-w-5xl px-4 pb-8 sm:mt-12 sm:pb-12"
     >
       <div className="flex flex-col items-center gap-3 lg:contents">
         {chips.map((chip) => (
@@ -52,18 +52,18 @@ export function HeroScene() {
       </div>
 
       <p className="sr-only">
-        Three WhatsApp conversations. Echo answers from the shop knowledge
-        base, then hands a delivery-address change to Ana from the team.
+        Three WhatsApp conversations. Echo answers from the shop knowledge base,
+        then hands a delivery-address change to Ana from the team.
       </p>
       <div
         aria-hidden
-        className="relative mx-auto mt-8 flex h-[22rem] max-w-[44rem] items-end justify-center sm:h-[26rem] lg:mt-2"
+        className="relative mx-auto mt-6 flex h-[21rem] max-w-[38rem] items-end justify-center sm:mt-8 sm:h-[26rem] lg:mt-0"
       >
         <PhoneMockup
           tilt="left"
           business={heroConversations.hours.business}
           messages={heroConversations.hours.messages}
-          className="hero-float hero-float-delay-3 hero-parallax-far absolute bottom-6 left-[8%] hidden sm:block lg:left-[12%]"
+          className="hero-float hero-float-delay-3 hero-parallax-far absolute bottom-2 left-[4%] z-0 hidden sm:block"
         />
         <PhoneMockup
           business={heroConversations.shipping.business}
@@ -74,7 +74,7 @@ export function HeroScene() {
           tilt="right"
           business={heroConversations.handoff.business}
           messages={heroConversations.handoff.messages}
-          className="hero-float hero-float-delay-1 hero-parallax-far absolute right-[8%] bottom-6 hidden sm:block lg:right-[12%]"
+          className="hero-float hero-float-delay-1 hero-parallax-far absolute right-[4%] bottom-2 z-0 hidden sm:block"
         />
       </div>
     </div>

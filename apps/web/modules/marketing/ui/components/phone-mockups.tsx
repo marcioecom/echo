@@ -21,13 +21,17 @@ export function PhoneMockup({
   return (
     <figure
       className={cn(
-        "w-[13.5rem] shrink-0 origin-bottom drop-shadow-[0_24px_40px_oklch(0.35_0.05_230_/_0.22)] sm:w-[15rem]",
-        tilt === "left" && "-rotate-12",
-        tilt === "right" && "rotate-12",
+        "w-[12.5rem] shrink-0 origin-bottom drop-shadow-[0_24px_40px_oklch(0.35_0.05_230_/_0.22)] sm:w-[14.5rem]",
         className
       )}
     >
-      <div className="rounded-[2rem] border border-white/50 bg-neutral-950 p-1.5 shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.08)]">
+      <div
+        className={cn(
+          "rounded-[2rem] border border-white/50 bg-neutral-950 p-1.5 shadow-[inset_0_0_0_1px_oklch(1_0_0_/_0.08)]",
+          tilt === "left" && "phone-tilt-left",
+          tilt === "right" && "phone-tilt-right"
+        )}
+      >
         <div className="relative overflow-hidden rounded-[1.55rem] bg-[#efeae2]">
           <span
             aria-hidden
@@ -42,10 +46,10 @@ export function PhoneMockup({
             </span>
             <div className="min-w-0">
               <p className="truncate text-[12px] font-medium">{business}</p>
-              <p className="text-[10px] text-white/80">WhatsApp</p>
+              <p className="text-[10px] text-white">WhatsApp</p>
             </div>
           </div>
-          <div className="flex min-h-56 flex-col justify-end gap-1.5 p-2.5 pb-3">
+          <div className="whatsapp-wallpaper flex min-h-56 flex-col justify-end gap-1.5 p-2.5 pb-3">
             {messages.map((message) => (
               <p
                 key={message.text}
@@ -102,7 +106,7 @@ export const heroConversations = {
       },
       {
         from: "echo" as const,
-        text: "Passing you to Ana from the team. She can update the address with you.",
+        text: "Passing you to Ana from the team.",
       },
     ],
   },

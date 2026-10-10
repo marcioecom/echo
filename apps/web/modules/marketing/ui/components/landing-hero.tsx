@@ -14,8 +14,8 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
     <section className="relative isolate min-h-svh overflow-hidden">
       <div className="landing-sky" aria-hidden />
       <div className="relative z-10 flex min-h-svh flex-col">
-        <div className="mx-auto flex max-w-3xl flex-1 flex-col items-center px-5 pt-32 text-center sm:pt-36">
-          <h1 className="max-w-4xl text-[2.5rem] leading-[1.08] font-bold tracking-[-0.04em] text-balance text-neutral-950 sm:text-6xl md:text-[4.25rem]">
+        <div className="mx-auto flex max-w-3xl flex-col items-center px-5 pt-28 text-center sm:pt-36 lg:flex-1">
+          <h1 className="max-w-4xl text-[2.35rem] leading-[1.15] font-bold tracking-tight text-balance text-neutral-950 sm:text-[3.4rem] md:text-[4rem]">
             Answer your customers on{" "}
             <em className="font-instrument-serif font-normal italic">
               WhatsApp
