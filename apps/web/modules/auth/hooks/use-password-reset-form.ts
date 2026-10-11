@@ -45,7 +45,7 @@ export function usePasswordResetForm() {
     }
 
     toast.success("Password reset. Sign in with your new password.")
-    void navigate({ to: "/login" })
+    navigate({ to: "/login" })
   }
 
   return { form, hasValidToken: Boolean(token), onSubmit }

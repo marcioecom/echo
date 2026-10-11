@@ -82,7 +82,7 @@ export function ConversationList({
               variant={status === filter.value ? "secondary" : "ghost"}
               size="sm"
               onClick={() => {
-                void navigate({
+                navigate({
                   to: ".",
                   search: { status: filter.value },
                 })

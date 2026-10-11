@@ -45,7 +45,7 @@ export function useAcceptInvitation(invitationId: string) {
       }
     },
     onSuccess: () => {
-      void navigate({ to: "/" })
+      navigate({ to: "/" })
     },
     onError: (error) => {
       toast.error(error.message)

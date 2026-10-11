@@ -24,7 +24,7 @@ export function SignOutButton({
           fetchOptions: {
             onSuccess: () => {
               queryClient.clear()
-              void navigate({ to: "/login" })
+              navigate({ to: "/login" })
             },
           },
         })

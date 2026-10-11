@@ -103,7 +103,7 @@ export function useOnboardingForm() {
       })
       return
     }
-    void navigate({ to: "/inbox" })
+    navigate({ to: "/inbox" })
   }
 
   return {
