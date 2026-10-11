@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { useLoginForm } from "@/modules/auth/hooks/use-login-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
@@ -61,7 +61,7 @@ export function LoginView() {
                 </FormControl>
                 <FormMessage />
                 <Link
-                  href="/forgot-password"
+                  to="/forgot-password"
                   className="ml-auto block w-fit text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   Forgot your password?
@@ -75,7 +75,7 @@ export function LoginView() {
           <p className="pt-1 text-center text-sm text-muted-foreground">
             Need an account?{" "}
             <Link
-              href="/sign-up"
+              to="/sign-up"
               className="font-medium text-foreground underline underline-offset-4"
             >
               Create one

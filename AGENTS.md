@@ -52,8 +52,8 @@ If sources conflict, use this precedence order:
 
 ## Web Auth And Data Fetching
 
-- Auth-domain calls (session, sign-in, sign-up, sign-out, organization, invitations) always go through `authClient` from `apps/web/lib/auth-client.ts`; never hand-rolled `fetch` to `/api/auth/*`.
-- Server components read session and workspace through the helpers in `apps/web/modules/auth/server/session.ts`, which call `authClient` with forwarded request headers.
+- Auth-domain calls (session, sign-in, sign-up, sign-out, organization, invitations) always go through `authClient` from `apps/web/lib/auth-client.ts`; never hand-rolled `fetch` to `/api/auth/*` from feature code. The `/api/auth/$` server route is only the first-party cookie proxy to `apps/api`.
+- Dashboard and other protected routes load session and workspace once in the layout `beforeLoad` via `ensureQueryData` (`apps/web/modules/auth/queries.ts`). Do not refetch workspace in each page.
 - Do not create custom aggregation endpoints for auth state such as `/v1/me`; compose Better Auth built-ins like `getSession` and `organization.getFullOrganization` instead.
 - Non-auth backend calls use `@tanstack/react-query` inside `modules/<feature>/hooks`.
 - Forms use `react-hook-form` + `zod` with `@workspace/ui/components/form`; the form hook lives in `modules/<feature>/hooks/use-*-form.ts`.

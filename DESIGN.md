@@ -45,7 +45,7 @@ Rules:
 ## Typography
 
 - **One family:** Inter (`--font-sans`), already loaded in
-  `apps/web/app/layout.tsx`. Geist Mono (`--font-mono`) for IDs and data.
+  `apps/web/app/styles.css`. Geist Mono (`--font-mono`) for IDs and data.
 - **Fixed rem scale** (product, no fluid type): page title `text-lg`
   semibold tracking-tight; section title `text-sm` medium; body `text-sm`;
   metadata/captions `text-xs` (11-12px); nav items 13px.

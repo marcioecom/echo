@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { usePasswordResetRequestForm } from "@/modules/auth/hooks/use-password-reset-request-form"
 
@@ -28,7 +28,7 @@ export function PasswordResetRequestView() {
           </p>
         </header>
         <Link
-          href="/login"
+          to="/login"
           className="text-sm font-medium text-foreground underline underline-offset-4"
         >
           Back to sign in
@@ -70,7 +70,7 @@ export function PasswordResetRequestView() {
           </Button>
           <p className="pt-1 text-center text-sm text-muted-foreground">
             Remembered your password?{" "}
-            <Link href="/login" className="font-medium text-foreground underline underline-offset-4">
+            <Link to="/login" className="font-medium text-foreground underline underline-offset-4">
               Sign in
             </Link>
           </p>

@@ -8,8 +8,7 @@ import {
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { Link, useRouterState } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
@@ -69,7 +68,9 @@ export function AppSidebar({
   userRole,
   organizationSwitcherSide,
 }: AppSidebarProps) {
-  const pathname = usePathname()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
   const navSections = NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(
@@ -110,7 +111,7 @@ export function AppSidebar({
               return (
                 <Link
                   key={item.href}
-                  href={item.href}
+                  to={item.href as "/inbox" | "/settings/members" | "/settings/knowledge"}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 outline-none",

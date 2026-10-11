@@ -1,13 +1,13 @@
 "use client"
 
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { useRouter } from "next/navigation"
+import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
 
 export function useAcceptInvitation(invitationId: string) {
-  const router = useRouter()
+  const navigate = useNavigate()
 
   const invitationQuery = useQuery({
     queryKey: ["organization", "invitation", invitationId],
@@ -45,7 +45,7 @@ export function useAcceptInvitation(invitationId: string) {
       }
     },
     onSuccess: () => {
-      router.push("/")
+      navigate({ to: "/" })
     },
     onError: (error) => {
       toast.error(error.message)

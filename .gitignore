@@ -13,9 +13,13 @@ node_modules
 # testing
 coverage
 
-# next.js
+# next.js (legacy local artifacts)
 .next/
 out/
+
+# cloudflare
+.wrangler/
+.dev.vars
 
 # production
 build

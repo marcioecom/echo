@@ -1,7 +1,5 @@
 "use client"
 
-import { useSearchParams } from "next/navigation"
-
 import {
   useInboxConversation,
   useInboxConversations,
@@ -14,26 +12,15 @@ import {
 } from "../components/conversation-detail"
 import { ConversationList } from "../components/conversation-list"
 
-const validStatuses = new Set<InboxStatusFilter>([
-  "all",
-  "open",
-  "ai_active",
-  "human_required",
-  "resolved",
-])
-
 export function InboxView({
   organizationId,
   selectedConversationId,
+  status,
 }: {
   organizationId: string
   selectedConversationId: string | null
+  status: InboxStatusFilter
 }) {
-  const searchParams = useSearchParams()
-  const requestedStatus = searchParams.get("status") ?? "all"
-  const status = validStatuses.has(requestedStatus as InboxStatusFilter)
-    ? (requestedStatus as InboxStatusFilter)
-    : "all"
   const conversationsQuery = useInboxConversations(organizationId, status)
   const detailQuery = useInboxConversation(
     organizationId,

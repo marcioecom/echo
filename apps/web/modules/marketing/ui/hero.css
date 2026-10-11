@@ -1,0 +1,167 @@
+.font-instrument-serif {
+  font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
+}
+
+.whatsapp-wallpaper {
+  background-color: #efeae2;
+  background-image: radial-gradient(
+    oklch(0.45 0.03 130 / 0.06) 0.8px,
+    transparent 0.8px
+  );
+  background-size: 10px 10px;
+}
+
+.phone-tilt-left {
+  rotate: -16deg;
+  scale: 0.88;
+  transform-origin: bottom center;
+}
+
+.phone-tilt-right {
+  rotate: 16deg;
+  scale: 0.88;
+  transform-origin: bottom center;
+}
+
+.landing-sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      70% 55% at 50% -8%,
+      oklch(0.99 0.03 95 / 0.95),
+      transparent 58%
+    ),
+    radial-gradient(
+      42% 38% at 18% 28%,
+      oklch(0.88 0.08 230 / 0.55),
+      transparent 70%
+    ),
+    radial-gradient(
+      46% 40% at 84% 18%,
+      oklch(0.9 0.07 250 / 0.42),
+      transparent 68%
+    ),
+    radial-gradient(
+      55% 36% at 48% 88%,
+      oklch(0.86 0.05 215 / 0.28),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      oklch(0.9 0.055 228) 0%,
+      oklch(0.93 0.042 220) 38%,
+      oklch(0.94 0.032 210) 68%,
+      oklch(0.98 0.016 200) 100%
+    );
+}
+
+.landing-sky::before,
+.landing-sky::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(48px);
+}
+
+.landing-sky::before {
+  top: 8%;
+  left: 18%;
+  width: min(28rem, 55vw);
+  height: min(16rem, 32vw);
+  background: oklch(0.98 0.04 100 / 0.7);
+}
+
+.landing-sky::after {
+  top: 4%;
+  right: 12%;
+  width: min(22rem, 42vw);
+  height: min(14rem, 28vw);
+  background: oklch(0.94 0.08 240 / 0.45);
+}
+
+.hero-float {
+  animation: hero-float 7s ease-in-out infinite;
+}
+
+.hero-float-delay-1 {
+  animation-delay: -1.6s;
+}
+
+.hero-float-delay-2 {
+  animation-delay: -3.4s;
+}
+
+.hero-float-delay-3 {
+  animation-delay: -5s;
+}
+
+.hero-parallax-near {
+  transform: translate3d(
+    calc(var(--parallax-x, 0) * 18px),
+    calc(var(--parallax-y, 0) * 12px),
+    0
+  );
+}
+
+.hero-parallax-mid {
+  transform: translate3d(
+    calc(var(--parallax-x, 0) * 10px),
+    calc(var(--parallax-y, 0) * 7px),
+    0
+  );
+}
+
+.hero-parallax-far {
+  transform: translate3d(
+    calc(var(--parallax-x, 0) * -8px),
+    calc(var(--parallax-y, 0) * -5px),
+    0
+  );
+}
+
+@keyframes hero-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+.landing-section {
+  animation: landing-section-in 0.7s ease-out both;
+}
+
+details > summary {
+  list-style: none;
+}
+
+@keyframes landing-section-in {
+  from {
+    opacity: 0.72;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-float,
+  .hero-float-delay-1,
+  .hero-float-delay-2,
+  .hero-float-delay-3,
+  .landing-section {
+    animation: none;
+  }
+
+  .hero-parallax-near,
+  .hero-parallax-mid,
+  .hero-parallax-far {
+    transform: none;
+  }
+}

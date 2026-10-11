@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearch } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -17,7 +17,11 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export function useLoginForm() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const search = useSearch({ strict: false })
+  const redirectTo =
+    typeof search.redirect === "string" && search.redirect.startsWith("/")
+      ? search.redirect
+      : "/inbox"
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -36,7 +40,7 @@ export function useLoginForm() {
       toast.error(error.message ?? "Could not sign in")
       return
     }
-    router.push(searchParams.get("redirect") ?? "/inbox")
+    router.history.push(redirectTo)
   }
 
   return { form, onSubmit }
