@@ -2,12 +2,14 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { cloudflare } from "@cloudflare/vite-plugin"
+import { sentryTanstackStart } from "@sentry/tanstackstart-react/vite"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import viteReact from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 
 const appRoot = fileURLToPath(new URL(".", import.meta.url))
+const sentryAuthToken = process.env.SENTRY_AUTH_TOKEN
 
 export default defineConfig({
   server: {
@@ -33,6 +35,13 @@ export default defineConfig({
       srcDirectory: "app",
     }),
     viteReact(),
+    ...(sentryAuthToken
+      ? sentryTanstackStart({
+          org: "leapstark",
+          project: "echo-web",
+          authToken: sentryAuthToken,
+        })
+      : []),
   ],
   ssr: {
     noExternal: ["@workspace/ui", "@workspace/auth", "@workspace/domain"],
