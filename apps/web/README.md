@@ -25,31 +25,22 @@ Both are public and inlined at build time. Do not put secrets in `VITE_*` variab
 | `pnpm dev`      | Vite + workerd on http://localhost:3000           |
 | `pnpm build`    | Production Worker + static assets                 |
 | `pnpm preview`  | Preview the production build locally              |
-| `pnpm deploy`   | Build, then `wrangler deploy`                     |
+| `pnpm deploy`   | `wrangler deploy` (expects a prior `pnpm build`)  |
 | `pnpm cf-typegen` | Generate Cloudflare binding types               |
 
-## Cloudflare deploy
+## Deploy (Cloudflare Workers Builds)
 
-Production deploys go through **Cloudflare Workers Builds** (project `echo`), not GitHub Actions.
+Production deploys go through **Workers Builds** (project `echo`), not GitHub Actions. `wrangler` is a `apps/web` devDependency so `npx wrangler` uses the local binary.
 
-Configure the project so Wrangler runs from the web app, not the monorepo root:
+Dashboard values:
 
-- Root directory: `apps/web`
-- or deploy command: `pnpm --filter web exec wrangler deploy`
+| Setting | Value |
+| --- | --- |
+| Root directory | `apps/web` |
+| Build command | `pnpm build` |
+| Deploy command | `pnpm run deploy` or `npx wrangler deploy` |
+| Build variables | `VITE_API_URL`, `VITE_APP_URL` |
 
-Set these build-time variables in Workers Builds:
+Do not leave root as `/` with `npx wrangler deploy` — Wrangler then runs at the monorepo root and fails (`application detection logic has been run in the root of a workspace`).
 
-| Variable       | Purpose                                      |
-| -------------- | -------------------------------------------- |
-| `VITE_API_URL` | Production API origin (inlined at build)     |
-| `VITE_APP_URL` | Public web origin (SEO / absolute URLs)      |
-
-Both are public. Do not put secrets in `VITE_*` variables.
-
-`npx wrangler deploy` at the repo root fails (`application detection logic has been run in the root of a workspace`). Use one of the two options above so Wrangler sees `apps/web/wrangler.jsonc`.
-
-Manual deploy from a machine already authenticated with Wrangler:
-
-```bash
-VITE_API_URL=https://api.example.com VITE_APP_URL=https://echo.example.com pnpm --filter web deploy
-```
+`pnpm build` / `pnpm run deploy` are meant to be run from `apps/web`. Both are public `VITE_*` values, inlined at build time. Do not put secrets in them.
