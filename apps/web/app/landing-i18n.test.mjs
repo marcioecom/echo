@@ -1,0 +1,90 @@
+import assert from "node:assert/strict"
+import { readFileSync } from "node:fs"
+import { dirname, join } from "node:path"
+import { describe, it } from "node:test"
+import { fileURLToPath } from "node:url"
+
+const appDir = dirname(fileURLToPath(import.meta.url))
+const webDir = join(appDir, "..")
+
+function read(relativePath) {
+  return readFileSync(join(webDir, relativePath), "utf8")
+}
+
+describe("landing locale helpers", () => {
+  const source = read("modules/marketing/i18n/dictionary.ts")
+
+  it("maps / and /pt-br to English and Brazilian Portuguese", () => {
+    assert.match(source, /export const locales = \["en", "pt-BR"\]/)
+    assert.match(source, /locale === "pt-BR" \? "\/pt-br" : "\/"/)
+    assert.match(
+      source,
+      /pathname === "\/pt-br" \|\| pathname\.startsWith\("\/pt-br\/"\)/
+    )
+  })
+
+  it("keeps the pilot price in BRL in both dictionaries", () => {
+    const amounts = source.match(/amount: "R\$297"/g) ?? []
+    const periods = source.match(/period: "\/mês"/g) ?? []
+    assert.equal(amounts.length, 2)
+    assert.equal(periods.length, 2)
+    assert.match(source, /Then from R\$297\/mês/)
+    assert.match(source, /a partir de R\$297\/mês/)
+  })
+})
+
+describe("landing routes and SEO", () => {
+  it("exposes English and Portuguese home routes with hreflang", () => {
+    const index = read("app/routes/index.tsx")
+    const portuguese = read("app/routes/pt-br.tsx")
+    const head = read("modules/marketing/i18n/head.ts")
+
+    assert.match(index, /createFileRoute\("\/"\)/)
+    assert.match(index, /landingHead\("en"\)/)
+    assert.match(index, /locale="en"/)
+    assert.match(portuguese, /createFileRoute\("\/pt-br"\)/)
+    assert.match(portuguese, /landingHead\("pt-BR"\)/)
+    assert.match(portuguese, /locale="pt-BR"/)
+    assert.match(head, /hreflang: "en"/)
+    assert.match(head, /hreflang: "pt-BR"/)
+    assert.match(head, /hreflang: "x-default"/)
+    assert.match(head, /og:locale/)
+  })
+
+  it("sets html lang from the pathname", () => {
+    const root = read("app/routes/__root.tsx")
+    assert.match(root, /htmlLang\(localeFromPath\(pathname\)\)/)
+    assert.match(root, /lang=\{lang\}/)
+  })
+
+  it("registers /pt-br in the generated route tree", () => {
+    const tree = read("app/routeTree.gen.ts")
+    assert.match(tree, /fullPath: '\/pt-br'/)
+    assert.match(tree, /id: '\/pt-br'/)
+  })
+})
+
+describe("landing palette", () => {
+  it("defines moss tokens and a luminous green sky", () => {
+    const css = read("modules/marketing/ui/hero.css")
+    assert.match(css, /--landing-primary: oklch\(0\.54 0\.15 130\)/)
+    assert.match(css, /\.landing-sky/)
+    assert.match(css, /oklch\(0\.88 0\.11 128\)/)
+    assert.doesNotMatch(css, /oklch\(0\.\d+ 0\.\d+ 228\)/)
+    assert.match(css, /prefers-reduced-motion: reduce/)
+  })
+})
+
+describe("landing copy guardrails", () => {
+  it("does not invent social proof", () => {
+    const dictionary = read("modules/marketing/i18n/dictionary.ts")
+    assert.doesNotMatch(dictionary, /testimonial|⭐|customers worldwide/i)
+  })
+
+  it("keeps dashboard routes free of marketing i18n", () => {
+    assert.doesNotMatch(
+      read("app/routes/_dashboard.tsx"),
+      /landingHead|LandingProvider/
+    )
+  })
+})

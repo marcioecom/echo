@@ -2,6 +2,34 @@
   font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
+/*
+  Landing moss tokens (hue 130), same family as the dashboard primary
+  `oklch(0.54 0.15 130)` and the logo chevron. The sky leans luminous —
+  higher lightness, a lime bloom near hue 118 — so the hero reads like
+  AbacatePay's glow without leaving Echo's green.
+*/
+.landing {
+  --landing-ink: oklch(0.21 0.01 130);
+  --landing-muted: oklch(0.42 0.02 130);
+  --landing-primary: oklch(0.54 0.15 130);
+  --landing-primary-hover: oklch(0.48 0.15 130);
+  --landing-primary-fg: oklch(0.99 0.003 130);
+  --landing-glow: oklch(0.96 0.1 118);
+  --landing-bloom: oklch(0.88 0.13 125);
+  --landing-sky-top: oklch(0.9 0.1 128);
+  --landing-sky-mid: oklch(0.94 0.07 130);
+  --landing-sky-bottom: oklch(0.985 0.022 130);
+  --landing-surface: oklch(0.99 0.012 130);
+  --landing-band: oklch(0.965 0.03 130);
+  --landing-band-strong: oklch(0.945 0.045 130);
+  --landing-deep: oklch(0.22 0.045 130);
+  --landing-cta-on-dark: oklch(0.78 0.14 130);
+  --landing-cta-on-dark-fg: oklch(0.21 0.04 130);
+  --landing-shadow: oklch(0.38 0.06 130 / 0.1);
+  color: var(--landing-ink);
+  background: var(--landing-surface);
+}
+
 .whatsapp-wallpaper {
   background-color: #efeae2;
   background-image: radial-gradient(
@@ -29,30 +57,30 @@
   background:
     radial-gradient(
       70% 55% at 50% -8%,
-      oklch(0.99 0.03 95 / 0.95),
+      oklch(0.99 0.06 108 / 0.95),
       transparent 58%
     ),
     radial-gradient(
-      42% 38% at 18% 28%,
-      oklch(0.88 0.08 230 / 0.55),
+      42% 38% at 16% 30%,
+      oklch(0.9 0.14 125 / 0.55),
       transparent 70%
     ),
     radial-gradient(
-      46% 40% at 84% 18%,
-      oklch(0.9 0.07 250 / 0.42),
+      46% 40% at 84% 16%,
+      oklch(0.92 0.12 118 / 0.48),
       transparent 68%
     ),
     radial-gradient(
       55% 36% at 48% 88%,
-      oklch(0.86 0.05 215 / 0.28),
+      oklch(0.88 0.08 130 / 0.3),
       transparent 72%
     ),
     linear-gradient(
       180deg,
-      oklch(0.9 0.055 228) 0%,
-      oklch(0.93 0.042 220) 38%,
-      oklch(0.94 0.032 210) 68%,
-      oklch(0.98 0.016 200) 100%
+      oklch(0.88 0.11 128) 0%,
+      oklch(0.93 0.08 130) 38%,
+      oklch(0.96 0.05 130) 68%,
+      oklch(0.99 0.02 130) 100%
     );
 }
 
@@ -70,7 +98,7 @@
   left: 18%;
   width: min(28rem, 55vw);
   height: min(16rem, 32vw);
-  background: oklch(0.98 0.04 100 / 0.7);
+  background: oklch(0.98 0.09 110 / 0.75);
 }
 
 .landing-sky::after {
@@ -78,7 +106,42 @@
   right: 12%;
   width: min(22rem, 42vw);
   height: min(14rem, 28vw);
-  background: oklch(0.94 0.08 240 / 0.45);
+  background: oklch(0.9 0.14 125 / 0.5);
+}
+
+.landing-surface {
+  background: var(--landing-surface);
+}
+
+.landing-band {
+  background: var(--landing-band);
+}
+
+.landing-band-strong {
+  background: var(--landing-band-strong);
+}
+
+.landing-deep {
+  background: var(--landing-deep);
+}
+
+.landing-cta {
+  background: var(--landing-primary);
+  color: var(--landing-primary-fg);
+  box-shadow: 0 10px 24px oklch(0.4 0.1 130 / 0.28);
+}
+
+.landing-cta:hover {
+  background: var(--landing-primary-hover);
+}
+
+.landing-cta-on-dark {
+  background: var(--landing-cta-on-dark);
+  color: var(--landing-cta-on-dark-fg);
+}
+
+.landing-cta-on-dark:hover {
+  background: oklch(0.82 0.13 128);
 }
 
 .hero-float {

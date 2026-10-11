@@ -1,28 +1,36 @@
+"use client"
+
 import { Link } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
-
-const footerAnchors = [
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#features", label: "Features" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#faq", label: "FAQ" },
-] as const
+import { localeHomePath } from "@/modules/marketing/i18n/dictionary"
+import { useLanding } from "@/modules/marketing/i18n/landing-context"
 
 export function LandingFooter() {
+  const { locale, copy } = useLanding()
+  const footerAnchors = [
+    { href: "#how-it-works", label: copy.nav.howItWorks },
+    { href: "#features", label: copy.nav.features },
+    { href: "#pricing", label: copy.nav.pricing },
+    { href: "#faq", label: copy.nav.faq },
+  ]
+
   return (
-    <footer className="border-t bg-[oklch(0.99_0.008_220)]">
+    <footer className="landing-surface border-t border-[oklch(0.9_0.02_130)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 md:flex-row md:items-end md:justify-between">
         <div>
-          <BrandLogo variant="compact" imageClassName="h-6 w-auto" />
+          <BrandLogo
+            href={localeHomePath(locale)}
+            variant="compact"
+            imageClassName="h-6 w-auto"
+          />
           <p className="mt-3 max-w-md text-sm leading-6 text-neutral-600">
-            WhatsApp customer support that answers from your knowledge and
-            brings in a person when it needs to.
+            {copy.footer.blurb}
           </p>
         </div>
         <div className="flex flex-col gap-4 md:items-end">
           <nav
-            aria-label="Footer"
+            aria-label={copy.footer.label}
             className="flex flex-wrap gap-x-5 gap-y-2 text-sm"
           >
             {footerAnchors.map((link) => (
@@ -38,12 +46,11 @@ export function LandingFooter() {
               to="/login"
               className="text-neutral-700 outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
             >
-              Sign in
+              {copy.footer.signIn}
             </Link>
           </nav>
           <p className="max-w-md text-xs leading-5 text-neutral-500 md:text-right">
-            Echo is in a private pilot. If you do not recognize Echo, do not
-            enter your details.
+            {copy.footer.note}
           </p>
         </div>
       </div>
