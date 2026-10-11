@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
-    "test": "node --test --experimental-strip-types app/inbox-routes.test.mjs app/landing-i18n.test.mjs app/landing-negotiation.test.mjs",
+    "test": "node --test --experimental-strip-types \"**/*.test.{mjs,ts}\"",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"

@@ -160,4 +160,10 @@ describe("landing locale wiring", () => {
     assert.match(head, /hreflang: "pt-BR"/)
     assert.match(head, /hreflang: "x-default"/)
   })
+
+  it("discovers web tests with a glob instead of a file list", () => {
+    const pkg = JSON.parse(read("package.json"))
+    assert.match(pkg.scripts.test, /\*\*\/\*\.test\.\{mjs,ts\}/)
+    assert.doesNotMatch(pkg.scripts.test, /inbox-routes\.test/)
+  })
 })
