@@ -38,8 +38,8 @@ export function LanguageSwitcher({ className }: { className?: string }) {
             className={cn(
               "inline-flex h-7 min-w-8 items-center justify-center rounded-full px-2 outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
               active
-                ? "bg-[oklch(0.54_0.15_130)] text-[oklch(0.99_0.003_130)]"
-                : "text-neutral-700 hover:text-neutral-950"
+                ? "bg-[var(--echo-primary)] text-[var(--echo-primary-foreground)]"
+                : "text-neutral-700 hover:text-[var(--echo-green-700)]"
             )}
           >
             {copy.nav[option.labelKey]}

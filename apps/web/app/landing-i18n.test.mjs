@@ -65,13 +65,37 @@ describe("landing routes and SEO", () => {
 })
 
 describe("landing palette", () => {
-  it("defines moss tokens and a luminous green sky", () => {
+  it("uses the shared Echo lime as the landing primary", () => {
     const css = read("modules/marketing/ui/hero.css")
-    assert.match(css, /--landing-primary: oklch\(0\.54 0\.15 130\)/)
+    const tokens = readFileSync(
+      join(webDir, "../../packages/ui/src/tokens/echo-palette.ts"),
+      "utf8"
+    )
+    const paletteCss = readFileSync(
+      join(webDir, "../../packages/ui/src/styles/echo-palette.css"),
+      "utf8"
+    )
+
+    assert.match(css, /@import "@workspace\/ui\/echo-palette.css"/)
+    assert.match(css, /--landing-primary: var\(--echo-primary\)/)
     assert.match(css, /\.landing-sky/)
     assert.match(css, /oklch\(0\.88 0\.11 128\)/)
     assert.doesNotMatch(css, /oklch\(0\.\d+ 0\.\d+ 228\)/)
     assert.match(css, /prefers-reduced-motion: reduce/)
+    assert.match(tokens, /primary: echoGreen\[400\]/)
+    assert.match(tokens, /"#99c965"/)
+    assert.match(paletteCss, /--echo-primary: var\(--echo-green-400\)/)
+    assert.match(paletteCss, /#99c965/)
+  })
+})
+
+describe("hero chips", () => {
+  it("places chips in side columns instead of overlapping the phones", () => {
+    const scene = read("modules/marketing/ui/components/hero-scene.tsx")
+    assert.match(scene, /lg:grid-cols-/)
+    assert.match(scene, /z-20/)
+    assert.doesNotMatch(scene, /lg:top-40 lg:right-0/)
+    assert.match(scene, /lg:hidden/)
   })
 })
 

@@ -14,15 +14,15 @@ import { PhoneMockup } from "./phone-mockups"
 
 const chipIcons = [BookOpen01Icon, UserMultiple02Icon, InboxIcon] as const
 
-const chipClassNames = [
-  "hero-float hero-parallax-near lg:absolute lg:top-16 lg:left-0 xl:left-4",
-  "hero-float hero-float-delay-1 hero-parallax-mid lg:absolute lg:top-6 lg:right-0 xl:right-2",
-  "hero-float hero-float-delay-2 hero-parallax-near lg:absolute lg:top-40 lg:right-0 xl:right-8",
-] as const
-
 export function HeroScene() {
   const sceneRef = useHeroParallax<HTMLDivElement>()
   const { copy } = useLanding()
+  const chips = copy.hero.chips.map((label, index) => ({
+    label,
+    icon: chipIcons[index] ?? BookOpen01Icon,
+  }))
+  const leftChip = chips[0]
+  const rightChips = chips.slice(1)
   const conversations = [
     {
       key: "hours",
@@ -58,38 +58,64 @@ export function HeroScene() {
   return (
     <div
       ref={sceneRef}
-      className="relative mx-auto mt-8 w-full max-w-5xl px-4 pb-8 sm:mt-12 sm:pb-12"
+      className="relative mx-auto mt-8 w-full max-w-7xl px-4 pb-8 sm:mt-12 sm:pb-12"
     >
-      <div className="flex flex-col items-center gap-3 lg:contents">
-        {copy.hero.chips.map((label, index) => {
-          const icon = chipIcons[index] ?? BookOpen01Icon
-          const className = chipClassNames[index] ?? chipClassNames[0]
-
-          return (
-            <GlassChip
-              key={label}
-              icon={icon}
-              label={label}
-              className={className}
-            />
-          )
-        })}
-      </div>
-
-      <p className="sr-only">{copy.hero.phonesSr}</p>
-      <div
-        aria-hidden
-        className="relative mx-auto mt-6 flex h-[21rem] max-w-[38rem] items-end justify-center sm:mt-8 sm:h-[26rem] lg:mt-0"
-      >
-        {conversations.map((conversation) => (
-          <PhoneMockup
-            key={conversation.key}
-            tilt={conversation.tilt}
-            business={copy.hero.business}
-            messages={conversation.messages}
-            className={conversation.className}
+      <div className="mb-5 flex flex-col items-center gap-3 lg:hidden">
+        {chips.map((chip, index) => (
+          <GlassChip
+            key={chip.label}
+            icon={chip.icon}
+            label={chip.label}
+            className={
+              index === 0
+                ? "hero-float z-20"
+                : `hero-float hero-float-delay-${index} z-20`
+            }
           />
         ))}
+      </div>
+
+      <div className="lg:grid lg:grid-cols-[minmax(12.5rem,16rem)_minmax(0,1fr)_minmax(12.5rem,16rem)] lg:items-center lg:gap-3 xl:grid-cols-[minmax(15rem,18rem)_minmax(22rem,38rem)_minmax(15rem,18rem)] xl:justify-center xl:gap-8">
+        <div className="relative z-20 hidden lg:flex lg:flex-col lg:items-end lg:gap-24 lg:justify-self-end">
+          {leftChip ? (
+            <GlassChip
+              icon={leftChip.icon}
+              label={leftChip.label}
+              className="hero-float z-20 w-full max-w-[15rem] xl:max-w-64"
+            />
+          ) : null}
+        </div>
+
+        <p className="sr-only">{copy.hero.phonesSr}</p>
+        <div
+          aria-hidden
+          className="relative z-10 mx-auto flex h-[21rem] w-full max-w-[30rem] items-end justify-center sm:h-[26rem] xl:max-w-[38rem]"
+        >
+          {conversations.map((conversation) => (
+            <PhoneMockup
+              key={conversation.key}
+              tilt={conversation.tilt}
+              business={copy.hero.business}
+              messages={conversation.messages}
+              className={conversation.className}
+            />
+          ))}
+        </div>
+
+        <div className="relative z-20 hidden lg:flex lg:flex-col lg:items-start lg:gap-14 lg:justify-self-start xl:gap-16">
+          {rightChips.map((chip, index) => (
+            <GlassChip
+              key={chip.label}
+              icon={chip.icon}
+              label={chip.label}
+              className={
+                index === 0
+                  ? "hero-float hero-float-delay-1 z-20 w-full max-w-[15rem] xl:max-w-64"
+                  : "hero-float hero-float-delay-2 z-20 w-full max-w-[15rem] xl:max-w-64"
+              }
+            />
+          ))}
+        </div>
       </div>
     </div>
   )

@@ -54,7 +54,7 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
               <li key={item} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-[oklch(0.54_0.15_130)]"
+                  className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--echo-primary)]"
                 />
                 {item}
               </li>
@@ -62,7 +62,7 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
           </ul>
           <Link
             to={href}
-            className="landing-cta mt-8 inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.54_0.15_130_/_0.45)]"
+            className="landing-cta mt-8 inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
           >
             {label}
           </Link>

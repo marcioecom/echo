@@ -16,7 +16,7 @@ export function GlassChip({ icon, label, className }: GlassChipProps) {
         className
       )}
     >
-      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/80 text-[oklch(0.42_0.12_130)]">
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-white/80 text-[var(--echo-green-700)]">
         <HugeiconsIcon icon={icon} size={14} strokeWidth={1.8} />
       </span>
       <span>{label}</span>

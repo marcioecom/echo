@@ -46,7 +46,7 @@ export function FeaturesSection() {
               key={feature.title}
               className="rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-[0_10px_30px_oklch(0.4_0.05_130_/_0.04)] sm:p-8"
             >
-              <span className="flex size-10 items-center justify-center rounded-full bg-[oklch(0.95_0.04_130)] text-[oklch(0.42_0.12_130)]">
+              <span className="flex size-10 items-center justify-center rounded-full bg-[var(--echo-green-100)] text-[var(--echo-green-700)]">
                 <HugeiconsIcon
                   icon={featureIcons[index] ?? BookOpen01Icon}
                   size={18}

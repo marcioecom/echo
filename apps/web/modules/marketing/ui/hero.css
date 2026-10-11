@@ -1,33 +1,27 @@
+@import "@workspace/ui/echo-palette.css";
+
 .font-instrument-serif {
   font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
 }
 
 /*
-  Landing moss tokens (hue 130), same family as the dashboard primary
-  `oklch(0.54 0.15 130)` and the logo chevron. The sky leans luminous —
-  higher lightness, a lime bloom near hue 118 — so the hero reads like
-  AbacatePay's glow without leaving Echo's green.
+  Landing maps onto the shared Echo palette. Primary is the luminous
+  lime (#99c965) Márcio picked from the final-section CTA — not the
+  darker olive. WhatsApp teal in the phone headers stays a mockup color.
 */
 .landing {
-  --landing-ink: oklch(0.21 0.01 130);
-  --landing-muted: oklch(0.42 0.02 130);
-  --landing-primary: oklch(0.54 0.15 130);
-  --landing-primary-hover: oklch(0.48 0.15 130);
-  --landing-primary-fg: oklch(0.99 0.003 130);
-  --landing-glow: oklch(0.96 0.1 118);
-  --landing-bloom: oklch(0.88 0.13 125);
-  --landing-sky-top: oklch(0.9 0.1 128);
-  --landing-sky-mid: oklch(0.94 0.07 130);
-  --landing-sky-bottom: oklch(0.985 0.022 130);
-  --landing-surface: oklch(0.99 0.012 130);
-  --landing-band: oklch(0.965 0.03 130);
-  --landing-band-strong: oklch(0.945 0.045 130);
-  --landing-deep: oklch(0.22 0.045 130);
-  --landing-cta-on-dark: oklch(0.78 0.14 130);
-  --landing-cta-on-dark-fg: oklch(0.21 0.04 130);
+  --landing-ink: var(--echo-text);
+  --landing-muted: var(--echo-text-muted);
+  --landing-primary: var(--echo-primary);
+  --landing-primary-hover: var(--echo-primary-hover);
+  --landing-primary-fg: var(--echo-primary-foreground);
+  --landing-surface: var(--echo-background);
+  --landing-band: var(--echo-green-50);
+  --landing-band-strong: var(--echo-green-100);
+  --landing-deep: var(--echo-green-900);
   --landing-shadow: oklch(0.38 0.06 130 / 0.1);
-  color: var(--landing-ink);
-  background: var(--landing-surface);
+  color: var(--echo-text);
+  background: var(--echo-background);
 }
 
 .whatsapp-wallpaper {
@@ -110,38 +104,29 @@
 }
 
 .landing-surface {
-  background: var(--landing-surface);
+  background: var(--echo-background);
 }
 
 .landing-band {
-  background: var(--landing-band);
+  background: var(--echo-green-50);
 }
 
 .landing-band-strong {
-  background: var(--landing-band-strong);
+  background: var(--echo-green-100);
 }
 
 .landing-deep {
-  background: var(--landing-deep);
+  background: var(--echo-green-900);
 }
 
 .landing-cta {
-  background: var(--landing-primary);
-  color: var(--landing-primary-fg);
-  box-shadow: 0 10px 24px oklch(0.4 0.1 130 / 0.28);
+  background: var(--echo-primary);
+  color: var(--echo-primary-foreground);
+  box-shadow: 0 10px 24px oklch(0.55 0.12 130 / 0.28);
 }
 
 .landing-cta:hover {
-  background: var(--landing-primary-hover);
-}
-
-.landing-cta-on-dark {
-  background: var(--landing-cta-on-dark);
-  color: var(--landing-cta-on-dark-fg);
-}
-
-.landing-cta-on-dark:hover {
-  background: oklch(0.82 0.13 128);
+  background: var(--echo-primary-hover);
 }
 
 .hero-float {

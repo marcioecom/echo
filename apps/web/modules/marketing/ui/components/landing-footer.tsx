@@ -16,7 +16,7 @@ export function LandingFooter() {
   ]
 
   return (
-    <footer className="landing-surface border-t border-[oklch(0.9_0.02_130)]">
+    <footer className="landing-surface border-t border-[var(--echo-border)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-5 py-10 sm:px-8 md:flex-row md:items-end md:justify-between">
         <div>
           <BrandLogo
@@ -37,14 +37,14 @@ export function LandingFooter() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-neutral-700 outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+                className="text-neutral-700 outline-none hover:text-[var(--echo-green-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
               >
                 {link.label}
               </a>
             ))}
             <Link
               to="/login"
-              className="text-neutral-700 outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+              className="text-neutral-700 outline-none hover:text-[var(--echo-green-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
             >
               {copy.footer.signIn}
             </Link>

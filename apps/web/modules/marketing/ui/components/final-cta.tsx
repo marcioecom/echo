@@ -28,7 +28,7 @@ export function FinalCta({ signedIn }: FinalCtaProps) {
         </p>
         <Link
           to={href}
-          className="landing-cta-on-dark mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          className="landing-cta mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         >
           {label}
         </Link>

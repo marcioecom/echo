@@ -32,7 +32,7 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
           </p>
           <Link
             to={ctaHref}
-            className="landing-cta mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.54_0.15_130_/_0.45)]"
+            className="landing-cta mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
           >
             {ctaLabel}
           </Link>

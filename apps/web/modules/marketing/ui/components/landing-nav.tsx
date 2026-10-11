@@ -49,14 +49,14 @@ export function LandingNav({ signedIn }: LandingNavProps) {
               <a
                 key={link.href}
                 href={link.href}
-                className="rounded-full px-3 py-1.5 text-sm text-neutral-700 transition-colors outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+                className="rounded-full px-3 py-1.5 text-sm text-neutral-700 transition-colors outline-none hover:text-[var(--echo-green-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
               >
                 {link.label}
               </a>
             ))}
             <Link
               to={signInHref}
-              className="rounded-full px-3 py-1.5 text-sm text-neutral-700 transition-colors outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+              className="rounded-full px-3 py-1.5 text-sm text-neutral-700 transition-colors outline-none hover:text-[var(--echo-green-700)] focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
             >
               {signInLabel}
             </Link>
@@ -66,7 +66,7 @@ export function LandingNav({ signedIn }: LandingNavProps) {
             <LanguageSwitcher />
             <Link
               to={startHref}
-              className="landing-cta inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium outline-none hover:brightness-95 focus-visible:ring-2 focus-visible:ring-[oklch(0.54_0.15_130_/_0.45)] sm:px-4"
+              className="landing-cta inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)] sm:px-4"
             >
               {startLabel}
             </Link>
