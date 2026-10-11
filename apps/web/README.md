@@ -30,13 +30,23 @@ Both are public and inlined at build time. Do not put secrets in `VITE_*` variab
 
 ## Cloudflare deploy
 
-Required GitHub configuration (do not commit these):
+Production deploys go through **Cloudflare Workers Builds** (project `echo`), not GitHub Actions.
 
-- Repository secret `CLOUDFLARE_API_TOKEN` — Workers edit permission
-- Repository secret `CLOUDFLARE_ACCOUNT_ID`
-- Repository variables `VITE_API_URL` and `VITE_APP_URL` for the production API and site origins
+Configure the project so Wrangler runs from the web app, not the monorepo root:
 
-The workflow is `.github/workflows/deploy-web.yml`. It builds `apps/web` from the monorepo root (workspace packages must resolve) and deploys with Wrangler.
+- Root directory: `apps/web`
+- or deploy command: `pnpm --filter web exec wrangler deploy`
+
+Set these build-time variables in Workers Builds:
+
+| Variable       | Purpose                                      |
+| -------------- | -------------------------------------------- |
+| `VITE_API_URL` | Production API origin (inlined at build)     |
+| `VITE_APP_URL` | Public web origin (SEO / absolute URLs)      |
+
+Both are public. Do not put secrets in `VITE_*` variables.
+
+`npx wrangler deploy` at the repo root fails (`application detection logic has been run in the root of a workspace`). Use one of the two options above so Wrangler sees `apps/web/wrangler.jsonc`.
 
 Manual deploy from a machine already authenticated with Wrangler:
 
