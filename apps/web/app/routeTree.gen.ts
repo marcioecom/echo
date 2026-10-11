@@ -10,9 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PtBrRouteImport } from './routes/pt-br'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
+import { Route as PtBrRouteImport } from './routes/pt-br'
 import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
@@ -31,17 +31,17 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const PtBrRoute = PtBrRouteImport.update({
-  id: '/pt-br',
-  path: '/pt-br',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/_dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PtBrRoute = PtBrRouteImport.update({
+  id: '/pt-br',
+  path: '/pt-br',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
@@ -142,9 +142,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/pt-br': typeof PtBrRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
+  '/pt-br': typeof PtBrRoute
   '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/onboarding': typeof AuthOnboardingRoute
@@ -193,9 +193,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/pt-br'
     | '/_auth'
     | '/_dashboard'
+    | '/pt-br'
     | '/_auth/forgot-password'
     | '/_auth/login'
     | '/_auth/onboarding'
@@ -212,9 +212,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  PtBrRoute: typeof PtBrRoute
   AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  PtBrRoute: typeof PtBrRoute
   AcceptInvitationIdRoute: typeof AcceptInvitationIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -226,13 +226,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pt-br': {
-      id: '/pt-br'
-      path: '/pt-br'
-      fullPath: '/pt-br'
-      preLoaderRoute: typeof PtBrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -247,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pt-br': {
+      id: '/pt-br'
+      path: '/pt-br'
+      fullPath: '/pt-br'
+      preLoaderRoute: typeof PtBrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/forgot-password': {
@@ -386,9 +386,9 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  PtBrRoute: PtBrRoute,
   AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  PtBrRoute: PtBrRoute,
   AcceptInvitationIdRoute: AcceptInvitationIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
