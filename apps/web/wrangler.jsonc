@@ -10,4 +10,7 @@
   "workers_dev": true,
   "preview_urls": true,
   "previews": {},
+  "vars": {
+    "API_URL": "https://echo-api.marcio.run",
+  },
 }

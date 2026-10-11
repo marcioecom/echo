@@ -8,3 +8,13 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+declare namespace Cloudflare {
+  interface Env {
+    API_URL: string
+  }
+}
+
+declare module "cloudflare:workers" {
+  export const env: Cloudflare.Env
+}

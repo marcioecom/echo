@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "deploy": "wrangler deploy",
     "cf-typegen": "wrangler types",
+    "test": "vitest run lib",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
@@ -47,6 +48,7 @@
     "eslint": "^9.39.4",
     "typescript": "^5.9.3",
     "vite": "^8.0.14",
+    "vitest": "^4.1.11",
     "wrangler": "^4.45.0"
   }
 }

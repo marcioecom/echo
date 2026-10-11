@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
+import { env } from "cloudflare:workers"
 
-import { getApiUrl } from "@/lib/env"
+import { getServerApiUrl, proxyAuthRequest } from "@/lib/auth-proxy"
 
 async function proxyAuth({
   request,
@@ -9,32 +10,18 @@ async function proxyAuth({
   request: Request
   params: { _splat?: string }
 }) {
-  const incoming = new URL(request.url)
-  const target = new URL(`/api/auth/${params._splat ?? ""}`, getApiUrl())
-  target.search = incoming.search
-
-  const headers = new Headers(request.headers)
-  headers.delete("host")
-  headers.set("x-forwarded-host", incoming.host)
-  headers.set("x-forwarded-proto", incoming.protocol.replace(":", ""))
-
-  const init: RequestInit & { duplex?: "half" } = {
-    method: request.method,
-    headers,
-    redirect: "manual",
+  let apiUrl: string
+  try {
+    apiUrl = getServerApiUrl(env)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "API_URL is not set"
+    return new Response(message, { status: 500 })
   }
 
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    init.body = request.body
-    init.duplex = "half"
-  }
-
-  const response = await fetch(target, init)
-
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
+  return proxyAuthRequest({
+    request,
+    apiUrl,
+    splat: params._splat ?? "",
   })
 }
 
