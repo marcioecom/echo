@@ -7,6 +7,5 @@ export default Sentry.withSentry(
     dsn: import.meta.env.VITE_SENTRY_DSN,
     tracesSampleRate: 0.2,
   }),
-  // @ts-expect-error - handler is not typed as a Cloudflare handler
   wrapFetchWithSentry(handler)
 )
