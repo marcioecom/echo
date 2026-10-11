@@ -21,7 +21,7 @@ export function PhoneMockup({
   return (
     <figure
       className={cn(
-        "w-[12.5rem] shrink-0 origin-bottom drop-shadow-[0_24px_40px_oklch(0.35_0.05_230_/_0.22)] sm:w-[14.5rem]",
+        "w-[12.5rem] shrink-0 origin-bottom drop-shadow-[0_24px_40px_oklch(0.35_0.06_130_/_0.22)] sm:w-[14.5rem]",
         className
       )}
     >
@@ -68,46 +68,4 @@ export function PhoneMockup({
       </div>
     </figure>
   )
-}
-
-export const heroConversations = {
-  hours: {
-    business: "Harbor Goods",
-    messages: [
-      {
-        from: "customer" as const,
-        text: "What time do you close on Saturday?",
-      },
-      {
-        from: "echo" as const,
-        text: "Saturday we are open 10am–6pm. Pickup is available until 5:30pm.",
-      },
-    ],
-  },
-  shipping: {
-    business: "Harbor Goods",
-    messages: [
-      {
-        from: "customer" as const,
-        text: "Do you ship to Porto Alegre?",
-      },
-      {
-        from: "echo" as const,
-        text: "Yes. Orders to Porto Alegre usually arrive in 3–5 business days.",
-      },
-    ],
-  },
-  handoff: {
-    business: "Harbor Goods",
-    messages: [
-      {
-        from: "customer" as const,
-        text: "I need to change my delivery address.",
-      },
-      {
-        from: "echo" as const,
-        text: "Passing you to Ana from the team.",
-      },
-    ],
-  },
 }

@@ -1,53 +1,29 @@
+"use client"
+
+import { useLanding } from "@/modules/marketing/i18n/landing-context"
+
 import { SectionHeading } from "./section-heading"
 
-const faqs = [
-  {
-    question: "Is this a dedicated WhatsApp number?",
-    answer:
-      "Yes. Echo uses a dedicated number through the official WhatsApp API. It is not a shared inbox on someone’s personal phone.",
-  },
-  {
-    question: "Does the AI get things wrong?",
-    answer:
-      "Yes. Language models make mistakes. That is why Echo hands off to a human instead of guessing — and why it asks a clarifying question when the request is unclear.",
-  },
-  {
-    question: "What happens with audio, photos, or stickers?",
-    answer:
-      "They go to a human. Echo answers written text from your knowledge base. Media is a handoff, not something it tries to interpret.",
-  },
-  {
-    question: "Can Echo book appointments or send campaigns?",
-    answer:
-      "No. There is no scheduling, no broadcasts, and no bulk messaging. Those conversations belong with a person on your team.",
-  },
-  {
-    question: "Do I need to connect other tools?",
-    answer:
-      "No. Echo today is WhatsApp, your knowledge base, and a web inbox. Integrations are not part of the pilot.",
-  },
-]
-
 export function FaqSection() {
+  const { copy } = useLanding()
+
   return (
-    <section
-      id="faq"
-      className="landing-section scroll-mt-24 bg-[oklch(0.99_0.008_220)]"
-    >
+    <section id="faq" className="landing-section landing-surface scroll-mt-24">
       <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:py-28">
         <SectionHeading
           title={
             <>
-              Honest answers,{" "}
+              {copy.faq.titleBefore}
               <em className="font-instrument-serif font-normal italic">
-                including the limits
+                {copy.faq.titleEm}
               </em>
+              {copy.faq.titleAfter}
             </>
           }
-          description="Echo is early. If a capability is not listed here, assume it is not built."
+          description={copy.faq.description}
         />
         <div className="border-t border-neutral-200">
-          {faqs.map((faq) => (
+          {copy.faq.items.map((faq) => (
             <details
               key={faq.question}
               className="group border-b border-neutral-200 py-5"

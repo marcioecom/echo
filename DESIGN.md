@@ -3,6 +3,10 @@
 Visual system for the Echo Support Inbox. Strategic context lives in
 PRODUCT.md; this file captures how the product looks. Register: product.
 Colors are OKLCH tokens in `packages/ui/src/styles/globals.css`.
+The marketing lime scale (primary `#99c965` plus 50–900) lives in
+`packages/ui/src/styles/echo-palette.css` and
+`packages/ui/src/tokens/echo-palette.ts` for later dashboard reuse.
+Do not map it onto app `--primary` until that dedicated pass.
 
 ## Theme
 

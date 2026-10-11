@@ -1,60 +1,60 @@
+"use client"
+
 import { Link } from "@tanstack/react-router"
 
-import { SectionHeading } from "./section-heading"
+import { useLanding } from "@/modules/marketing/i18n/landing-context"
 
-const included = [
-  "Answers from your knowledge base",
-  "Clarifying questions when Echo is unsure",
-  "Human handoff, including audio, photos, and stickers",
-  "One web inbox for your team",
-]
+import { SectionHeading } from "./section-heading"
 
 type PricingSectionProps = {
   signedIn: boolean
 }
 
 export function PricingSection({ signedIn }: PricingSectionProps) {
+  const { copy } = useLanding()
   const href = signedIn ? "/inbox" : "/sign-up"
-  const label = signedIn ? "Open inbox" : "Join the pilot"
+  const label = signedIn ? copy.pricing.openInbox : copy.pricing.joinPilot
 
   return (
     <section
       id="pricing"
-      className="landing-section scroll-mt-24 bg-[oklch(0.96_0.028_220)]"
+      className="landing-section landing-band-strong scroll-mt-24"
     >
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
         <SectionHeading
           align="center"
           title={
             <>
-              Start with a{" "}
+              {copy.pricing.titleBefore}
               <em className="font-instrument-serif font-normal italic">
-                pilot
+                {copy.pricing.titleEm}
               </em>
+              {copy.pricing.titleAfter}
             </>
           }
-          description="Echo is early. The pilot is free for 30 days, with a limited number of spots, so we can stay close to each business."
+          description={copy.pricing.description}
         />
-        <div className="mx-auto mt-12 max-w-lg rounded-[2rem] border border-white/80 bg-white/75 p-8 shadow-[0_20px_50px_oklch(0.4_0.04_230_/_0.08)] backdrop-blur-xl sm:p-10">
+        <div className="mx-auto mt-12 max-w-lg rounded-[2rem] border border-white/80 bg-white/75 p-8 shadow-[0_20px_50px_oklch(0.4_0.06_130_/_0.08)] backdrop-blur-xl sm:p-10">
           <p className="text-sm font-medium text-neutral-600">
-            After the pilot
+            {copy.pricing.afterPilot}
           </p>
           <p className="mt-2 flex items-end gap-1">
             <span className="text-5xl font-semibold tracking-tight text-neutral-950">
-              R$297
+              {copy.pricing.amount}
             </span>
-            <span className="mb-1.5 text-neutral-600">/month</span>
+            <span className="mb-1.5 text-neutral-600">
+              {copy.pricing.period}
+            </span>
           </p>
           <p className="mt-3 text-sm leading-6 text-pretty text-neutral-600">
-            First 30 days free. Then from R$297 per month. No extra product
-            tiers, and no “talk to sales” maze.
+            {copy.pricing.body}
           </p>
           <ul className="mt-8 space-y-3 text-sm text-neutral-800">
-            {included.map((item) => (
+            {copy.pricing.included.map((item) => (
               <li key={item} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-neutral-950"
+                  className="mt-2 size-1.5 shrink-0 rounded-full bg-[var(--echo-primary)]"
                 />
                 {item}
               </li>
@@ -62,7 +62,7 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
           </ul>
           <Link
             to={href}
-            className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-full bg-neutral-950 px-7 text-sm font-medium text-white outline-none hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-neutral-950/35"
+            className="landing-cta mt-8 inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
           >
             {label}
           </Link>

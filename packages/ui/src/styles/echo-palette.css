@@ -1,0 +1,55 @@
+/*
+  Echo green palette
+  ------------------
+  Shared token set for marketing first, then the dashboard. Do not wire
+  these onto `--primary` in globals.css until the app color pass.
+
+  Seed: the luminous lime used on the landing final-section CTA
+  (`oklch(0.78 0.14 130)` / #99c965). Hue 130 matches the logo chevron
+  and the existing dashboard moss, at a lighter step so dark text stays
+  readable.
+
+  | Token                 | OKLCH                    | Hex     |
+  |-----------------------|--------------------------|---------|
+  | --echo-green-50       | oklch(0.985 0.018 130)   | #f6fdf0 |
+  | --echo-green-100      | oklch(0.96 0.04 130)     | #e9f8dc |
+  | --echo-green-200      | oklch(0.92 0.07 130)     | #d5efbe |
+  | --echo-green-300      | oklch(0.86 0.105 130)    | #badf96 |
+  | --echo-green-400      | oklch(0.78 0.14 130)     | #99c965 |
+  | --echo-green-500      | oklch(0.70 0.15 130)     | #7fb042 |
+  | --echo-green-600      | oklch(0.60 0.15 130)     | #61911c |
+  | --echo-green-700      | oklch(0.48 0.13 130)     | #446b00 |
+  | --echo-green-800      | oklch(0.36 0.10 130)     | #2b4700 |
+  | --echo-green-900      | oklch(0.26 0.07 130)     | #182a00 |
+  | --echo-primary        | = green-400              | #99c965 |
+  | --echo-primary-hover  | oklch(0.72 0.15 130)     | #85b749 |
+  | --echo-primary-foreground | oklch(0.21 0.04 130) | #121c07 |
+  | --echo-background     | oklch(0.995 0.008 130)   | #fcfff9 |
+  | --echo-surface        | oklch(1 0 0)             | #ffffff |
+  | --echo-text           | oklch(0.21 0.01 130)     | #171914 |
+  | --echo-text-muted     | oklch(0.42 0.02 130)     | #494f44 |
+  | --echo-border         | oklch(0.90 0.02 130)     | #dae1d3 |
+*/
+
+:root {
+  --echo-green-50: #f6fdf0;
+  --echo-green-100: #e9f8dc;
+  --echo-green-200: #d5efbe;
+  --echo-green-300: #badf96;
+  --echo-green-400: #99c965;
+  --echo-green-500: #7fb042;
+  --echo-green-600: #61911c;
+  --echo-green-700: #446b00;
+  --echo-green-800: #2b4700;
+  --echo-green-900: #182a00;
+
+  --echo-primary: var(--echo-green-400);
+  --echo-primary-hover: #85b749;
+  --echo-primary-foreground: #121c07;
+
+  --echo-background: #fcfff9;
+  --echo-surface: #ffffff;
+  --echo-text: #171914;
+  --echo-text-muted: #494f44;
+  --echo-border: #dae1d3;
+}

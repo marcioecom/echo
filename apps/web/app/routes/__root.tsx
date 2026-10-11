@@ -4,11 +4,13 @@ import {
   HeadContent,
   Outlet,
   Scripts,
+  useLocation,
 } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 
 import { DefaultError } from "@/components/default-error"
 import { NotFound } from "@/components/not-found"
+import { htmlLang, localeFromPath } from "@/modules/marketing/i18n/dictionary"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -62,8 +64,15 @@ function RootComponent() {
 }
 
 function RootDocument({ children }: { children: ReactNode }) {
+  const pathname = useLocation({ select: (location) => location.pathname })
+  const lang = htmlLang(localeFromPath(pathname))
+
   return (
-    <html lang="en" suppressHydrationWarning className={cn("font-sans antialiased")}>
+    <html
+      lang={lang}
+      suppressHydrationWarning
+      className={cn("font-sans antialiased")}
+    >
       <head>
         <HeadContent />
       </head>

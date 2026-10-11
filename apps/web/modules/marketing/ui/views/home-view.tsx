@@ -1,6 +1,11 @@
 "use client"
 
 import { authClient } from "@/lib/auth-client"
+import type { Locale } from "@/modules/marketing/i18n/dictionary"
+import {
+  LandingProvider,
+  useLanding,
+} from "@/modules/marketing/i18n/landing-context"
 import { DemoSection } from "@/modules/marketing/ui/components/demo-section"
 import { FaqSection } from "@/modules/marketing/ui/components/faq-section"
 import { FeaturesSection } from "@/modules/marketing/ui/components/features-section"
@@ -15,17 +20,30 @@ import { ProblemSection } from "@/modules/marketing/ui/components/problem-sectio
 
 import "../hero.css"
 
-export function HomeView() {
+type HomeViewProps = {
+  locale: Locale
+}
+
+export function HomeView({ locale }: HomeViewProps) {
+  return (
+    <LandingProvider locale={locale}>
+      <LandingPage />
+    </LandingProvider>
+  )
+}
+
+function LandingPage() {
   const { data } = authClient.useSession()
+  const { copy } = useLanding()
   const signedIn = Boolean(data?.session)
 
   return (
-    <div className="min-h-svh bg-[oklch(0.99_0.01_220)] text-neutral-950">
+    <div className="landing min-h-svh">
       <a
         href="#problem"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-(--z-tooltip) focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:text-neutral-950 focus:shadow"
       >
-        Skip to content
+        {copy.skip}
       </a>
       <LandingNav signedIn={signedIn} />
 

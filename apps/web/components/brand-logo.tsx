@@ -25,7 +25,7 @@ const brandLogoAssets = {
 type BrandLogoVariant = keyof typeof brandLogoAssets
 
 type BrandLogoProps = {
-  href?: "/"
+  href?: "/" | "/pt-br"
   variant?: BrandLogoVariant
   priority?: boolean
   className?: string

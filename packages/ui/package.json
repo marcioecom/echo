@@ -38,6 +38,8 @@
   },
   "exports": {
     "./globals.css": "./src/styles/globals.css",
+    "./echo-palette.css": "./src/styles/echo-palette.css",
+    "./tokens/echo-palette": "./src/tokens/echo-palette.ts",
     "./postcss.config": "./postcss.config.mjs",
     "./lib/*": "./src/lib/*.ts",
     "./components/*": "./src/components/*.tsx",

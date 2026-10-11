@@ -1,5 +1,27 @@
+@import "@workspace/ui/echo-palette.css";
+
 .font-instrument-serif {
   font-family: var(--font-instrument-serif), ui-serif, Georgia, serif;
+}
+
+/*
+  Landing maps onto the shared Echo palette. Primary is the luminous
+  lime (#99c965) Márcio picked from the final-section CTA — not the
+  darker olive. WhatsApp teal in the phone headers stays a mockup color.
+*/
+.landing {
+  --landing-ink: var(--echo-text);
+  --landing-muted: var(--echo-text-muted);
+  --landing-primary: var(--echo-primary);
+  --landing-primary-hover: var(--echo-primary-hover);
+  --landing-primary-fg: var(--echo-primary-foreground);
+  --landing-surface: var(--echo-background);
+  --landing-band: var(--echo-green-50);
+  --landing-band-strong: var(--echo-green-100);
+  --landing-deep: var(--echo-green-900);
+  --landing-shadow: oklch(0.38 0.06 130 / 0.1);
+  color: var(--echo-text);
+  background: var(--echo-background);
 }
 
 .whatsapp-wallpaper {
@@ -29,30 +51,30 @@
   background:
     radial-gradient(
       70% 55% at 50% -8%,
-      oklch(0.99 0.03 95 / 0.95),
+      oklch(0.99 0.06 108 / 0.95),
       transparent 58%
     ),
     radial-gradient(
-      42% 38% at 18% 28%,
-      oklch(0.88 0.08 230 / 0.55),
+      42% 38% at 16% 30%,
+      oklch(0.9 0.14 125 / 0.55),
       transparent 70%
     ),
     radial-gradient(
-      46% 40% at 84% 18%,
-      oklch(0.9 0.07 250 / 0.42),
+      46% 40% at 84% 16%,
+      oklch(0.92 0.12 118 / 0.48),
       transparent 68%
     ),
     radial-gradient(
       55% 36% at 48% 88%,
-      oklch(0.86 0.05 215 / 0.28),
+      oklch(0.88 0.08 130 / 0.3),
       transparent 72%
     ),
     linear-gradient(
       180deg,
-      oklch(0.9 0.055 228) 0%,
-      oklch(0.93 0.042 220) 38%,
-      oklch(0.94 0.032 210) 68%,
-      oklch(0.98 0.016 200) 100%
+      oklch(0.88 0.11 128) 0%,
+      oklch(0.93 0.08 130) 38%,
+      oklch(0.96 0.05 130) 68%,
+      oklch(0.99 0.02 130) 100%
     );
 }
 
@@ -70,7 +92,7 @@
   left: 18%;
   width: min(28rem, 55vw);
   height: min(16rem, 32vw);
-  background: oklch(0.98 0.04 100 / 0.7);
+  background: oklch(0.98 0.09 110 / 0.75);
 }
 
 .landing-sky::after {
@@ -78,7 +100,33 @@
   right: 12%;
   width: min(22rem, 42vw);
   height: min(14rem, 28vw);
-  background: oklch(0.94 0.08 240 / 0.45);
+  background: oklch(0.9 0.14 125 / 0.5);
+}
+
+.landing-surface {
+  background: var(--echo-background);
+}
+
+.landing-band {
+  background: var(--echo-green-50);
+}
+
+.landing-band-strong {
+  background: var(--echo-green-100);
+}
+
+.landing-deep {
+  background: var(--echo-green-900);
+}
+
+.landing-cta {
+  background: var(--echo-primary);
+  color: var(--echo-primary-foreground);
+  box-shadow: 0 10px 24px oklch(0.55 0.12 130 / 0.28);
+}
+
+.landing-cta:hover {
+  background: var(--echo-primary-hover);
 }
 
 .hero-float {
