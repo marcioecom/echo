@@ -7,6 +7,7 @@ import {
   type Locale,
 } from "@/modules/marketing/i18n/dictionary"
 import { useLanding } from "@/modules/marketing/i18n/landing-context"
+import { persistLanguageChoice } from "@/modules/marketing/i18n/negotiation"
 import { cn } from "@workspace/ui/lib/utils"
 
 const options: { locale: Locale; labelKey: "english" | "portuguese" }[] = [
@@ -35,6 +36,9 @@ export function LanguageSwitcher({ className }: { className?: string }) {
             to={localeHomePath(option.locale)}
             aria-current={active ? "page" : undefined}
             hrefLang={option.locale === "pt-BR" ? "pt-BR" : "en"}
+            onClick={() =>
+              persistLanguageChoice(option.locale === "pt-BR" ? "pt-br" : "en")
+            }
             className={cn(
               "inline-flex h-7 min-w-8 items-center justify-center rounded-full px-2 outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
               active

@@ -45,6 +45,7 @@ export function BrandLogo({
     <Link
       to={href}
       aria-label="Echo"
+      translate="no"
       className={cn("inline-flex shrink-0 items-center", className)}
     >
       <img
