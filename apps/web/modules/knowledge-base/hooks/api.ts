@@ -1,6 +1,8 @@
 import type { KnowledgeDocument, KnowledgeUpload } from "../types"
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"
+import { getApiUrl } from "@/lib/env"
+
+const apiUrl = getApiUrl()
 
 export class KnowledgeBaseApiError extends Error {
   constructor(

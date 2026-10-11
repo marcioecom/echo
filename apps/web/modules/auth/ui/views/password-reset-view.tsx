@@ -9,7 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@workspace/ui/components/form"
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { usePasswordResetForm } from "@/modules/auth/hooks/use-password-reset-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
@@ -28,7 +28,7 @@ export function PasswordResetView() {
           </p>
         </header>
         <Link
-          href="/forgot-password"
+          to="/forgot-password"
           className="text-sm font-medium text-foreground underline underline-offset-4"
         >
           Request a new link

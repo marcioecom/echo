@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { HeroScene } from "./hero-scene"
 
@@ -27,7 +27,7 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
             hands off to a human when it needs to.
           </p>
           <Link
-            href={ctaHref}
+            to={ctaHref}
             className="mt-8 inline-flex h-12 items-center rounded-full bg-neutral-950 px-7 text-sm font-medium text-white shadow-[0_10px_24px_oklch(0.2_0.02_260_/_0.28)] outline-none hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-neutral-950/35"
           >
             {ctaLabel}

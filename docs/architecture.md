@@ -8,7 +8,7 @@ Sanitized system diagram. No real hostnames, IPs, or credentials appear here —
 flowchart LR
     Customer[WhatsApp customer] --> Twilio[Twilio WhatsApp]
     Twilio -->|signed webhook| API[apps/api · Fastify]
-    Operator[Support operator] --> Web[apps/web · Next.js]
+    Operator[Support operator] --> Web[apps/web · TanStack Start]
     Web -->|REST + Better Auth session| API
     API --> Postgres[(PostgreSQL · Drizzle)]
     API -->|enqueue| Redis[(Redis · BullMQ)]
@@ -36,7 +36,7 @@ flowchart LR
 
 ### `apps/web`
 
-- Next.js operator interface: authentication flows, the `/inbox` and `/inbox/[conversationId]` support views, and `/settings` (members, knowledge base).
+- TanStack Start operator interface on Cloudflare Workers: authentication flows, the `/inbox` and `/inbox/$conversationId` support views, and `/settings` (members, knowledge base). Dashboard data is loaded on the client through React Query and a WebSocket to `apps/api`.
 
 ### Shared packages
 

@@ -1,14 +1,13 @@
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
 
-const footerLinks = [
+const footerAnchors = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#features", label: "Features" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
-  { href: "/login", label: "Sign in" },
-]
+] as const
 
 export function LandingFooter() {
   return (
@@ -26,15 +25,21 @@ export function LandingFooter() {
             aria-label="Footer"
             className="flex flex-wrap gap-x-5 gap-y-2 text-sm"
           >
-            {footerLinks.map((link) => (
-              <Link
+            {footerAnchors.map((link) => (
+              <a
                 key={link.href}
                 href={link.href}
                 className="text-neutral-700 outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
+            <Link
+              to="/login"
+              className="text-neutral-700 outline-none hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-neutral-900/20"
+            >
+              Sign in
+            </Link>
           </nav>
           <p className="max-w-md text-xs leading-5 text-neutral-500 md:text-right">
             Echo is in a private pilot. If you do not recognize Echo, do not

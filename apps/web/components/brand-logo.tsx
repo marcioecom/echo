@@ -1,6 +1,5 @@
+import { Link } from "@tanstack/react-router"
 import { cn } from "@workspace/ui/lib/utils"
-import Image from "next/image"
-import Link from "next/link"
 
 const brandLogoAssets = {
   horizontal: {
@@ -26,7 +25,7 @@ const brandLogoAssets = {
 type BrandLogoVariant = keyof typeof brandLogoAssets
 
 type BrandLogoProps = {
-  href?: string
+  href?: "/"
   variant?: BrandLogoVariant
   priority?: boolean
   className?: string
@@ -44,16 +43,17 @@ export function BrandLogo({
 
   return (
     <Link
-      href={href}
+      to={href}
       aria-label="Echo"
       className={cn("inline-flex shrink-0 items-center", className)}
     >
-      <Image
+      <img
         src={asset.src}
         alt=""
         width={asset.width}
         height={asset.height}
-        priority={priority}
+        decoding={priority ? "sync" : "async"}
+        fetchPriority={priority ? "high" : "auto"}
         className={cn(asset.defaultClassName, imageClassName)}
       />
     </Link>

@@ -38,6 +38,9 @@ jobs:
       - run: pnpm test
 
       - run: pnpm build
+        env:
+          VITE_API_URL: http://localhost:3001
+          VITE_APP_URL: http://localhost:3000
 
   build:
     needs: verify

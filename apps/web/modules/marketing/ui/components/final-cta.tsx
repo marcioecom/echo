@@ -1,4 +1,4 @@
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 type FinalCtaProps = {
   signedIn: boolean
@@ -21,7 +21,7 @@ export function FinalCta({ signedIn }: FinalCtaProps) {
           to a human when it needs to.
         </p>
         <Link
-          href={href}
+          to={href}
           className="mt-8 inline-flex h-12 items-center rounded-full bg-white px-7 text-sm font-medium text-neutral-950 outline-none hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-white/40"
         >
           {label}

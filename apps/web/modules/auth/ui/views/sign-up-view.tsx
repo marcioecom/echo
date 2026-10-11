@@ -10,7 +10,7 @@ import {
   FormMessage,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import Link from "next/link"
+import { Link } from "@tanstack/react-router"
 
 import { useSignUpForm } from "@/modules/auth/hooks/use-sign-up-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
@@ -104,7 +104,7 @@ export function SignUpView() {
           <p className="pt-1 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
-              href="/login"
+              to="/login"
               className="font-medium text-foreground underline underline-offset-4"
             >
               Sign in

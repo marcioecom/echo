@@ -1,0 +1,10 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource/geist-mono/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@workspace/ui/globals.css";
+
+:root {
+  --font-sans: "Inter Variable", Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --font-instrument-serif: "Instrument Serif", ui-serif, Georgia, serif;
+}

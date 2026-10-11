@@ -1,7 +1,8 @@
 "use client"
 
+import { useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
-import { useRouter } from "next/navigation"
 
 import { authClient } from "@/lib/auth-client"
 
@@ -12,7 +13,8 @@ export function SignOutButton({
   children = "Sign out",
   ...props
 }: SignOutButtonProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   return (
     <Button
@@ -21,7 +23,8 @@ export function SignOutButton({
         authClient.signOut({
           fetchOptions: {
             onSuccess: () => {
-              router.push("/login")
+              queryClient.clear()
+              navigate({ to: "/login" })
             },
           },
         })
