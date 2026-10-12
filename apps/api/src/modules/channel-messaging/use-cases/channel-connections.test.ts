@@ -73,6 +73,7 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     findForOrganization,
     updateChannelConnection: vi.fn(),
     disableChannelConnection: vi.fn(),
+    removeChannelConnection: vi.fn(),
   },
 }))
 const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }))
@@ -102,6 +103,7 @@ const storedConnection = {
   inboxId: "loja",
   updatedAt: new Date("2026-10-12T12:00:00.000Z"),
   session: null,
+  deletable: true,
 }
 
 const createInput = {
@@ -233,8 +235,8 @@ describe("channel connection use cases", () => {
       channelConnectionsRepository.updateChannelConnection
     ).mockResolvedValue("not_found")
     vi.mocked(
-      channelConnectionsRepository.disableChannelConnection
-    ).mockResolvedValue("not_found")
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "not_found" })
 
     await expect(
       updateChannelConnection({
@@ -254,10 +256,10 @@ describe("channel connection use cases", () => {
     expect(publish).not.toHaveBeenCalled()
   })
 
-  it("publishes when a connection is removed", async () => {
+  it("publishes when a connection with history is deactivated", async () => {
     vi.mocked(
-      channelConnectionsRepository.disableChannelConnection
-    ).mockResolvedValue("disabled")
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "disabled", provider: "twilio" })
 
     await expect(
       deleteChannelConnection({
@@ -274,13 +276,9 @@ describe("channel connection use cases", () => {
   })
 
   it("asks the gateway to log out a removed Baileys session", async () => {
-    findForOrganization.mockResolvedValue({
-      ...storedConnection,
-      provider: "baileys",
-    })
     vi.mocked(
-      channelConnectionsRepository.disableChannelConnection
-    ).mockResolvedValue("disabled")
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "deleted", provider: "baileys" })
 
     await deleteChannelConnection({
       organizationId,
@@ -294,19 +292,35 @@ describe("channel connection use cases", () => {
     })
   })
 
-  it("refuses to activate a Baileys number that must be paired again", async () => {
+  it("reopens pairing when a Baileys number must be paired again", async () => {
     vi.mocked(
       channelConnectionsRepository.updateChannelConnection
-    ).mockResolvedValue("pairing_required")
+    ).mockResolvedValue("pairing_started")
+    findForOrganization.mockResolvedValue({
+      ...storedConnection,
+      provider: "baileys",
+      status: "pending",
+    })
 
-    await expect(
-      updateChannelConnection({
-        organizationId,
-        channelConnectionId,
-        operatorUserId: "user-id",
-        status: "active",
-      })
-    ).resolves.toEqual({ ok: false, error: { type: "pairing_required" } })
-    expect(publish).not.toHaveBeenCalled()
+    const result = await updateChannelConnection({
+      organizationId,
+      channelConnectionId,
+      operatorUserId: "user-id",
+      status: "active",
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.value.status).toBe("pending")
+      expect(result.value.provider).toBe("baileys")
+    }
+    expect(enqueue).toHaveBeenCalledWith("wa-connect", {
+      organizationId,
+      channelConnectionId,
+    })
+    expect(publish).toHaveBeenCalledWith({
+      organizationId,
+      channelConnectionId,
+    })
   })
 })

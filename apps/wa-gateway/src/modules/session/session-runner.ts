@@ -151,7 +151,11 @@ export class BaileysSession {
       }
     }
     await this.deps.auth.clear()
-    await this.recordState("logged_out", null)
+    try {
+      await this.recordState("logged_out", null)
+    } catch (error) {
+      if (!isMissingConnection(error)) throw error
+    }
     this.finish("logged_out")
   }
 
@@ -376,4 +380,11 @@ export class BaileysSession {
     this.releaseQrWaiters(false)
     this.resolveClose?.(outcome)
   }
+}
+
+function isMissingConnection(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false
+  if ("code" in error && error.code === "23503") return true
+  if ("cause" in error) return isMissingConnection(error.cause)
+  return false
 }

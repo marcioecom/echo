@@ -150,8 +150,10 @@ export function registerChannelRoutes(app: FastifyInstance): void {
                 reply.code(409).send({
                   error: "channel_connection_missing_address",
                 }),
-              pairing_required: () =>
-                reply.code(409).send({ error: "pairing_required" }),
+              session_exists: () =>
+                reply.code(409).send({ error: "baileys_session_exists" }),
+              queue_unavailable: () =>
+                reply.code(503).send({ error: "queue_unavailable" }),
             }),
           ok: (channel) => reply.send({ channel }),
         })

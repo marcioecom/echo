@@ -17,6 +17,7 @@ export interface ChannelConnectionView {
     lastConnectedAt: string | null
     lastSeenAt: string | null
   } | null
+  deletable: boolean
   updatedAt: string
 }
 
@@ -43,6 +44,7 @@ export function toChannelConnectionView(
           lastSeenAt: connection.session.lastSeenAt?.toISOString() ?? null,
         }
       : null,
+    deletable: connection.deletable,
     updatedAt: connection.updatedAt.toISOString(),
   }
 }

@@ -15,8 +15,6 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import { toDataURL } from "qrcode"
-import { useEffect, useState } from "react"
 
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { t } from "@/lib/i18n"
@@ -24,6 +22,7 @@ import { t } from "@/lib/i18n"
 import { channelErrorMessage } from "../../hooks/api"
 import { useBaileysPairingForm } from "../../hooks/use-baileys-pairing-form"
 import { useChannelLive } from "../../hooks/use-channel-events"
+import { BaileysQrImage } from "./baileys-qr-image"
 
 export function BaileysPairingForm({
   organizationId,
@@ -183,28 +182,5 @@ export function BaileysPairingForm({
         )}
       </CardContent>
     </Card>
-  )
-}
-
-function BaileysQrImage({ alt, value }: { alt: string; value: string }) {
-  const [src, setSrc] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    toDataURL(value, { margin: 1, width: 240 }).then((url) => {
-      if (!cancelled) setSrc(url)
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [value])
-
-  if (!src) return null
-  return (
-    <img
-      alt={alt}
-      className="size-60 rounded-md border bg-white p-2"
-      src={src}
-    />
   )
 }

@@ -78,6 +78,7 @@ describe("createBaileysChannelConnection", () => {
       status: "pending",
       inboxId: null,
       updatedAt: new Date("2026-10-12T12:00:00.000Z"),
+      deletable: true,
       session: {
         state: "connecting",
         lastError: null,

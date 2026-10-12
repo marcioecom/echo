@@ -14,14 +14,15 @@ export async function deleteChannelConnection(input: {
   operatorUserId: string
 }): Promise<Result<void, DeleteChannelConnectionError>> {
   const result =
-    await channelConnectionsRepository.disableChannelConnection(input)
-  if (result !== "disabled") return err({ type: result })
+    await channelConnectionsRepository.removeChannelConnection(input)
+  if (
+    result.outcome === "not_found" ||
+    result.outcome === "organization_unavailable"
+  ) {
+    return err({ type: result.outcome })
+  }
 
-  const connection = await channelConnectionsRepository.findForOrganization(
-    input.organizationId,
-    input.channelConnectionId
-  )
-  if (connection?.provider === "baileys") {
+  if (result.provider === "baileys") {
     await enqueueBaileysLogout({
       organizationId: input.organizationId,
       channelConnectionId: input.channelConnectionId,

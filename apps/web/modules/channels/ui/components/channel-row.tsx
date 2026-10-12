@@ -21,8 +21,10 @@ import { appLocale, t, type MessageKey } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { channelErrorMessage, humanChannelError } from "../../hooks/api"
+import { useChannelActions } from "../../hooks/use-channel-actions"
 import { useUpdateChannelForm } from "../../hooks/use-update-channel-form"
 import type { ChannelConnection } from "../../types"
+import { BaileysPairingSession } from "./baileys-pairing-session"
 
 const providerKeys = {
   twilio: "channels.provider.twilio",
@@ -49,25 +51,36 @@ const sessionKeys = {
 export function ChannelRow({
   channel,
   organizationId,
-  pending,
-  onRemove,
-  onActivate,
+  pairing,
+  onPairingStarted,
+  onPairingDone,
+  muted = false,
 }: {
   channel: ChannelConnection
   organizationId: string
-  pending: boolean
-  onRemove: () => void
-  onActivate: () => void
+  pairing: boolean
+  onPairingStarted: (channelId: string) => void
+  onPairingDone: () => void
+  muted?: boolean
 }) {
   const { form, mutation, editingId, edit, cancel } =
     useUpdateChannelForm(organizationId)
+  const { removeMutation, activateMutation } = useChannelActions(
+    organizationId,
+    channel.id
+  )
   const [expanded, setExpanded] = useState(false)
-  const [confirming, setConfirming] = useState(false)
+  const [confirming, setConfirming] = useState<"deactivate" | "delete" | null>(
+    null
+  )
   const editing = editingId === channel.id
+  const pending = removeMutation.isPending || activateMutation.isPending
+  const actionError = removeMutation.error ?? activateMutation.error
   const label = channel.displayName?.trim() || channel.name
+  const phoneNumber = e164Address(channel.address)
 
   return (
-    <li className="space-y-3 px-3 py-3">
+    <li className={cn("space-y-3 px-3 py-3", muted && "opacity-80")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -102,23 +115,45 @@ export function ChannelRow({
           {channel.status === "disabled" ? (
             <Button
               disabled={pending}
-              onClick={onActivate}
+              onClick={() =>
+                activateMutation.mutate(undefined, {
+                  onSuccess: (result) => {
+                    if (
+                      result.channel.provider === "baileys" &&
+                      result.channel.status === "pending"
+                    ) {
+                      onPairingStarted(channel.id)
+                    }
+                  },
+                })
+              }
               size="sm"
               type="button"
             >
               {t("channels.activate")}
             </Button>
-          ) : (
+          ) : null}
+          {channel.deletable ? (
             <Button
               disabled={pending}
-              onClick={() => setConfirming(true)}
+              onClick={() => setConfirming("delete")}
               size="sm"
               type="button"
               variant="destructive"
             >
-              {t("channels.remove")}
+              {t("channels.delete")}
             </Button>
-          )}
+          ) : channel.status !== "disabled" ? (
+            <Button
+              disabled={pending}
+              onClick={() => setConfirming("deactivate")}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("channels.deactivate")}
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -174,18 +209,30 @@ export function ChannelRow({
         </Form>
       ) : null}
 
+      {actionError ? (
+        <p className="text-sm text-destructive" role="alert">
+          {channelErrorMessage(actionError)}
+        </p>
+      ) : null}
+
       {confirming ? (
-        <div className="space-y-2 rounded-md bg-muted/50 px-3 py-2">
-          <p className="text-sm font-medium">{t("channels.confirmRemove")}</p>
+        <div className="space-y-2 rounded-md bg-muted/50 px-3 py-2 text-foreground">
+          <p className="text-sm font-medium">
+            {confirming === "delete"
+              ? t("channels.confirmDelete")
+              : t("channels.confirmDeactivate")}
+          </p>
           <p className="text-xs text-muted-foreground">
-            {t("channels.confirmRemoveBody")}
+            {confirming === "delete"
+              ? t("channels.confirmDeleteBody")
+              : t("channels.confirmDeactivateBody")}
           </p>
           <div className="flex gap-2">
             <Button
               disabled={pending}
               onClick={() => {
-                onRemove()
-                setConfirming(false)
+                removeMutation.mutate()
+                setConfirming(null)
               }}
               size="sm"
               type="button"
@@ -194,7 +241,7 @@ export function ChannelRow({
               {t("channels.confirm")}
             </Button>
             <Button
-              onClick={() => setConfirming(false)}
+              onClick={() => setConfirming(null)}
               size="sm"
               type="button"
               variant="ghost"
@@ -203,6 +250,14 @@ export function ChannelRow({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {pairing ? (
+        <BaileysPairingSession
+          channelId={channel.id}
+          onDone={onPairingDone}
+          phoneNumber={phoneNumber}
+        />
       ) : null}
 
       {expanded ? <ChannelDetails channel={channel} /> : null}
@@ -296,6 +351,11 @@ function statusTone(channel: ChannelConnection) {
   }
   if (state === "connected" || channel.status === "active") return "positive"
   return "muted"
+}
+
+function e164Address(value: string | null) {
+  if (!value || !/^\+[1-9]\d{1,14}$/.test(value)) return null
+  return value
 }
 
 function formatWhen(value: string) {

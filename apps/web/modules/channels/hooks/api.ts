@@ -31,6 +31,7 @@ const errorMessages = {
   channel_routing_conflict: "channels.errors.routingConflict",
   invalid_request: "channels.errors.invalid",
   pairing_required: "channels.errors.pairingRequired",
+  queue_unavailable: "channels.errors.queueUnavailable",
 } as const satisfies Record<string, MessageKey>
 
 const verificationMessages = {

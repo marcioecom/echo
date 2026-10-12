@@ -5,7 +5,9 @@ import {
   channelConnectionProviderBindings,
   channelConnections,
   channelSessionStates,
+  messages,
   organizations,
+  supportConversations,
 } from "@workspace/db/schema"
 import {
   createId,
@@ -56,6 +58,7 @@ export interface ListedChannelConnection {
     lastConnectedAt: Date | null
     lastSeenAt: Date | null
   } | null
+  deletable: boolean
 }
 
 export interface StoredTwilioBinding {
@@ -515,7 +518,8 @@ export class ChannelConnectionsRepository {
     | "updated"
     | "not_found"
     | "missing_address"
-    | "pairing_required"
+    | "pairing_started"
+    | "session_exists"
     | "organization_unavailable"
   > {
     if (!(await this.isOrganizationActive(input.organizationId))) {
@@ -538,9 +542,6 @@ export class ChannelConnectionsRepository {
         .limit(1)
         .for("update")
       if (!connection) return "not_found"
-      if (input.status === "active" && !connection.address) {
-        return "missing_address"
-      }
       if (
         input.status === "active" &&
         (await this.baileysNeedsPairing(
@@ -549,7 +550,22 @@ export class ChannelConnectionsRepository {
           input.channelConnectionId
         ))
       ) {
-        return "pairing_required"
+        const blocked = await this.otherOpenBaileysSession(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId
+        )
+        if (blocked) return "session_exists"
+        await this.reopenBaileysPairing(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId,
+          input.operatorUserId
+        )
+        return "pairing_started"
+      }
+      if (input.status === "active" && !connection.address) {
+        return "missing_address"
       }
 
       const changes: {
@@ -605,6 +621,101 @@ export class ChannelConnectionsRepository {
     })
   }
 
+  async removeChannelConnection(input: {
+    organizationId: string
+    channelConnectionId: string
+    operatorUserId: string
+  }): Promise<
+    | { outcome: "not_found" }
+    | { outcome: "organization_unavailable" }
+    | { outcome: "deleted" | "disabled"; provider: ChannelProvider | null }
+  > {
+    if (!(await this.isOrganizationActive(input.organizationId))) {
+      return { outcome: "organization_unavailable" }
+    }
+
+    try {
+      return await this.db.transaction(async (transaction) => {
+        const [connection] = await transaction
+          .select({
+            id: channelConnections.id,
+            status: channelConnections.status,
+          })
+          .from(channelConnections)
+          .where(
+            and(
+              eq(channelConnections.organizationId, input.organizationId),
+              eq(channelConnections.id, input.channelConnectionId)
+            )
+          )
+          .limit(1)
+          .for("update")
+        if (!connection) return { outcome: "not_found" }
+
+        const [binding] = await transaction
+          .select({
+            provider: channelConnectionProviderBindings.provider,
+          })
+          .from(channelConnectionProviderBindings)
+          .where(
+            and(
+              eq(
+                channelConnectionProviderBindings.organizationId,
+                input.organizationId
+              ),
+              eq(
+                channelConnectionProviderBindings.channelConnectionId,
+                input.channelConnectionId
+              )
+            )
+          )
+          .limit(1)
+        const provider = binding?.provider ?? null
+        const history = await this.channelHasHistory(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId
+        )
+        if (history) {
+          if (connection.status !== "disabled") {
+            await this.markChannelDisabled(
+              transaction,
+              input.organizationId,
+              input.channelConnectionId,
+              input.operatorUserId
+            )
+          }
+          return { outcome: "disabled", provider }
+        }
+
+        await this.deleteChannelRecords(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId
+        )
+        await transaction.insert(auditEvents).values({
+          organizationId: input.organizationId,
+          eventType: "channel_connection.deleted",
+          actorType: "operator",
+          operatorUserId: input.operatorUserId,
+          subjectType: "channel_connection",
+          subjectId: input.channelConnectionId,
+          data: { provider },
+        })
+        return { outcome: "deleted", provider }
+      })
+    } catch (error) {
+      if (postgresErrorCode(error) !== "23503") throw error
+      const disabled = await this.disableChannelConnection(input)
+      if (disabled !== "disabled") return { outcome: disabled }
+      const connection = await this.findForOrganization(
+        input.organizationId,
+        input.channelConnectionId
+      )
+      return { outcome: "disabled", provider: connection?.provider ?? null }
+    }
+  }
+
   async disableChannelConnection(input: {
     organizationId: string
     channelConnectionId: string
@@ -630,31 +741,14 @@ export class ChannelConnectionsRepository {
         .limit(1)
         .for("update")
       if (!connection) return "not_found"
-      if (connection.status === "disabled") return "disabled"
-
-      await transaction
-        .update(channelConnections)
-        .set({ status: "disabled" })
-        .where(
-          and(
-            eq(channelConnections.organizationId, input.organizationId),
-            eq(channelConnections.id, input.channelConnectionId)
-          )
+      if (connection.status !== "disabled") {
+        await this.markChannelDisabled(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId,
+          input.operatorUserId
         )
-      await this.revokeBaileysSession(
-        transaction,
-        input.organizationId,
-        input.channelConnectionId
-      )
-      await transaction.insert(auditEvents).values({
-        organizationId: input.organizationId,
-        eventType: "channel_connection.removed",
-        actorType: "operator",
-        operatorUserId: input.operatorUserId,
-        subjectType: "channel_connection",
-        subjectId: input.channelConnectionId,
-        data: { status: "disabled" },
-      })
+      }
       return "disabled"
     })
   }
@@ -671,6 +765,7 @@ export class ChannelConnectionsRepository {
         status: channelConnections.status,
         inboxId: channelConnections.inboxId,
         updatedAt: channelConnections.updatedAt,
+        deletable: channelDeletableSql().as("deletable"),
         sessionState: channelSessionStates.state,
         lastError: channelSessionStates.lastError,
         lastConnectedAt: channelSessionStates.lastConnectedAt,
@@ -815,6 +910,180 @@ export class ChannelConnectionsRepository {
     return !session || session.state === "logged_out"
   }
 
+  private async otherOpenBaileysSession(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<boolean> {
+    const [other] = await transaction
+      .select({ id: channelConnections.id })
+      .from(channelConnections)
+      .innerJoin(
+        channelConnectionProviderBindings,
+        and(
+          eq(
+            channelConnectionProviderBindings.organizationId,
+            channelConnections.organizationId
+          ),
+          eq(
+            channelConnectionProviderBindings.channelConnectionId,
+            channelConnections.id
+          )
+        )
+      )
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnectionProviderBindings.provider, "baileys"),
+          ne(channelConnections.status, "disabled"),
+          ne(channelConnections.id, channelConnectionId)
+        )
+      )
+      .limit(1)
+    return Boolean(other)
+  }
+
+  private async reopenBaileysPairing(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string,
+    operatorUserId: string
+  ): Promise<void> {
+    await transaction
+      .update(channelConnections)
+      .set({ status: "pending" })
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnections.id, channelConnectionId)
+        )
+      )
+    await transaction
+      .insert(channelSessionStates)
+      .values({
+        organizationId,
+        channelConnectionId,
+        state: "connecting",
+        lastError: null,
+      })
+      .onConflictDoUpdate({
+        target: [
+          channelSessionStates.organizationId,
+          channelSessionStates.channelConnectionId,
+        ],
+        set: { state: "connecting", lastError: null },
+      })
+    await transaction.insert(auditEvents).values({
+      organizationId,
+      eventType: "channel_connection.pairing_requested",
+      actorType: "operator",
+      operatorUserId,
+      subjectType: "channel_connection",
+      subjectId: channelConnectionId,
+      data: { provider: "baileys", reason: "reactivate" },
+    })
+  }
+
+  private async channelHasHistory(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<boolean> {
+    const [conversation] = await transaction
+      .select({ id: supportConversations.id })
+      .from(supportConversations)
+      .where(
+        and(
+          eq(supportConversations.organizationId, organizationId),
+          eq(supportConversations.channelConnectionId, channelConnectionId)
+        )
+      )
+      .limit(1)
+    if (conversation) return true
+
+    const [message] = await transaction
+      .select({ id: messages.id })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.organizationId, organizationId),
+          eq(messages.channelConnectionId, channelConnectionId)
+        )
+      )
+      .limit(1)
+    return Boolean(message)
+  }
+
+  private async markChannelDisabled(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string,
+    operatorUserId: string
+  ): Promise<void> {
+    await transaction
+      .update(channelConnections)
+      .set({ status: "disabled" })
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnections.id, channelConnectionId)
+        )
+      )
+    await this.revokeBaileysSession(
+      transaction,
+      organizationId,
+      channelConnectionId
+    )
+    await transaction.insert(auditEvents).values({
+      organizationId,
+      eventType: "channel_connection.removed",
+      actorType: "operator",
+      operatorUserId,
+      subjectType: "channel_connection",
+      subjectId: channelConnectionId,
+      data: { status: "disabled" },
+    })
+  }
+
+  private async deleteChannelRecords(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<void> {
+    const scope = and(
+      eq(baileysAuthKeys.organizationId, organizationId),
+      eq(baileysAuthKeys.channelConnectionId, channelConnectionId)
+    )
+    await transaction.delete(baileysAuthKeys).where(scope)
+    await transaction
+      .delete(channelSessionStates)
+      .where(
+        and(
+          eq(channelSessionStates.organizationId, organizationId),
+          eq(channelSessionStates.channelConnectionId, channelConnectionId)
+        )
+      )
+    await transaction
+      .delete(channelConnectionProviderBindings)
+      .where(
+        and(
+          eq(channelConnectionProviderBindings.organizationId, organizationId),
+          eq(
+            channelConnectionProviderBindings.channelConnectionId,
+            channelConnectionId
+          )
+        )
+      )
+    await transaction
+      .delete(channelConnections)
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnections.id, channelConnectionId)
+        )
+      )
+  }
+
   private async revokeBaileysSession(
     transaction: DbTransaction,
     organizationId: string,
@@ -852,6 +1121,7 @@ function toListedChannelConnection(row: {
   status: ChannelConnectionStatus
   inboxId: string | null
   updatedAt: Date
+  deletable: boolean
   sessionState: ChannelSessionState | null
   lastError: string | null
   lastConnectedAt: Date | null
@@ -867,6 +1137,7 @@ function toListedChannelConnection(row: {
     status: row.status,
     inboxId: row.inboxId,
     updatedAt: row.updatedAt,
+    deletable: row.deletable,
     session:
       row.sessionState === null
         ? null
@@ -877,6 +1148,18 @@ function toListedChannelConnection(row: {
             lastSeenAt: row.lastSeenAt,
           },
   }
+}
+
+function channelDeletableSql() {
+  return sql<boolean>`not exists (
+    select 1 from ${supportConversations}
+    where ${supportConversations.organizationId} = ${channelConnections.organizationId}
+      and ${supportConversations.channelConnectionId} = ${channelConnections.id}
+  ) and not exists (
+    select 1 from ${messages}
+    where ${messages.organizationId} = ${channelConnections.organizationId}
+      and ${messages.channelConnectionId} = ${channelConnections.id}
+  )`
 }
 
 type DbTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0]

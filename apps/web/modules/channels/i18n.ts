@@ -58,11 +58,16 @@ const en = {
   edit: "Edit",
   save: "Save",
   saving: "Saving",
-  remove: "Remove",
-  confirmRemove: "Remove this number?",
-  confirmRemoveBody:
+  archivedTitle: "Deactivated",
+  deactivate: "Deactivate",
+  confirmDeactivate: "Turn this number off?",
+  confirmDeactivateBody:
     "Past conversations stay. Echo stops sending and receiving on it.",
-  confirm: "Confirm removal",
+  delete: "Delete",
+  confirmDelete: "Delete this number?",
+  confirmDeleteBody:
+    "This number never exchanged messages. Echo removes it for good.",
+  confirm: "Confirm",
   activate: "Activate",
   details: "Details",
   hideDetails: "Hide details",
@@ -112,6 +117,7 @@ const en = {
     routingConflict: "This number is already in use by another organization.",
     sessionExists: "This organization already has a QR session open.",
     pairingRequired: "Pair this number again before turning it on.",
+    queueUnavailable: "Echo could not reach the connection service. Try again.",
     invalid: "Review the fields and try again.",
     generic: "The channel could not be saved.",
   },
@@ -179,11 +185,16 @@ const ptBR = {
   edit: "Editar",
   save: "Salvar",
   saving: "Salvando",
-  remove: "Remover",
-  confirmRemove: "Remover este número?",
-  confirmRemoveBody:
+  archivedTitle: "Desativados",
+  deactivate: "Desativar",
+  confirmDeactivate: "Desativar este número?",
+  confirmDeactivateBody:
     "As conversas antigas ficam. A Echo para de enviar e receber por ele.",
-  confirm: "Confirmar remoção",
+  delete: "Excluir",
+  confirmDelete: "Excluir este número?",
+  confirmDeleteBody:
+    "Este número nunca trocou mensagens. A Echo apaga o canal de vez.",
+  confirm: "Confirmar",
   activate: "Ativar",
   details: "Detalhes",
   hideDetails: "Ocultar detalhes",
@@ -234,6 +245,8 @@ const ptBR = {
     routingConflict: "Esse número já está em uso em outra organização.",
     sessionExists: "Esta organização já tem uma sessão de QR aberta.",
     pairingRequired: "Pareie este número de novo antes de ativá-lo.",
+    queueUnavailable:
+      "Não foi possível falar com o serviço de conexão. Tente de novo.",
     invalid: "Revise os campos e tente de novo.",
     generic: "Não foi possível salvar o canal.",
   },

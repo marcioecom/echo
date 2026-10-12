@@ -2,28 +2,28 @@
 
 import { cn } from "@workspace/ui/lib/utils"
 import { Button } from "@workspace/ui/components/button"
+import { useState } from "react"
 
 import { t } from "@/lib/i18n"
 
-import { channelErrorMessage } from "../../hooks/api"
 import { useChannelLive } from "../../hooks/use-channel-events"
 import { useChannels } from "../../hooks/use-channels"
+import type { ChannelConnection } from "../../types"
 import { ChannelRow } from "./channel-row"
 
 export function ChannelList({ organizationId }: { organizationId: string }) {
-  const { query, removeMutation, activateMutation } =
-    useChannels(organizationId)
+  const query = useChannels(organizationId)
   const live = useChannelLive()
-  const items = query.data?.items
-  const pendingId = removeMutation.isPending
-    ? removeMutation.variables
-    : activateMutation.isPending
-      ? activateMutation.variables
-      : null
-  const actionError = removeMutation.error ?? activateMutation.error
+  const [pairingId, setPairingId] = useState<string | null>(null)
+  const items = query.data?.items ?? []
+  const pairingChannel = items.find((channel) => channel.id === pairingId)
+  const visiblePairingId =
+    pairingChannel?.status === "pending" ? pairingChannel.id : null
+  const active = items.filter((channel) => channel.status !== "disabled")
+  const archived = items.filter((channel) => channel.status === "disabled")
 
   return (
-    <section aria-label={t("channels.title")} className="space-y-3">
+    <section aria-label={t("channels.title")} className="space-y-6">
       <div className="flex justify-end">
         <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
           <span
@@ -36,11 +36,6 @@ export function ChannelList({ organizationId }: { organizationId: string }) {
           {connectionLabel(query.isFetching, live.connected)}
         </span>
       </div>
-      {actionError ? (
-        <p className="text-sm text-destructive" role="alert">
-          {channelErrorMessage(actionError)}
-        </p>
-      ) : null}
 
       {query.isLoading ? (
         <p className="text-sm text-muted-foreground">{t("channels.loading")}</p>
@@ -53,28 +48,80 @@ export function ChannelList({ organizationId }: { organizationId: string }) {
             {t("channels.retry")}
           </Button>
         </div>
-      ) : items && items.length > 0 ? (
-        <ul aria-live="polite" className="divide-y rounded-md border">
-          {items.map((channel) => (
-            <ChannelRow
-              channel={channel}
-              key={channel.id}
-              onActivate={() => activateMutation.mutate(channel.id)}
-              onRemove={() => removeMutation.mutate(channel.id)}
-              organizationId={organizationId}
-              pending={pendingId === channel.id}
-            />
-          ))}
-        </ul>
       ) : (
-        <div className="rounded-md border border-dashed px-4 py-8 text-center">
-          <p className="text-sm font-medium">{t("channels.emptyTitle")}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("channels.emptyBody")}
-          </p>
-        </div>
+        <>
+          {active.length > 0 ? (
+            <ChannelRows
+              channels={active}
+              onPairingDone={() => setPairingId(null)}
+              onPairingStarted={setPairingId}
+              organizationId={organizationId}
+              pairingId={visiblePairingId}
+            />
+          ) : archived.length === 0 ? (
+            <div className="rounded-md border border-dashed px-4 py-8 text-center">
+              <p className="text-sm font-medium">{t("channels.emptyTitle")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("channels.emptyBody")}
+              </p>
+            </div>
+          ) : null}
+          {archived.length > 0 ? (
+            <div className="space-y-2">
+              <h2 className="text-sm font-medium text-muted-foreground">
+                {t("channels.archivedTitle")}
+              </h2>
+              <ChannelRows
+                channels={archived}
+                muted
+                onPairingDone={() => setPairingId(null)}
+                onPairingStarted={setPairingId}
+                organizationId={organizationId}
+                pairingId={visiblePairingId}
+              />
+            </div>
+          ) : null}
+        </>
       )}
     </section>
+  )
+}
+
+function ChannelRows({
+  channels,
+  organizationId,
+  pairingId,
+  onPairingStarted,
+  onPairingDone,
+  muted = false,
+}: {
+  channels: ChannelConnection[]
+  organizationId: string
+  pairingId: string | null
+  onPairingStarted: (channelId: string) => void
+  onPairingDone: () => void
+  muted?: boolean
+}) {
+  return (
+    <ul
+      aria-live="polite"
+      className={cn(
+        "divide-y rounded-md border",
+        muted && "bg-muted/40 text-muted-foreground"
+      )}
+    >
+      {channels.map((channel) => (
+        <ChannelRow
+          channel={channel}
+          key={channel.id}
+          muted={muted}
+          onPairingDone={onPairingDone}
+          onPairingStarted={onPairingStarted}
+          organizationId={organizationId}
+          pairing={pairingId === channel.id}
+        />
+      ))}
+    </ul>
   )
 }
 

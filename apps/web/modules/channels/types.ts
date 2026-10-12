@@ -16,6 +16,7 @@ export interface ChannelConnection {
   status: ChannelConnectionStatus
   inboxId: string | null
   webhookUrl: string | null
+  deletable: boolean
   session: {
     state: ChannelSessionState
     lastError: string | null
