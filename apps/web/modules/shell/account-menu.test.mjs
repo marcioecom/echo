@@ -33,6 +33,8 @@ describe("dashboard account menu", () => {
     assert.match(menu, /t\("shell\.languageEnglish"\)/)
     assert.match(menu, /t\("shell\.languagePortuguese"\)/)
     assert.match(menu, /DropdownMenuRadioItem/)
+    assert.match(menu, /MoreHorizontalIcon/)
+    assert.match(menu, /aria-hidden/)
     assert.match(shell, /language: "Idioma"/)
     assert.match(shell, /languageEnglish: "English"/)
     assert.match(shell, /languagePortuguese: "Português"/)

@@ -2,6 +2,7 @@
 
 import {
   Logout01Icon,
+  MoreHorizontalIcon,
   Settings01Icon,
   TranslateIcon,
 } from "@hugeicons/core-free-icons"
@@ -78,7 +79,7 @@ export function AccountMenu({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors duration-150 outline-none",
+            "group flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors duration-150 outline-none",
             "hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
             "aria-expanded:bg-sidebar-accent"
           )}
@@ -97,6 +98,12 @@ export function AccountMenu({
               {memberRoleLabel(userRole)}
             </span>
           </span>
+          <HugeiconsIcon
+            icon={MoreHorizontalIcon}
+            strokeWidth={2}
+            aria-hidden
+            className="size-4 shrink-0 text-muted-foreground/50 transition-colors duration-150 group-hover:text-muted-foreground group-focus-visible:text-muted-foreground group-aria-expanded:text-muted-foreground"
+          />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
