@@ -27,6 +27,7 @@ export function createApp() {
   app.register(cors, {
     origin: env.WEB_APP_URL,
     credentials: true,
+    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE"],
   })
 
   app.register(async (routes) => {
