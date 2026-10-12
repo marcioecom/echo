@@ -1,3 +1,4 @@
+export * from "./baileys-adapter"
 export * from "./channel-adapter"
 export * from "./channel-adapters"
 export * from "./channel-credentials-cipher"

@@ -68,12 +68,19 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         return matchResult(result, {
           err: (error) =>
             matchTag(error, {
-              resolved: () => reply.code(409).send({ error: "support_conversation_resolved" }),
-              not_found: () => reply.code(404).send({ error: "support_conversation_not_found" }),
-              queue_unavailable: (value) => reply.code(503).send({
-                error: "outbound_message_dispatch_unavailable",
-                messageId: value.messageId,
-              }),
+              resolved: () =>
+                reply
+                  .code(409)
+                  .send({ error: "support_conversation_resolved" }),
+              not_found: () =>
+                reply
+                  .code(404)
+                  .send({ error: "support_conversation_not_found" }),
+              queue_unavailable: (value) =>
+                reply.code(503).send({
+                  error: "outbound_message_dispatch_unavailable",
+                  messageId: value.messageId,
+                }),
             }),
           ok: (value) => reply.code(201).send({ messageId: value.messageId }),
         })
@@ -106,10 +113,7 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
     "/v1/support-conversations/events",
     {
       websocket: true,
-      preValidation: [
-        requireWebAppOrigin,
-        ...preHandler,
-      ],
+      preValidation: [requireWebAppOrigin, ...preHandler],
     },
     (socket, request) => {
       matchResult(getOrganizationAuth(request), {
@@ -117,7 +121,8 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         ok: (auth) => {
           const unsubscribe = supportInboxEventBroker.subscribe(
             auth.organization.id,
-            socket
+            socket,
+            auth.member.role
           )
           socket.once("close", unsubscribe)
           socket.once("error", unsubscribe)

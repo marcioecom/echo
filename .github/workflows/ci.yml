@@ -15,6 +15,7 @@ env:
   SHA: ${{ github.sha }}
   ECHO_API_IMAGE: ghcr.io/${{ github.repository_owner }}/echo-api
   ECHO_WORKER_IMAGE: ghcr.io/${{ github.repository_owner }}/echo-worker
+  ECHO_WA_GATEWAY_IMAGE: ghcr.io/${{ github.repository_owner }}/echo-wa-gateway
 
 jobs:
   verify:
@@ -52,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, worker]
+        app: [api, worker, wa-gateway]
     steps:
       - uses: actions/checkout@v4
 
@@ -98,7 +99,7 @@ jobs:
           chmod 600 ~/.kube/config
 
       - name: Apply manifests
-        run: kubectl apply -f k8s/api-deployment.yaml -f k8s/api-service.yaml -f k8s/worker-deployment.yaml -f k8s/worker-service.yaml
+        run: kubectl apply -f k8s/api-deployment.yaml -f k8s/api-service.yaml -f k8s/worker-deployment.yaml -f k8s/worker-service.yaml -f k8s/wa-gateway-deployment.yaml
 
       - name: Run database migrations
         run: |
@@ -111,5 +112,7 @@ jobs:
         run: |
           kubectl -n echo set image deployment/echo-api api="${ECHO_API_IMAGE}:${SHA}"
           kubectl -n echo set image deployment/echo-worker worker="${ECHO_WORKER_IMAGE}:${SHA}"
+          kubectl -n echo set image deployment/echo-wa-gateway wa-gateway="${ECHO_WA_GATEWAY_IMAGE}:${SHA}"
           kubectl -n echo rollout status deployment/echo-api --timeout=300s
           kubectl -n echo rollout status deployment/echo-worker --timeout=300s
+          kubectl -n echo rollout status deployment/echo-wa-gateway --timeout=300s

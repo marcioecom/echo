@@ -33,6 +33,7 @@ export interface ConnectionContext {
   fromAddress: string
   externalAccountId: string | null
   authToken: string
+  outboundMessageId?: string
 }
 
 export interface ConnectionHealth {

@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const {
   authState,
+  createBaileysChannelConnection,
   createTwilioChannelConnection,
   deleteChannelConnection,
   guards,
   listChannelConnections,
   organizationId,
+  requestBaileysPairingCode,
   updateChannelConnection,
 } = vi.hoisted(() => {
   const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
@@ -21,9 +23,11 @@ const {
   return {
     authState,
     organizationId,
+    createBaileysChannelConnection: vi.fn(),
     createTwilioChannelConnection: vi.fn(),
     deleteChannelConnection: vi.fn(),
     listChannelConnections: vi.fn(),
+    requestBaileysPairingCode: vi.fn(),
     updateChannelConnection: vi.fn(),
     guards: {
       requireUser: async (
@@ -95,8 +99,14 @@ vi.mock("../../../lib/jobs-client", () => ({
 vi.mock("../../../lib/redis", () => ({
   redisConnection: { publish: async () => 0, quit: async () => undefined },
 }))
+vi.mock("../use-cases/create-baileys-channel-connection", () => ({
+  createBaileysChannelConnection,
+}))
 vi.mock("../use-cases/create-twilio-channel-connection", () => ({
   createTwilioChannelConnection,
+}))
+vi.mock("../use-cases/request-baileys-pairing-code", () => ({
+  requestBaileysPairingCode,
 }))
 vi.mock("../use-cases/delete-channel-connection", () => ({
   deleteChannelConnection,
@@ -148,6 +158,16 @@ describe("channel routes", () => {
       ok: true,
       value: channel,
     })
+    createBaileysChannelConnection.mockResolvedValue({
+      ok: true,
+      value: {
+        ...channel,
+        provider: "baileys",
+        webhookUrl: null,
+        address: null,
+      },
+    })
+    requestBaileysPairingCode.mockResolvedValue({ ok: true, value: undefined })
   })
 
   it("requires a signed-in admin", async () => {
@@ -268,6 +288,44 @@ describe("channel routes", () => {
       organizationId,
       channelConnectionId,
       operatorUserId: "user-id",
+    })
+    await app.close()
+  })
+
+  it("starts a Baileys session and accepts a pairing code", async () => {
+    const app = await createTestApp()
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/channels",
+      payload: { provider: "baileys", displayName: "QR", inboxId: "loja" },
+    })
+    expect(created.statusCode).toBe(201)
+    expect(createBaileysChannelConnection).toHaveBeenCalledWith({
+      organizationId,
+      operatorUserId: "user-id",
+      displayName: "QR",
+      inboxId: "loja",
+    })
+
+    authState.role = "operator"
+    const forbidden = await app.inject({
+      method: "POST",
+      url: `/v1/channels/${channelConnectionId}/pairing-code`,
+      payload: { phoneNumber: "+5511999999999" },
+    })
+    expect(forbidden.statusCode).toBe(403)
+
+    authState.role = "owner"
+    const pairing = await app.inject({
+      method: "POST",
+      url: `/v1/channels/${channelConnectionId}/pairing-code`,
+      payload: { phoneNumber: "+5511999999999" },
+    })
+    expect(pairing.statusCode).toBe(202)
+    expect(requestBaileysPairingCode).toHaveBeenCalledWith({
+      organizationId,
+      channelConnectionId,
+      phoneNumber: "+5511999999999",
     })
     await app.close()
   })

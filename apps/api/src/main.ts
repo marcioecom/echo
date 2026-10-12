@@ -4,6 +4,7 @@ import { env } from "./config/env"
 import { database } from "./lib/db"
 import { jobs } from "./lib/jobs-client"
 import { redisConnection } from "./lib/redis"
+import { startWaIngressWorker } from "./modules/channel-messaging/workers/wa-ingress"
 import { startInboxEventBridge } from "./modules/support-inbox/events/inbox-event-bridge"
 
 const logger = createLoggerWithContext("api:main")
@@ -11,6 +12,7 @@ const logger = createLoggerWithContext("api:main")
 async function main(): Promise<void> {
   const app = createApp()
   const inboxEventBridge = await startInboxEventBridge()
+  const waIngress = startWaIngressWorker()
 
   async function shutdown(signal?: NodeJS.Signals): Promise<void> {
     if (signal) {
@@ -19,6 +21,7 @@ async function main(): Promise<void> {
 
     const steps: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["app.close", () => app.close()],
+      ["waIngress.close", () => waIngress.close()],
       ["jobs.close", () => jobs.close()],
       ["inboxEventBridge.quit", () => inboxEventBridge.quit()],
       ["redis.quit", () => redisConnection.quit()],

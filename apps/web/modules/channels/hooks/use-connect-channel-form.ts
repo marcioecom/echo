@@ -2,54 +2,44 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useMemo } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import type { ChannelsCopy } from "../i18n"
 import { createTwilioChannel } from "./api"
 import { channelQueryKeys } from "./use-channels"
 
-export type ConnectChannelValues = {
-  displayName: string
-  accountSid: string
-  authToken: string
-  address: string
-  inboxId: string
-}
+const connectChannelSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "channels.validation.displayName")
+    .max(120),
+  accountSid: z
+    .string()
+    .trim()
+    .regex(/^AC[a-fA-F0-9]{32}$/, "channels.validation.accountSid"),
+  authToken: z.string().trim().min(1, "channels.validation.authToken"),
+  address: z
+    .string()
+    .trim()
+    .superRefine((value, context) => {
+      const normalized = value.replace(/[\s()-]/g, "")
+      if (!/^\+[1-9]\d{1,14}$/.test(normalized)) {
+        context.addIssue({
+          code: "custom",
+          message: "channels.validation.address",
+        })
+      }
+    }),
+  inboxId: z.string().trim().max(64),
+})
 
-function connectChannelSchema(copy: ChannelsCopy) {
-  return z.object({
-    displayName: z.string().trim().min(1, copy.validation.displayName).max(120),
-    accountSid: z
-      .string()
-      .trim()
-      .regex(/^AC[a-fA-F0-9]{32}$/, copy.validation.accountSid),
-    authToken: z.string().trim().min(1, copy.validation.authToken),
-    address: z
-      .string()
-      .trim()
-      .superRefine((value, context) => {
-        const normalized = value.replace(/[\s()-]/g, "")
-        if (!/^\+[1-9]\d{1,14}$/.test(normalized)) {
-          context.addIssue({
-            code: "custom",
-            message: copy.validation.address,
-          })
-        }
-      }),
-    inboxId: z.string().trim().max(64),
-  })
-}
+export type ConnectChannelValues = z.infer<typeof connectChannelSchema>
 
-export function useConnectChannelForm(
-  organizationId: string,
-  copy: ChannelsCopy
-) {
+export function useConnectChannelForm(organizationId: string) {
   const queryClient = useQueryClient()
-  const schema = useMemo(() => connectChannelSchema(copy), [copy])
   const form = useForm<ConnectChannelValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(connectChannelSchema),
     defaultValues: {
       displayName: "",
       accountSid: "",
@@ -74,10 +64,5 @@ export function useConnectChannelForm(
       }),
   })
 
-  function reset() {
-    form.reset()
-    mutation.reset()
-  }
-
-  return { form, mutation, reset }
+  return { form, mutation }
 }

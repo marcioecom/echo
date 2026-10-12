@@ -1,0 +1,39 @@
+{
+  "name": "@workspace/wa-gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch --conditions=development --env-file=.env src/main.ts",
+    "lint": "eslint . --max-warnings 0",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "7.0.0-rc14",
+    "@workspace/config": "workspace:*",
+    "@workspace/db": "workspace:*",
+    "@workspace/domain": "workspace:*",
+    "@workspace/jobs": "workspace:*",
+    "@workspace/logger": "workspace:*",
+    "@workspace/messaging": "workspace:*",
+    "bullmq": "^5.80.9",
+    "drizzle-orm": "^0.45.2",
+    "fastify": "^5.12.5",
+    "ioredis": "^5.11.1",
+    "pino": "^9.14.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^9.39.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -9,8 +9,11 @@ const isPretty =
 const baseLogger = pino({
   level: process.env.LOG_LEVEL || "info",
   serializers: {
-    req: pino.stdSerializers.req,
-    res: pino.stdSerializers.res,
+    req: (req: { method: string; url: string }) => ({
+      method: req.method,
+      url: req.url.split("?", 1)[0],
+    }),
+    res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }),
     err: pino.stdSerializers.err,
   },
   // Use pretty printing in development, structured JSON in production
@@ -23,7 +26,7 @@ const baseLogger = pino({
         ignore: "pid,hostname,context",
         messageFormat: "{if context}[{context}] {end}{msg}",
         hideObject: false,
-        singleLine: false,
+        singleLine: true,
         useLevelLabels: true,
         levelFirst: true,
       },

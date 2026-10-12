@@ -7,144 +7,41 @@ import {
   CardHeader,
   CardTitle,
 } from "@workspace/ui/components/card"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@workspace/ui/components/form"
-import { Input } from "@workspace/ui/components/input"
 import { QrCodeIcon, WhatsappIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import type { UseMutationResult } from "@tanstack/react-query"
 import { useState } from "react"
-import type { UseFormReturn } from "react-hook-form"
 
-import { channelErrorMessage } from "../../hooks/api"
-import type { ConnectChannelValues } from "../../hooks/use-connect-channel-form"
-import type { ChannelsCopy } from "../../i18n"
-import type { ChannelConnection } from "../../types"
+import { t } from "@/lib/i18n"
+
+import { BaileysPairingForm } from "./baileys-pairing-form"
+import { TwilioConnectForm } from "./twilio-connect-form"
 
 export function ConnectChannelWizard({
-  copy,
-  form,
-  mutation,
-  onCancel,
-  onDone,
+  organizationId,
+  onClose,
 }: {
-  copy: ChannelsCopy
-  form: UseFormReturn<ConnectChannelValues>
-  mutation: UseMutationResult<
-    { channel: ChannelConnection },
-    Error,
-    ConnectChannelValues
-  >
-  onCancel: () => void
-  onDone: () => void
+  organizationId: string
+  onClose: () => void
 }) {
-  const [step, setStep] = useState<"choose" | "twilio">("choose")
-  const [copied, setCopied] = useState(false)
-  const webhookUrl = mutation.data?.channel.webhookUrl
+  const [step, setStep] = useState<"choose" | "twilio" | "baileys">("choose")
 
-  if (mutation.isSuccess && webhookUrl) {
+  if (step === "twilio") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            {copy.successTitle}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">{copy.successBody}</p>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium">{copy.webhookLabel}</p>
-            <p className="rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs break-all">
-              {webhookUrl}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => {
-                void navigator.clipboard.writeText(webhookUrl).then(() => {
-                  setCopied(true)
-                  window.setTimeout(() => setCopied(false), 2_000)
-                })
-              }}
-              type="button"
-              variant="outline"
-            >
-              {copied ? copy.copied : copy.copyWebhook}
-            </Button>
-            <Button onClick={onDone} type="button">
-              {copy.done}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <TwilioConnectForm
+        onBack={() => setStep("choose")}
+        onDone={onClose}
+        organizationId={organizationId}
+      />
     )
   }
 
-  if (step === "choose") {
+  if (step === "baileys") {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            {copy.chooseTitle}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <button
-            className="flex flex-col items-start gap-3 rounded-lg border border-primary/40 bg-background p-4 text-left transition-colors hover:bg-accent"
-            onClick={() => setStep("twilio")}
-            type="button"
-          >
-            <span className="flex w-full items-center justify-between gap-2">
-              <HugeiconsIcon icon={WhatsappIcon} size={18} strokeWidth={1.8} />
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                {copy.recommended}
-              </span>
-            </span>
-            <span className="space-y-1">
-              <span className="block text-sm font-medium">
-                {copy.officialTitle}
-              </span>
-              <span className="block text-xs text-pretty text-muted-foreground">
-                {copy.officialBody}
-              </span>
-            </span>
-          </button>
-          <button
-            className="flex flex-col items-start gap-3 rounded-lg border bg-muted/30 p-4 text-left opacity-70"
-            disabled
-            type="button"
-          >
-            <span className="flex w-full items-center justify-between gap-2">
-              <HugeiconsIcon
-                className="text-muted-foreground"
-                icon={QrCodeIcon}
-                size={18}
-                strokeWidth={1.8}
-              />
-              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                {copy.betaSoon}
-              </span>
-            </span>
-            <span className="space-y-1">
-              <span className="block text-sm font-medium">{copy.qrTitle}</span>
-              <span className="block text-xs text-pretty text-muted-foreground">
-                {copy.qrBody}
-              </span>
-            </span>
-          </button>
-          <div className="sm:col-span-2">
-            <Button onClick={onCancel} type="button" variant="ghost">
-              {copy.cancel}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <BaileysPairingForm
+        onBack={() => setStep("choose")}
+        onDone={onClose}
+        organizationId={organizationId}
+      />
     )
   }
 
@@ -152,127 +49,55 @@ export function ConnectChannelWizard({
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">
-          {copy.officialTitle}
+          {t("channels.chooseTitle")}
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{copy.officialBody}</p>
       </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form
-            className="space-y-4"
-            onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
-          >
-            <FormField
-              control={form.control}
-              name="displayName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{copy.displayName}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={copy.displayNamePlaceholder}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="accountSid"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{copy.accountSid}</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="off"
-                      placeholder="AC00000000000000000000000000000000"
-                      spellCheck={false}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="authToken"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{copy.authToken}</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="new-password"
-                      spellCheck={false}
-                      type="password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    {copy.tokenHint}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{copy.address}</FormLabel>
-                  <FormControl>
-                    <Input
-                      autoComplete="tel"
-                      inputMode="tel"
-                      placeholder="+5511999999999"
-                      {...field}
-                    />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    {copy.addressHint}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="inboxId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{copy.inboxId}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={copy.inboxPlaceholder} {...field} />
-                  </FormControl>
-                  <p className="text-xs text-muted-foreground">
-                    {copy.inboxHint}
-                  </p>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {mutation.isError ? (
-              <p className="text-sm text-destructive" role="alert">
-                {channelErrorMessage(mutation.error, copy)}
-              </p>
-            ) : null}
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setStep("choose")}
-                type="button"
-                variant="outline"
-              >
-                {copy.back}
-              </Button>
-              <Button disabled={mutation.isPending} type="submit">
-                {mutation.isPending ? copy.submitting : copy.submit}
-              </Button>
-            </div>
-          </form>
-        </Form>
+      <CardContent className="grid gap-3 sm:grid-cols-2">
+        <button
+          className="flex flex-col items-start gap-3 rounded-lg border border-primary/40 bg-background p-4 text-left transition-colors hover:bg-accent"
+          onClick={() => setStep("twilio")}
+          type="button"
+        >
+          <span className="flex w-full items-center justify-between gap-2">
+            <HugeiconsIcon icon={WhatsappIcon} size={18} strokeWidth={1.8} />
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+              {t("channels.recommended")}
+            </span>
+          </span>
+          <span className="space-y-1">
+            <span className="block text-sm font-medium">
+              {t("channels.officialTitle")}
+            </span>
+            <span className="block text-xs text-pretty text-muted-foreground">
+              {t("channels.officialBody")}
+            </span>
+          </span>
+        </button>
+        <button
+          className="flex flex-col items-start gap-3 rounded-lg border bg-background p-4 text-left transition-colors hover:bg-accent"
+          onClick={() => setStep("baileys")}
+          type="button"
+        >
+          <span className="flex w-full items-center justify-between gap-2">
+            <HugeiconsIcon icon={QrCodeIcon} size={18} strokeWidth={1.8} />
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+              {t("channels.beta")}
+            </span>
+          </span>
+          <span className="space-y-1">
+            <span className="block text-sm font-medium">
+              {t("channels.qrTitle")}
+            </span>
+            <span className="block text-xs text-pretty text-muted-foreground">
+              {t("channels.qrBody")}
+            </span>
+          </span>
+        </button>
+        <div className="sm:col-span-2">
+          <Button onClick={onClose} type="button" variant="ghost">
+            {t("channels.cancel")}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

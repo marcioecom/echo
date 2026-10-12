@@ -1,14 +1,3 @@
-"use client"
-
-import { useState } from "react"
-
-import {
-  prefersPortuguese,
-  readLanguageCookie,
-} from "@/modules/marketing/i18n/negotiation"
-
-export type ChannelsLocale = "en" | "pt-BR"
-
 const en = {
   metaTitle: "Channels | Echo",
   nav: "Channels",
@@ -21,17 +10,28 @@ const en = {
   loadError: "Channels could not be loaded.",
   retry: "Try again",
   emptyTitle: "No number connected",
-  emptyBody: "Connect a Twilio number so Echo can answer on WhatsApp.",
+  emptyBody: "Connect a WhatsApp number so Echo can answer.",
   live: "Live",
   reconnecting: "Reconnecting",
   recommended: "Recommended",
-  betaSoon: "Beta — coming soon",
+  beta: "Beta",
   chooseTitle: "How do you want to connect?",
   officialTitle: "Official WhatsApp (Twilio)",
   officialBody:
     "Echo checks the Account SID, auth token, and number with Twilio before saving.",
   qrTitle: "Connect with a QR code",
-  qrBody: "Uses unofficial WhatsApp Web. Not available yet.",
+  qrBody: "Scan a QR code from this browser. The phone should stay online.",
+  qrWaiting: "Waiting for the QR code.",
+  qrScan: "On the phone, open WhatsApp, Linked devices, and scan this code.",
+  qrRisk:
+    "This path uses WhatsApp Web. Keep the phone nearby until it connects.",
+  pairingPhone: "Phone number",
+  pairingRequest: "Or pair with a code",
+  pairingWaiting: "Enter this code in WhatsApp under Linked devices.",
+  pairingSubmit: "Request code",
+  pairingSubmitting: "Requesting",
+  baileysSubmit: "Start pairing",
+  baileysSubmitting: "Starting",
   back: "Back",
   cancel: "Cancel",
   displayName: "Name",
@@ -58,16 +58,21 @@ const en = {
   edit: "Edit",
   save: "Save",
   saving: "Saving",
-  remove: "Remove",
-  confirmRemove: "Remove this number?",
-  confirmRemoveBody:
+  archivedTitle: "Deactivated",
+  deactivate: "Deactivate",
+  confirmDeactivate: "Turn this number off?",
+  confirmDeactivateBody:
     "Past conversations stay. Echo stops sending and receiving on it.",
-  confirm: "Confirm removal",
+  delete: "Delete",
+  confirmDelete: "Delete this number?",
+  confirmDeleteBody:
+    "This number never exchanged messages. Echo removes it for good.",
+  confirm: "Confirm",
   activate: "Activate",
   details: "Details",
   hideDetails: "Hide details",
   connectedSentence: "This number is receiving messages.",
-  pendingSentence: "Waiting for Twilio to finish connecting.",
+  pendingSentence: "Waiting for the connection to finish.",
   disabledSentence: "Turned off. Past conversations stay, with no new sending.",
   lastConnected: "Last connection",
   noLastConnection: "No connection recorded yet.",
@@ -110,6 +115,9 @@ const en = {
   },
   errors: {
     routingConflict: "This number is already in use by another organization.",
+    sessionExists: "This organization already has a QR session open.",
+    pairingRequired: "Pair this number again before turning it on.",
+    queueUnavailable: "Echo could not reach the connection service. Try again.",
     invalid: "Review the fields and try again.",
     generic: "The channel could not be saved.",
   },
@@ -127,17 +135,30 @@ const ptBR = {
   loadError: "Não foi possível carregar os canais.",
   retry: "Tentar de novo",
   emptyTitle: "Nenhum número conectado",
-  emptyBody: "Conecte um número da Twilio para a Echo atender no WhatsApp.",
+  emptyBody: "Conecte um número de WhatsApp para a Echo atender.",
   live: "Ao vivo",
   reconnecting: "Reconectando",
   recommended: "Recomendado",
-  betaSoon: "Beta — em breve",
+  beta: "Beta",
   chooseTitle: "Como você quer conectar?",
   officialTitle: "WhatsApp oficial (Twilio)",
   officialBody:
     "A Echo confere o Account SID, o token e o número na Twilio antes de salvar.",
   qrTitle: "Conectar com QR code",
-  qrBody: "Usa o WhatsApp Web não oficial. Ainda não está disponível.",
+  qrBody:
+    "Escaneie um QR code neste navegador. O celular precisa ficar online.",
+  qrWaiting: "Aguardando o QR code.",
+  qrScan:
+    "No celular, abra o WhatsApp, Aparelhos conectados, e escaneie este código.",
+  qrRisk:
+    "Este caminho usa o WhatsApp Web. Deixe o celular por perto até conectar.",
+  pairingPhone: "Número",
+  pairingRequest: "Ou parear com um código",
+  pairingWaiting: "Digite este código no WhatsApp, em Aparelhos conectados.",
+  pairingSubmit: "Pedir código",
+  pairingSubmitting: "Pedindo",
+  baileysSubmit: "Começar pareamento",
+  baileysSubmitting: "Iniciando",
   back: "Voltar",
   cancel: "Cancelar",
   displayName: "Nome",
@@ -164,16 +185,21 @@ const ptBR = {
   edit: "Editar",
   save: "Salvar",
   saving: "Salvando",
-  remove: "Remover",
-  confirmRemove: "Remover este número?",
-  confirmRemoveBody:
+  archivedTitle: "Desativados",
+  deactivate: "Desativar",
+  confirmDeactivate: "Desativar este número?",
+  confirmDeactivateBody:
     "As conversas antigas ficam. A Echo para de enviar e receber por ele.",
-  confirm: "Confirmar remoção",
+  delete: "Excluir",
+  confirmDelete: "Excluir este número?",
+  confirmDeleteBody:
+    "Este número nunca trocou mensagens. A Echo apaga o canal de vez.",
+  confirm: "Confirmar",
   activate: "Ativar",
   details: "Detalhes",
   hideDetails: "Ocultar detalhes",
   connectedSentence: "Este número está recebendo mensagens.",
-  pendingSentence: "Aguardando a Twilio concluir a conexão.",
+  pendingSentence: "Aguardando a conexão terminar.",
   disabledSentence:
     "Desativado. As conversas antigas permanecem, sem envio novo.",
   lastConnected: "Última conexão",
@@ -217,37 +243,18 @@ const ptBR = {
   },
   errors: {
     routingConflict: "Esse número já está em uso em outra organização.",
+    sessionExists: "Esta organização já tem uma sessão de QR aberta.",
+    pairingRequired: "Pareie este número de novo antes de ativá-lo.",
+    queueUnavailable:
+      "Não foi possível falar com o serviço de conexão. Tente de novo.",
     invalid: "Revise os campos e tente de novo.",
     generic: "Não foi possível salvar o canal.",
   },
 } satisfies typeof en
 
-export type ChannelsCopy = typeof en
+export type ChannelsMessages = typeof en
 
-export const channelsCopy: Record<ChannelsLocale, ChannelsCopy> = {
+export const channelsMessages = {
   en,
   "pt-BR": ptBR,
-}
-
-export function resolveChannelsLocale(): ChannelsLocale {
-  if (typeof document === "undefined") return "en"
-  const choice = readLanguageCookie(document.cookie)
-  if (choice === "pt-br") return "pt-BR"
-  if (choice === "en") return "en"
-  if (
-    typeof navigator !== "undefined" &&
-    prefersPortuguese(navigator.language)
-  ) {
-    return "pt-BR"
-  }
-  return "en"
-}
-
-export function channelsNavLabel(): string {
-  return channelsCopy[resolveChannelsLocale()].nav
-}
-
-export function useChannelsCopy() {
-  const [locale] = useState(resolveChannelsLocale)
-  return { locale, copy: channelsCopy[locale] }
 }

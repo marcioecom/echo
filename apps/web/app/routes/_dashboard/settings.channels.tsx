@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
 import { canManageOrganization } from "@/modules/auth/permissions"
+import { channelsHead } from "@/modules/channels/head"
 import { ChannelsView } from "@/modules/channels/ui/views/channels-view"
 
 export const Route = createFileRoute("/_dashboard/settings/channels")({
@@ -10,9 +11,7 @@ export const Route = createFileRoute("/_dashboard/settings/channels")({
     }
   },
   component: ChannelsPage,
-  head: () => ({
-    meta: [{ title: "Channels | Echo" }],
-  }),
+  head: () => channelsHead(),
 })
 
 function ChannelsPage() {

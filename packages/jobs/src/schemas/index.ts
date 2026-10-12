@@ -18,10 +18,23 @@ import {
   supportConversationJobNames,
   supportConversationsQueueName,
 } from "./support-conversations"
+import {
+  waConnectJobSchema,
+  waGatewayJobNames,
+  waGatewayQueueName,
+  waInboundJobSchema,
+  waIngressJobNames,
+  waIngressQueueName,
+  waLogoutJobSchema,
+  waPairingCodeJobSchema,
+  waSendJobSchema,
+  waStatusJobSchema,
+} from "./wa-gateway"
 
 export * from "./email"
 export * from "./support-conversations"
 export * from "./knowledge-base"
+export * from "./wa-gateway"
 
 export const jobDefinitions = {
   [emailJobNames.sendInvitationEmail]: {
@@ -49,6 +62,30 @@ export const jobDefinitions = {
     schema: indexKnowledgeDocumentJobSchema,
     jobId: (payload: IndexKnowledgeDocumentJob) =>
       `${knowledgeBaseJobNames.indexKnowledgeDocument}--${payload.documentId}--${payload.revision}`,
+  },
+  [waGatewayJobNames.connect]: {
+    queueName: waGatewayQueueName,
+    schema: waConnectJobSchema,
+  },
+  [waGatewayJobNames.pairingCode]: {
+    queueName: waGatewayQueueName,
+    schema: waPairingCodeJobSchema,
+  },
+  [waGatewayJobNames.send]: {
+    queueName: waGatewayQueueName,
+    schema: waSendJobSchema,
+  },
+  [waGatewayJobNames.logout]: {
+    queueName: waGatewayQueueName,
+    schema: waLogoutJobSchema,
+  },
+  [waIngressJobNames.inbound]: {
+    queueName: waIngressQueueName,
+    schema: waInboundJobSchema,
+  },
+  [waIngressJobNames.status]: {
+    queueName: waIngressQueueName,
+    schema: waStatusJobSchema,
   },
 } as const
 

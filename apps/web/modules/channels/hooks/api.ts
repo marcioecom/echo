@@ -1,7 +1,7 @@
-import type { ChannelsCopy } from "../i18n"
-import type { ChannelConnection } from "../types"
-
 import { getApiUrl } from "@/lib/env"
+import { t, type MessageKey } from "@/lib/i18n"
+
+import type { ChannelConnection } from "../types"
 
 const apiUrl = getApiUrl()
 
@@ -26,32 +26,43 @@ export class ChannelsApiError extends Error {
   }
 }
 
-export function channelErrorMessage(
-  error: unknown,
-  copy: ChannelsCopy
-): string {
-  if (!(error instanceof ChannelsApiError)) return copy.errors.generic
+const errorMessages = {
+  baileys_session_exists: "channels.errors.sessionExists",
+  channel_routing_conflict: "channels.errors.routingConflict",
+  invalid_request: "channels.errors.invalid",
+  pairing_required: "channels.errors.pairingRequired",
+  queue_unavailable: "channels.errors.queueUnavailable",
+} as const satisfies Record<string, MessageKey>
+
+const verificationMessages = {
+  account_not_active: "channels.verification.account_not_active",
+  invalid_sandbox_address: "channels.verification.invalid_sandbox_address",
+  provider_request_failed: "channels.verification.provider_request_failed",
+  sender_not_found: "channels.verification.sender_not_found",
+  sender_not_online: "channels.verification.sender_not_online",
+} as const satisfies Record<VerificationReason, MessageKey>
+
+export function channelErrorMessage(error: unknown): string {
+  if (!(error instanceof ChannelsApiError)) return t("channels.errors.generic")
   if (error.code === "twilio_verification_failed") {
-    return verificationMessage(error.reason, copy)
+    return verificationMessage(error.reason)
   }
-  if (error.code === "channel_routing_conflict")
-    return copy.errors.routingConflict
-  if (error.code === "invalid_request") return copy.errors.invalid
-  return copy.errors.generic
+  if (error.code && error.code in errorMessages) {
+    return t(errorMessages[error.code as keyof typeof errorMessages])
+  }
+  return t("channels.errors.generic")
 }
 
-export function humanChannelError(value: string, copy: ChannelsCopy): string {
-  return verificationMessage(value, copy)
+export function humanChannelError(value: string): string {
+  return verificationMessage(value)
 }
 
-function verificationMessage(
-  reason: string | undefined,
-  copy: ChannelsCopy
-): string {
-  if (reason && isVerificationReason(reason)) return copy.verification[reason]
+function verificationMessage(reason: string | undefined): string {
+  if (reason && isVerificationReason(reason))
+    return t(verificationMessages[reason])
   return reason && reason.length > 0
     ? reason
-    : copy.verification.provider_request_failed
+    : t("channels.verification.provider_request_failed")
 }
 
 function isVerificationReason(value: string): value is VerificationReason {
@@ -102,6 +113,26 @@ export function createTwilioChannel(input: {
     method: "POST",
     body: { provider: "twilio", ...input },
   })
+}
+
+export function createBaileysChannel(input: {
+  displayName: string
+  inboxId?: string
+}) {
+  return request<{ channel: ChannelConnection }>("/v1/channels", {
+    method: "POST",
+    body: { provider: "baileys", ...input },
+  })
+}
+
+export function requestPairingCode(
+  channelConnectionId: string,
+  phoneNumber: string
+) {
+  return request<{ accepted: boolean }>(
+    `/v1/channels/${channelConnectionId}/pairing-code`,
+    { method: "POST", body: { phoneNumber } }
+  )
 }
 
 export function updateChannel(

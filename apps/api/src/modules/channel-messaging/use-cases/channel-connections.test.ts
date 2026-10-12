@@ -73,8 +73,12 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     findForOrganization,
     updateChannelConnection: vi.fn(),
     disableChannelConnection: vi.fn(),
+    removeChannelConnection: vi.fn(),
   },
 }))
+const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }))
+
+vi.mock("@/lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../twilio-inbound-webhook-url", () => ({
   twilioInboundWebhookUrl: () =>
     "http://localhost:3001/webhooks/twilio/whatsapp/inbound",
@@ -99,6 +103,7 @@ const storedConnection = {
   inboxId: "loja",
   updatedAt: new Date("2026-10-12T12:00:00.000Z"),
   session: null,
+  deletable: true,
 }
 
 const createInput = {
@@ -136,6 +141,7 @@ describe("channel connection use cases", () => {
     )
     findForOrganization.mockResolvedValue(storedConnection)
     publish.mockResolvedValue(undefined)
+    enqueue.mockResolvedValue({ id: "logout-job" })
   })
 
   it("rejects Twilio credentials before saving a connection", async () => {
@@ -229,8 +235,8 @@ describe("channel connection use cases", () => {
       channelConnectionsRepository.updateChannelConnection
     ).mockResolvedValue("not_found")
     vi.mocked(
-      channelConnectionsRepository.disableChannelConnection
-    ).mockResolvedValue("not_found")
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "not_found" })
 
     await expect(
       updateChannelConnection({
@@ -250,10 +256,10 @@ describe("channel connection use cases", () => {
     expect(publish).not.toHaveBeenCalled()
   })
 
-  it("publishes when a connection is removed", async () => {
+  it("publishes when a connection with history is deactivated", async () => {
     vi.mocked(
-      channelConnectionsRepository.disableChannelConnection
-    ).mockResolvedValue("disabled")
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "disabled", provider: "twilio" })
 
     await expect(
       deleteChannelConnection({
@@ -262,6 +268,56 @@ describe("channel connection use cases", () => {
         operatorUserId: "user-id",
       })
     ).resolves.toEqual({ ok: true, value: undefined })
+    expect(publish).toHaveBeenCalledWith({
+      organizationId,
+      channelConnectionId,
+    })
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+
+  it("asks the gateway to log out a removed Baileys session", async () => {
+    vi.mocked(
+      channelConnectionsRepository.removeChannelConnection
+    ).mockResolvedValue({ outcome: "deleted", provider: "baileys" })
+
+    await deleteChannelConnection({
+      organizationId,
+      channelConnectionId,
+      operatorUserId: "user-id",
+    })
+
+    expect(enqueue).toHaveBeenCalledWith("wa-logout", {
+      organizationId,
+      channelConnectionId,
+    })
+  })
+
+  it("reopens pairing when a Baileys number must be paired again", async () => {
+    vi.mocked(
+      channelConnectionsRepository.updateChannelConnection
+    ).mockResolvedValue("pairing_started")
+    findForOrganization.mockResolvedValue({
+      ...storedConnection,
+      provider: "baileys",
+      status: "pending",
+    })
+
+    const result = await updateChannelConnection({
+      organizationId,
+      channelConnectionId,
+      operatorUserId: "user-id",
+      status: "active",
+    })
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.value.status).toBe("pending")
+      expect(result.value.provider).toBe("baileys")
+    }
+    expect(enqueue).toHaveBeenCalledWith("wa-connect", {
+      organizationId,
+      channelConnectionId,
+    })
     expect(publish).toHaveBeenCalledWith({
       organizationId,
       channelConnectionId,

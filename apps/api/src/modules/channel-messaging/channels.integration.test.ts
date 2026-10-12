@@ -341,11 +341,21 @@ describe("channel connection API", () => {
       headers: { cookie: ownerCookies },
     })
     expect(removed.statusCode).toBe(204)
-    const [disabled] = await database.db
-      .select({ status: channelConnections.status })
+    const [deleted] = await database.db
+      .select({ id: channelConnections.id })
       .from(channelConnections)
       .where(eq(channelConnections.id, createdBody.channel.id))
-    expect(disabled?.status).toBe("disabled")
+    expect(deleted).toBeUndefined()
+    const [deletedBinding] = await database.db
+      .select({ id: channelConnectionProviderBindings.id })
+      .from(channelConnectionProviderBindings)
+      .where(
+        eq(
+          channelConnectionProviderBindings.channelConnectionId,
+          createdBody.channel.id
+        )
+      )
+    expect(deletedBinding).toBeUndefined()
 
     const invite = await app.inject({
       method: "POST",

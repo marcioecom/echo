@@ -162,14 +162,19 @@ describe("Twilio delivery status", () => {
 })
 
 describe("channel adapter registry", () => {
-  it("resolves Twilio and leaves session providers unregistered", () => {
-    const registry = createChannelAdapterRegistry("https://api.example.test")
+  it("resolves Twilio and Baileys and leaves Meta unregistered", () => {
+    const registry = createChannelAdapterRegistry("https://api.example.test", {
+      send: vi.fn(),
+    })
 
     expect(registry.adapterFor("twilio")).toMatchObject({
       provider: "twilio",
       delivery: "webhook",
     })
-    expect(registry.adapterFor("baileys")).toBeUndefined()
+    expect(registry.adapterFor("baileys")).toMatchObject({
+      provider: "baileys",
+      delivery: "session",
+    })
     expect(registry.adapterFor("meta_cloud")).toBeUndefined()
   })
 })

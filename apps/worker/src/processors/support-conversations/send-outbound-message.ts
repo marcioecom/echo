@@ -23,16 +23,25 @@ import { and, eq, inArray } from "drizzle-orm"
 import { env } from "../../config/env"
 import { database } from "../../lib/db"
 import { redisConnection } from "../../lib/redis"
+import { createBaileysSendTransport } from "./baileys-send-transport"
 
 const credentialsCipher = new ChannelCredentialsCipher({
   encryptionKey: env.CHANNEL_CREDENTIALS_ENCRYPTION_KEY,
   keyVersion: env.CHANNEL_CREDENTIALS_KEY_VERSION,
 })
 
-const defaultAdapters = createChannelAdapterRegistry(env.PUBLIC_API_URL)
+let defaultAdapters: ChannelAdapterRegistry | undefined
+
+function adapters(): ChannelAdapterRegistry {
+  defaultAdapters ??= createChannelAdapterRegistry(
+    env.PUBLIC_API_URL,
+    createBaileysSendTransport(redisConnection)
+  )
+  return defaultAdapters
+}
 
 export function handleSendOutboundMessage(job: Job): Promise<void> {
-  return deliverOutboundMessage(job, defaultAdapters)
+  return deliverOutboundMessage(job, adapters())
 }
 
 export async function deliverOutboundMessage(
@@ -89,6 +98,7 @@ export async function deliverOutboundMessage(
         fromAddress: outbound.channelAddress,
         externalAccountId: outbound.externalAccountId,
         authToken,
+        outboundMessageId: payload.messageId,
       },
       outbound.contactAddress,
       { type: "text", body: outbound.body }
@@ -174,7 +184,10 @@ async function loadOutboundMessage(input: {
     .innerJoin(
       channelIdentities,
       and(
-        eq(channelIdentities.organizationId, supportConversations.organizationId),
+        eq(
+          channelIdentities.organizationId,
+          supportConversations.organizationId
+        ),
         eq(channelIdentities.id, supportConversations.channelIdentityId)
       )
     )
@@ -198,10 +211,7 @@ async function loadOutboundMessage(input: {
         )
       )
     )
-    .innerJoin(
-      organizations,
-      eq(organizations.id, messages.organizationId)
-    )
+    .innerJoin(organizations, eq(organizations.id, messages.organizationId))
     .where(
       and(
         eq(messages.organizationId, input.organizationId),

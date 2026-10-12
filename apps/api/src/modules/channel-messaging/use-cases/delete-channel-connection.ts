@@ -2,6 +2,7 @@ import { err, ok, type Result } from "@/common/result"
 
 import { publishChannelStatusChanged } from "../events/publish-channel-status-changed"
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
+import { enqueueBaileysLogout } from "./enqueue-baileys-logout"
 
 export type DeleteChannelConnectionError =
   | { type: "organization_unavailable" }
@@ -13,8 +14,20 @@ export async function deleteChannelConnection(input: {
   operatorUserId: string
 }): Promise<Result<void, DeleteChannelConnectionError>> {
   const result =
-    await channelConnectionsRepository.disableChannelConnection(input)
-  if (result !== "disabled") return err({ type: result })
+    await channelConnectionsRepository.removeChannelConnection(input)
+  if (
+    result.outcome === "not_found" ||
+    result.outcome === "organization_unavailable"
+  ) {
+    return err({ type: result.outcome })
+  }
+
+  if (result.provider === "baileys") {
+    await enqueueBaileysLogout({
+      organizationId: input.organizationId,
+      channelConnectionId: input.channelConnectionId,
+    })
+  }
 
   await publishChannelStatusChanged({
     organizationId: input.organizationId,
