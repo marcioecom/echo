@@ -7,7 +7,6 @@ const {
   createTwilioChannelConnection,
   deleteChannelConnection,
   guards,
-  isBaileysPairingEnabled,
   listChannelConnections,
   organizationId,
   requestBaileysPairingCode,
@@ -27,7 +26,6 @@ const {
     createBaileysChannelConnection: vi.fn(),
     createTwilioChannelConnection: vi.fn(),
     deleteChannelConnection: vi.fn(),
-    isBaileysPairingEnabled: vi.fn(() => false),
     listChannelConnections: vi.fn(),
     requestBaileysPairingCode: vi.fn(),
     updateChannelConnection: vi.fn(),
@@ -101,9 +99,6 @@ vi.mock("../../../lib/jobs-client", () => ({
 vi.mock("../../../lib/redis", () => ({
   redisConnection: { publish: async () => 0, quit: async () => undefined },
 }))
-vi.mock("../baileys-feature-flag", () => ({
-  isBaileysPairingEnabled,
-}))
 vi.mock("../use-cases/create-baileys-channel-connection", () => ({
   createBaileysChannelConnection,
 }))
@@ -173,7 +168,6 @@ describe("channel routes", () => {
       },
     })
     requestBaileysPairingCode.mockResolvedValue({ ok: true, value: undefined })
-    isBaileysPairingEnabled.mockReturnValue(false)
   })
 
   it("requires a signed-in admin", async () => {
@@ -298,22 +292,7 @@ describe("channel routes", () => {
     await app.close()
   })
 
-  it("keeps Baileys pairing off unless the feature flag is enabled", async () => {
-    const app = await createTestApp()
-    const response = await app.inject({
-      method: "POST",
-      url: "/v1/channels",
-      payload: { provider: "baileys", displayName: "QR" },
-    })
-    expect(response.statusCode).toBe(404)
-    expect(response.json()).toEqual({ error: "baileys_disabled" })
-    expect(createBaileysChannelConnection).not.toHaveBeenCalled()
-    expect(createTwilioChannelConnection).not.toHaveBeenCalled()
-    await app.close()
-  })
-
-  it("starts a Baileys session when pairing is enabled", async () => {
-    isBaileysPairingEnabled.mockReturnValue(true)
+  it("starts a Baileys session and accepts a pairing code", async () => {
     const app = await createTestApp()
     const created = await app.inject({
       method: "POST",

@@ -172,7 +172,7 @@ class KeyWriteBuffer {
     await new Promise<void>((resolve, reject) => {
       this.waiters.push({ resolve, reject })
       this.timer ??= setTimeout(() => {
-        void this.flush().catch(() => undefined)
+        this.flush().catch(() => undefined)
       }, this.options.flushDelayMs)
     })
   }

@@ -12,9 +12,9 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useRouterState } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
+import { t } from "@/lib/i18n"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
 import { canManageOrganization } from "@/modules/auth/permissions"
-import { channelsNavLabel } from "@/modules/channels/i18n"
 import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
@@ -85,7 +85,7 @@ export function AppSidebar({
       .filter((item) => !item.requiresManage || canManageOrganization(userRole))
       .map((item) =>
         item.href === "/settings/channels"
-          ? { ...item, label: channelsNavLabel() }
+          ? { ...item, label: t("channels.nav") }
           : item
       ),
   })).filter((section) => section.items.length > 0)

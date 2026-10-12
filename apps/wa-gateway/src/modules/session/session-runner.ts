@@ -316,7 +316,7 @@ export class BaileysSession {
   private armPairingTimeout(): void {
     this.clearPairingTimer()
     this.pairingTimer = setTimeout(() => {
-      void this.onPairingTimeout()
+      this.onPairingTimeout()
     }, this.deps.pairingTimeoutMs)
   }
 

@@ -10,12 +10,10 @@ export interface ChannelAdapterRegistry {
 
 export function createChannelAdapterRegistry(
   publicApiUrl: string,
-  options?: { baileys?: BaileysSendTransport }
+  baileysTransport: BaileysSendTransport
 ): ChannelAdapterRegistry {
   const twilio = new TwilioAdapter(twilioStatusCallbackUrl(publicApiUrl))
-  const baileys = options?.baileys
-    ? new BaileysAdapter(options.baileys)
-    : undefined
+  const baileys = new BaileysAdapter(baileysTransport)
 
   return {
     adapterFor(provider) {

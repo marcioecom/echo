@@ -55,9 +55,9 @@ describe("BaileysAdapter", () => {
 })
 
 describe("channel adapter registry", () => {
-  it("registers Baileys when a transport is provided", () => {
+  it("registers Baileys and Twilio", () => {
     const registry = createChannelAdapterRegistry("https://api.example.test", {
-      baileys: { send: vi.fn() },
+      send: vi.fn(),
     })
 
     expect(registry.adapterFor("baileys")).toMatchObject({

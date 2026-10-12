@@ -1,3 +1,5 @@
+// Consumed in the API process: inbound persistence lives next to the Twilio
+// webhook, and the worker must not import this app.
 import {
   waInboundJobSchema,
   waIngressJobNames,

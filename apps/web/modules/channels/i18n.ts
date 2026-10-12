@@ -1,14 +1,3 @@
-"use client"
-
-import { useState } from "react"
-
-import {
-  prefersPortuguese,
-  readLanguageCookie,
-} from "@/modules/marketing/i18n/negotiation"
-
-export type ChannelsLocale = "en" | "pt-BR"
-
 const en = {
   metaTitle: "Channels | Echo",
   nav: "Channels",
@@ -21,20 +10,17 @@ const en = {
   loadError: "Channels could not be loaded.",
   retry: "Try again",
   emptyTitle: "No number connected",
-  emptyBody: "Connect a Twilio number so Echo can answer on WhatsApp.",
+  emptyBody: "Connect a WhatsApp number so Echo can answer.",
   live: "Live",
   reconnecting: "Reconnecting",
   recommended: "Recommended",
-  betaSoon: "Beta — coming soon",
+  beta: "Beta",
   chooseTitle: "How do you want to connect?",
   officialTitle: "Official WhatsApp (Twilio)",
   officialBody:
     "Echo checks the Account SID, auth token, and number with Twilio before saving.",
   qrTitle: "Connect with a QR code",
-  qrBody: "Uses unofficial WhatsApp Web. Not available yet.",
-  qrBodyEnabled:
-    "Scan a QR code from this browser. The phone should stay online.",
-  beta: "Beta",
+  qrBody: "Scan a QR code from this browser. The phone should stay online.",
   qrWaiting: "Waiting for the QR code.",
   qrScan: "On the phone, open WhatsApp, Linked devices, and scan this code.",
   qrRisk:
@@ -81,7 +67,7 @@ const en = {
   details: "Details",
   hideDetails: "Hide details",
   connectedSentence: "This number is receiving messages.",
-  pendingSentence: "Waiting for Twilio to finish connecting.",
+  pendingSentence: "Waiting for the connection to finish.",
   disabledSentence: "Turned off. Past conversations stay, with no new sending.",
   lastConnected: "Last connection",
   noLastConnection: "No connection recorded yet.",
@@ -143,20 +129,18 @@ const ptBR = {
   loadError: "Não foi possível carregar os canais.",
   retry: "Tentar de novo",
   emptyTitle: "Nenhum número conectado",
-  emptyBody: "Conecte um número da Twilio para a Echo atender no WhatsApp.",
+  emptyBody: "Conecte um número de WhatsApp para a Echo atender.",
   live: "Ao vivo",
   reconnecting: "Reconectando",
   recommended: "Recomendado",
-  betaSoon: "Beta — em breve",
+  beta: "Beta",
   chooseTitle: "Como você quer conectar?",
   officialTitle: "WhatsApp oficial (Twilio)",
   officialBody:
     "A Echo confere o Account SID, o token e o número na Twilio antes de salvar.",
   qrTitle: "Conectar com QR code",
-  qrBody: "Usa o WhatsApp Web não oficial. Ainda não está disponível.",
-  qrBodyEnabled:
+  qrBody:
     "Escaneie um QR code neste navegador. O celular precisa ficar online.",
-  beta: "Beta",
   qrWaiting: "Aguardando o QR code.",
   qrScan:
     "No celular, abra o WhatsApp, Aparelhos conectados, e escaneie este código.",
@@ -204,7 +188,7 @@ const ptBR = {
   details: "Detalhes",
   hideDetails: "Ocultar detalhes",
   connectedSentence: "Este número está recebendo mensagens.",
-  pendingSentence: "Aguardando a Twilio concluir a conexão.",
+  pendingSentence: "Aguardando a conexão terminar.",
   disabledSentence:
     "Desativado. As conversas antigas permanecem, sem envio novo.",
   lastConnected: "Última conexão",
@@ -255,32 +239,9 @@ const ptBR = {
   },
 } satisfies typeof en
 
-export type ChannelsCopy = typeof en
+export type ChannelsMessages = typeof en
 
-export const channelsCopy: Record<ChannelsLocale, ChannelsCopy> = {
+export const channelsMessages = {
   en,
   "pt-BR": ptBR,
-}
-
-export function resolveChannelsLocale(): ChannelsLocale {
-  if (typeof document === "undefined") return "en"
-  const choice = readLanguageCookie(document.cookie)
-  if (choice === "pt-br") return "pt-BR"
-  if (choice === "en") return "en"
-  if (
-    typeof navigator !== "undefined" &&
-    prefersPortuguese(navigator.language)
-  ) {
-    return "pt-BR"
-  }
-  return "en"
-}
-
-export function channelsNavLabel(): string {
-  return channelsCopy[resolveChannelsLocale()].nav
-}
-
-export function useChannelsCopy() {
-  const [locale] = useState(resolveChannelsLocale)
-  return { locale, copy: channelsCopy[locale] }
 }

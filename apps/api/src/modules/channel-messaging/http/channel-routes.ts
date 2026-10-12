@@ -7,7 +7,6 @@ import {
   type OrganizationRequestAuth,
 } from "@/plugins/auth"
 
-import { isBaileysPairingEnabled } from "../baileys-feature-flag"
 import {
   channelConnectionParamsSchema,
   createChannelBodySchema,
@@ -40,9 +39,6 @@ export function registerChannelRoutes(app: FastifyInstance): void {
 
     return withOrganizationAuth(request, reply, async (auth) => {
       if (body.data.provider === "baileys") {
-        if (!isBaileysPairingEnabled()) {
-          return reply.code(404).send({ error: "baileys_disabled" })
-        }
         const result = await createBaileysChannelConnection({
           organizationId: auth.organization.id,
           operatorUserId: auth.user.id,
@@ -98,9 +94,6 @@ export function registerChannelRoutes(app: FastifyInstance): void {
     "/v1/channels/:channelConnectionId/pairing-code",
     { preHandler },
     async (request, reply) => {
-      if (!isBaileysPairingEnabled()) {
-        return reply.code(404).send({ error: "baileys_disabled" })
-      }
       const params = channelConnectionParamsSchema.safeParse(request.params)
       const body = requestPairingCodeSchema.safeParse(request.body)
       if (!params.success || !body.success) {

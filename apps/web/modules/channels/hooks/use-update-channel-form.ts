@@ -2,36 +2,30 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import type { ChannelsCopy } from "../i18n"
 import type { ChannelConnection } from "../types"
 import { updateChannel } from "./api"
 import { channelQueryKeys } from "./use-channels"
 
-export type UpdateChannelValues = {
-  displayName: string
-  inboxId: string
-}
+const updateChannelSchema = z.object({
+  displayName: z
+    .string()
+    .trim()
+    .min(1, "channels.validation.displayName")
+    .max(120),
+  inboxId: z.string().trim().max(64),
+})
 
-function updateChannelSchema(copy: ChannelsCopy) {
-  return z.object({
-    displayName: z.string().trim().min(1, copy.validation.displayName).max(120),
-    inboxId: z.string().trim().max(64),
-  })
-}
+export type UpdateChannelValues = z.infer<typeof updateChannelSchema>
 
-export function useUpdateChannelForm(
-  organizationId: string,
-  copy: ChannelsCopy
-) {
+export function useUpdateChannelForm(organizationId: string) {
   const queryClient = useQueryClient()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const schema = useMemo(() => updateChannelSchema(copy), [copy])
   const form = useForm<UpdateChannelValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(updateChannelSchema),
     defaultValues: { displayName: "", inboxId: "" },
   })
   const mutation = useMutation({

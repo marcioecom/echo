@@ -1,7 +1,13 @@
 "use client"
 
 import { useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react"
 
 import {
   channelPairingCodeEventSchema,
@@ -45,7 +51,7 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
         reconnectAttempt = 0
         setConnected(true)
         if (!shouldRefresh) return
-        void queryClient.invalidateQueries({
+        queryClient.invalidateQueries({
           queryKey: channelQueryKeys.list(organizationId),
         })
       })
@@ -68,7 +74,7 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
               ? null
               : current
           )
-          void queryClient.invalidateQueries({
+          queryClient.invalidateQueries({
             queryKey: channelQueryKeys.list(organizationId),
           })
           return
@@ -109,7 +115,7 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
         socket?.close()
         return
       }
-      void queryClient.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: channelQueryKeys.list(organizationId),
       })
       if (!socket) connect()
@@ -127,4 +133,29 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
   }, [organizationId, queryClient])
 
   return { connected, qr, pairingCode }
+}
+
+const ChannelLiveContext = createContext<ChannelLiveEvents | null>(null)
+
+export function ChannelLiveProvider({
+  organizationId,
+  children,
+}: {
+  organizationId: string
+  children: ReactNode
+}) {
+  const live = useChannelEvents(organizationId)
+  return (
+    <ChannelLiveContext.Provider value={live}>
+      {children}
+    </ChannelLiveContext.Provider>
+  )
+}
+
+export function useChannelLive(): ChannelLiveEvents {
+  const live = useContext(ChannelLiveContext)
+  if (!live) {
+    throw new Error("useChannelLive must be used inside ChannelLiveProvider")
+  }
+  return live
 }

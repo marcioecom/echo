@@ -42,7 +42,7 @@ export class WaGateway {
     const session = await this.deps.createSession(connection)
     this.session = session
     this.activeId = connection.channelConnectionId
-    void session.run().finally(() => {
+    session.run().finally(() => {
       if (this.activeId === connection.channelConnectionId) {
         this.session = null
         this.activeId = null

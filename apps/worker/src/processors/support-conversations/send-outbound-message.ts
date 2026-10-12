@@ -33,9 +33,10 @@ const credentialsCipher = new ChannelCredentialsCipher({
 let defaultAdapters: ChannelAdapterRegistry | undefined
 
 function adapters(): ChannelAdapterRegistry {
-  defaultAdapters ??= createChannelAdapterRegistry(env.PUBLIC_API_URL, {
-    baileys: createBaileysSendTransport(redisConnection),
-  })
+  defaultAdapters ??= createChannelAdapterRegistry(
+    env.PUBLIC_API_URL,
+    createBaileysSendTransport(redisConnection)
+  )
   return defaultAdapters
 }
 
