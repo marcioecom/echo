@@ -21,6 +21,40 @@ export const provisionTwilioWhatsAppSchema = z.object({
   sandbox: z.boolean().default(false),
 })
 
+const optionalInboxIdSchema = z.string().trim().min(1).max(64).optional()
+
+export const createTwilioChannelSchema = z.object({
+  provider: z.literal("twilio"),
+  displayName: z.string().trim().min(1).max(120),
+  address: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/[\s()-]/g, ""))
+    .pipe(whatsAppAddressSchema),
+  accountSid: twilioAccountSidSchema,
+  authToken: z.string().trim().min(1).max(128),
+  inboxId: optionalInboxIdSchema,
+  sandbox: z.boolean().optional().default(false),
+})
+
+export const updateChannelConnectionSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(120).optional(),
+    inboxId: z.union([z.string().trim().min(1).max(64), z.null()]).optional(),
+    status: z.enum(["active", "disabled"]).optional(),
+  })
+  .refine(
+    (value) =>
+      value.displayName !== undefined ||
+      value.inboxId !== undefined ||
+      value.status !== undefined,
+    "empty_update"
+  )
+
+export const channelConnectionParamsSchema = z.object({
+  channelConnectionId: z.ulid(),
+})
+
 export type ProvisionTwilioWhatsAppInput = z.input<
   typeof provisionTwilioWhatsAppSchema
 >

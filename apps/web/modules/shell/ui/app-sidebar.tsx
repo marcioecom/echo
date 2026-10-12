@@ -5,6 +5,7 @@ import {
   BookOpen01Icon,
   InboxIcon,
   Logout01Icon,
+  SmartPhone01Icon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -13,6 +14,7 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { BrandLogo } from "@/components/brand-logo"
 import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
 import { canManageOrganization } from "@/modules/auth/permissions"
+import { channelsNavLabel } from "@/modules/channels/i18n"
 import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
@@ -42,6 +44,12 @@ const NAV_SECTIONS: {
     label: "Settings",
     items: [
       { href: "/settings/members", label: "Members", icon: UserMultiple02Icon },
+      {
+        href: "/settings/channels",
+        label: "Channels",
+        icon: SmartPhone01Icon,
+        requiresManage: true,
+      },
       {
         href: "/settings/knowledge",
         label: "Knowledge Base",
@@ -73,9 +81,13 @@ export function AppSidebar({
   })
   const navSections = NAV_SECTIONS.map((section) => ({
     ...section,
-    items: section.items.filter(
-      (item) => !item.requiresManage || canManageOrganization(userRole)
-    ),
+    items: section.items
+      .filter((item) => !item.requiresManage || canManageOrganization(userRole))
+      .map((item) =>
+        item.href === "/settings/channels"
+          ? { ...item, label: channelsNavLabel() }
+          : item
+      ),
   })).filter((section) => section.items.length > 0)
 
   return (
@@ -111,7 +123,13 @@ export function AppSidebar({
               return (
                 <Link
                   key={item.href}
-                  to={item.href as "/inbox" | "/settings/members" | "/settings/knowledge"}
+                  to={
+                    item.href as
+                      | "/inbox"
+                      | "/settings/members"
+                      | "/settings/channels"
+                      | "/settings/knowledge"
+                  }
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 outline-none",

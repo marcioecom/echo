@@ -1,6 +1,5 @@
+import type { InboxEvent } from "@workspace/jobs"
 import type { WebSocket } from "ws"
-
-import type { SupportConversationUpdatedEvent } from "../types"
 
 export class SupportInboxEventBroker {
   private readonly connections = new Map<string, Set<WebSocket>>()
@@ -19,10 +18,7 @@ export class SupportInboxEventBroker {
     }
   }
 
-  publish(
-    organizationId: string,
-    event: SupportConversationUpdatedEvent
-  ): void {
+  publish(organizationId: string, event: InboxEvent): void {
     const payload = JSON.stringify(event)
     for (const socket of this.connections.get(organizationId) ?? []) {
       if (socket.readyState === socket.OPEN) socket.send(payload)
