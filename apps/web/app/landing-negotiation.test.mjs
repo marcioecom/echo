@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { describe, it } from "node:test"
+import { describe, it } from "vitest"
 import { fileURLToPath } from "node:url"
 
 import {
@@ -156,14 +156,16 @@ describe("landing locale wiring", () => {
     assert.match(switcher, /persistLanguageChoice/)
     assert.match(brand, /translate="no"/)
     assert.match(root, /htmlLang\(localeFromPath\(pathname\)\)/)
-    assert.match(head, /hreflang: "en"/)
-    assert.match(head, /hreflang: "pt-BR"/)
-    assert.match(head, /hreflang: "x-default"/)
+    assert.match(head, /hrefLang: "en"/)
+    assert.match(head, /hrefLang: "pt-BR"/)
+    assert.match(head, /hrefLang: "x-default"/)
   })
 
-  it("discovers web tests with a glob instead of a file list", () => {
+  it("discovers web tests with vitest instead of a file list", () => {
     const pkg = JSON.parse(read("package.json"))
-    assert.match(pkg.scripts.test, /\*\*\/\*\.test\.\{mjs,ts\}/)
+    const config = read("vitest.config.ts")
+    assert.equal(pkg.scripts.test, "vitest run")
     assert.doesNotMatch(pkg.scripts.test, /inbox-routes\.test/)
+    assert.match(config, /include: \["\*\*\/\*\.test\.\{mjs,ts,tsx\}"\]/)
   })
 })
