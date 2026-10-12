@@ -50,12 +50,25 @@ bindings, serializers, and custom Pino methods.
 ahead of the message:
 
 ```text
-INFO [14:38:06]: [worker:registry] Registered processors
-    processors: [ "send-invitation-email" ]
+INFO [14:38:06]: [worker:registry] Registered processors {"processors":["send-invitation-email"]}
 ```
 
 The message itself is not mutated with a context prefix. This avoids duplicated
 context while keeping production logs structured.
+
+Pretty output keeps ordinary log metadata on one line across runtimes. Error
+stacks remain multiline for diagnosis. Production keeps structured JSON unless
+`LOG_PRETTY=true` is explicitly enabled.
+
+The API emits one HTTP summary on completion: `reqId`, method, path without query
+parameters, status code, and duration in milliseconds. Successful requests use
+`debug` in development and `info` elsewhere; 4xx responses use `warn`, and 5xx
+responses use `error`, including the error and stack when available. Set
+`LOG_LEVEL=debug` in `apps/api/.env` to see successful local requests.
+
+Request/response serializers retain only method, query-free path, and status.
+Headers (including cookies and authorization), query objects, and bodies are not
+included in HTTP summaries or serialized request/response objects.
 
 ## Error Handling
 

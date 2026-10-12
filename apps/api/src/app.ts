@@ -3,7 +3,8 @@ import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
 import { createLoggerWithContext } from "@workspace/logger"
-import Fastify, { type FastifyBaseLogger } from "fastify"
+import Fastify, { LogController } from "fastify"
+import type { FastifyBaseLogger } from "fastify"
 
 import { env } from "./config/env"
 import { auth } from "./modules/auth/auth"
@@ -13,10 +14,15 @@ import { registerKnowledgeBaseRoutes } from "./modules/knowledge-base/http/route
 import { registerSupportInboxRoutes } from "./modules/support-inbox/http/routes"
 import { registerAuthRoutes } from "./plugins/auth"
 import { registerHealthRoutes } from "./plugins/health"
+import { registerRequestLogging } from "./plugins/request-logging"
 
 export function createApp() {
   const logger: FastifyBaseLogger = createLoggerWithContext("api")
-  const app = Fastify({ loggerInstance: logger })
+  const app = Fastify({
+    loggerInstance: logger,
+    logController: new LogController({ disableRequestLogging: true }),
+  })
+  registerRequestLogging(app, env.NODE_ENV === "development")
 
   app.register(formbody)
   app.register(rateLimit, {
