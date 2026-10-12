@@ -62,7 +62,6 @@ export async function openBaileysSocket(input: {
     printQRInTerminal: false,
     markOnlineOnConnect: false,
     syncFullHistory: false,
-    shouldSyncHistoryMessage: () => false,
     browser: Browsers.macOS("Echo"),
     ...(fetched ? { version: fetched.version } : {}),
     cachedGroupMetadata: async () => undefined,
