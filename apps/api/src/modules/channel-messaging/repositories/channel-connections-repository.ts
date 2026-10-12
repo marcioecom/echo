@@ -3,13 +3,52 @@ import {
   auditEvents,
   channelConnectionProviderBindings,
   channelConnections,
+  channelSessionStates,
   organizations,
 } from "@workspace/db/schema"
-import { createId } from "@workspace/domain"
-import { and, eq, ne, sql } from "drizzle-orm"
+import {
+  createId,
+  type ChannelConnectionStatus,
+  type ChannelProvider,
+  type ChannelSessionState,
+  type ChannelType,
+} from "@workspace/domain"
+import { and, desc, eq, ne, sql } from "drizzle-orm"
 
 import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
 import { database } from "@/lib/db"
+
+export class ChannelRoutingConflictError extends Error {
+  constructor() {
+    super("Channel routing key is already in use")
+    this.name = "ChannelRoutingConflictError"
+  }
+}
+
+export class OrganizationNotActiveError extends Error {
+  constructor() {
+    super("Organization is not active")
+    this.name = "OrganizationNotActiveError"
+  }
+}
+
+export interface ListedChannelConnection {
+  id: string
+  channelType: ChannelType
+  provider: ChannelProvider
+  name: string
+  displayName: string | null
+  address: string | null
+  status: ChannelConnectionStatus
+  inboxId: string | null
+  updatedAt: Date
+  session: {
+    state: ChannelSessionState
+    lastError: string | null
+    lastConnectedAt: Date | null
+    lastSeenAt: Date | null
+  } | null
+}
 
 export interface StoredTwilioBinding {
   organizationId: string
@@ -175,11 +214,13 @@ export class ChannelConnectionsRepository {
     accountSid: string
     address: string
     reason: string
+    operatorUserId?: string
   }): Promise<void> {
     await this.db.insert(auditEvents).values({
       organizationId: input.organizationId,
       eventType: "channel_connection.validation_failed",
-      actorType: "system",
+      actorType: input.operatorUserId ? "operator" : "system",
+      operatorUserId: input.operatorUserId ?? null,
       subjectType: "organization",
       subjectId: input.organizationId,
       data: {
@@ -189,6 +230,334 @@ export class ChannelConnectionsRepository {
         reason: input.reason,
       },
     })
+  }
+
+  async listForOrganization(
+    organizationId: string
+  ): Promise<ListedChannelConnection[]> {
+    const rows = await this.listedQuery()
+      .where(eq(channelConnections.organizationId, organizationId))
+      .orderBy(desc(channelConnections.createdAt))
+    return rows.map(toListedChannelConnection)
+  }
+
+  async findForOrganization(
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<ListedChannelConnection | null> {
+    const [row] = await this.listedQuery()
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnections.id, channelConnectionId)
+        )
+      )
+      .limit(1)
+    return row ? toListedChannelConnection(row) : null
+  }
+
+  async saveManagedTwilioConnection(input: {
+    organizationId: string
+    operatorUserId: string
+    displayName: string
+    inboxId: string | null
+    address: string
+    accountSid: string
+    externalSenderId: string
+    encryptCredentials: (
+      channelConnectionId: string
+    ) => EncryptedChannelCredentials
+  }): Promise<{ channelConnectionId: string }> {
+    try {
+      return await this.db.transaction(async (transaction) => {
+        await transaction.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${`channel-connection-provision:${input.organizationId}:whatsapp`}, 0))`
+        )
+        const [organization] = await transaction
+          .select({ status: organizations.status })
+          .from(organizations)
+          .where(eq(organizations.id, input.organizationId))
+          .limit(1)
+          .for("update")
+        if (organization?.status !== "active") {
+          throw new OrganizationNotActiveError()
+        }
+
+        const [existingConnection] = await transaction
+          .select({ id: channelConnections.id })
+          .from(channelConnections)
+          .where(
+            and(
+              eq(channelConnections.organizationId, input.organizationId),
+              eq(channelConnections.channelType, "whatsapp"),
+              eq(channelConnections.address, input.address)
+            )
+          )
+          .limit(1)
+
+        const channelConnectionId = existingConnection?.id ?? createId()
+        const encrypted = input.encryptCredentials(channelConnectionId)
+
+        if (existingConnection) {
+          await transaction
+            .update(channelConnections)
+            .set({
+              name: input.displayName,
+              displayName: input.displayName,
+              inboxId: input.inboxId,
+              status: "active",
+            })
+            .where(
+              and(
+                eq(channelConnections.organizationId, input.organizationId),
+                eq(channelConnections.id, channelConnectionId)
+              )
+            )
+        } else {
+          await transaction.insert(channelConnections).values({
+            id: channelConnectionId,
+            organizationId: input.organizationId,
+            channelType: "whatsapp",
+            name: input.displayName,
+            displayName: input.displayName,
+            inboxId: input.inboxId,
+            address: input.address,
+            status: "active",
+          })
+        }
+
+        await transaction
+          .insert(channelConnectionProviderBindings)
+          .values({
+            organizationId: input.organizationId,
+            channelConnectionId,
+            provider: "twilio",
+            externalAccountId: input.accountSid,
+            externalSenderId: input.externalSenderId,
+            routingAddress: input.address,
+            credentialsCiphertext: encrypted.ciphertext,
+            credentialsNonce: encrypted.nonce,
+            credentialsAuthTag: encrypted.authTag,
+            credentialsKeyVersion: encrypted.keyVersion,
+          })
+          .onConflictDoUpdate({
+            target: [
+              channelConnectionProviderBindings.organizationId,
+              channelConnectionProviderBindings.channelConnectionId,
+            ],
+            set: {
+              provider: "twilio",
+              externalAccountId: input.accountSid,
+              externalSenderId: input.externalSenderId,
+              routingAddress: input.address,
+              credentialsCiphertext: encrypted.ciphertext,
+              credentialsNonce: encrypted.nonce,
+              credentialsAuthTag: encrypted.authTag,
+              credentialsKeyVersion: encrypted.keyVersion,
+              updatedAt: new Date(),
+            },
+          })
+
+        await transaction.insert(auditEvents).values({
+          organizationId: input.organizationId,
+          eventType: existingConnection
+            ? "channel_connection.credentials_replaced"
+            : "channel_connection.activated",
+          actorType: "operator",
+          operatorUserId: input.operatorUserId,
+          subjectType: "channel_connection",
+          subjectId: channelConnectionId,
+          data: {
+            provider: "twilio",
+            address: input.address,
+            externalAccountId: input.accountSid,
+            externalSenderId: input.externalSenderId,
+            displayName: input.displayName,
+            inboxId: input.inboxId,
+          },
+        })
+
+        return { channelConnectionId }
+      })
+    } catch (error) {
+      if (error instanceof OrganizationNotActiveError) throw error
+      if (postgresErrorCode(error) === "23505") {
+        throw new ChannelRoutingConflictError()
+      }
+      throw error
+    }
+  }
+
+  async updateChannelConnection(input: {
+    organizationId: string
+    channelConnectionId: string
+    operatorUserId: string
+    displayName?: string
+    inboxId?: string | null
+    status?: "active" | "disabled"
+  }): Promise<
+    "updated" | "not_found" | "missing_address" | "organization_unavailable"
+  > {
+    if (!(await this.isOrganizationActive(input.organizationId))) {
+      return "organization_unavailable"
+    }
+
+    return this.db.transaction(async (transaction) => {
+      const [connection] = await transaction
+        .select({
+          id: channelConnections.id,
+          address: channelConnections.address,
+        })
+        .from(channelConnections)
+        .where(
+          and(
+            eq(channelConnections.organizationId, input.organizationId),
+            eq(channelConnections.id, input.channelConnectionId)
+          )
+        )
+        .limit(1)
+        .for("update")
+      if (!connection) return "not_found"
+      if (input.status === "active" && !connection.address) {
+        return "missing_address"
+      }
+
+      const changes: {
+        name?: string
+        displayName?: string
+        inboxId?: string | null
+        status?: "active" | "disabled"
+      } = {}
+      if (input.displayName !== undefined) {
+        changes.name = input.displayName
+        changes.displayName = input.displayName
+      }
+      if (input.inboxId !== undefined) changes.inboxId = input.inboxId
+      if (input.status !== undefined) changes.status = input.status
+
+      await transaction
+        .update(channelConnections)
+        .set(changes)
+        .where(
+          and(
+            eq(channelConnections.organizationId, input.organizationId),
+            eq(channelConnections.id, input.channelConnectionId)
+          )
+        )
+
+      await transaction.insert(auditEvents).values({
+        organizationId: input.organizationId,
+        eventType:
+          input.status === "disabled"
+            ? "channel_connection.disabled"
+            : input.status === "active"
+              ? "channel_connection.activated"
+              : "channel_connection.updated",
+        actorType: "operator",
+        operatorUserId: input.operatorUserId,
+        subjectType: "channel_connection",
+        subjectId: input.channelConnectionId,
+        data: {
+          displayName: input.displayName ?? null,
+          inboxId: input.inboxId === undefined ? null : input.inboxId,
+          status: input.status ?? null,
+        },
+      })
+
+      return "updated"
+    })
+  }
+
+  async disableChannelConnection(input: {
+    organizationId: string
+    channelConnectionId: string
+    operatorUserId: string
+  }): Promise<"disabled" | "not_found" | "organization_unavailable"> {
+    if (!(await this.isOrganizationActive(input.organizationId))) {
+      return "organization_unavailable"
+    }
+
+    return this.db.transaction(async (transaction) => {
+      const [connection] = await transaction
+        .select({
+          id: channelConnections.id,
+          status: channelConnections.status,
+        })
+        .from(channelConnections)
+        .where(
+          and(
+            eq(channelConnections.organizationId, input.organizationId),
+            eq(channelConnections.id, input.channelConnectionId)
+          )
+        )
+        .limit(1)
+        .for("update")
+      if (!connection) return "not_found"
+      if (connection.status === "disabled") return "disabled"
+
+      await transaction
+        .update(channelConnections)
+        .set({ status: "disabled" })
+        .where(
+          and(
+            eq(channelConnections.organizationId, input.organizationId),
+            eq(channelConnections.id, input.channelConnectionId)
+          )
+        )
+      await transaction.insert(auditEvents).values({
+        organizationId: input.organizationId,
+        eventType: "channel_connection.removed",
+        actorType: "operator",
+        operatorUserId: input.operatorUserId,
+        subjectType: "channel_connection",
+        subjectId: input.channelConnectionId,
+        data: { status: "disabled" },
+      })
+      return "disabled"
+    })
+  }
+
+  private listedQuery() {
+    return this.db
+      .select({
+        id: channelConnections.id,
+        channelType: channelConnections.channelType,
+        provider: channelConnectionProviderBindings.provider,
+        name: channelConnections.name,
+        displayName: channelConnections.displayName,
+        address: channelConnections.address,
+        status: channelConnections.status,
+        inboxId: channelConnections.inboxId,
+        updatedAt: channelConnections.updatedAt,
+        sessionState: channelSessionStates.state,
+        lastError: channelSessionStates.lastError,
+        lastConnectedAt: channelSessionStates.lastConnectedAt,
+        lastSeenAt: channelSessionStates.lastSeenAt,
+      })
+      .from(channelConnections)
+      .innerJoin(
+        channelConnectionProviderBindings,
+        and(
+          eq(
+            channelConnectionProviderBindings.organizationId,
+            channelConnections.organizationId
+          ),
+          eq(
+            channelConnectionProviderBindings.channelConnectionId,
+            channelConnections.id
+          )
+        )
+      )
+      .leftJoin(
+        channelSessionStates,
+        and(
+          eq(
+            channelSessionStates.organizationId,
+            channelConnections.organizationId
+          ),
+          eq(channelSessionStates.channelConnectionId, channelConnections.id)
+        )
+      )
   }
 
   async findActiveTwilioBinding(input: {
@@ -272,3 +641,47 @@ export class ChannelConnectionsRepository {
 }
 
 export const channelConnectionsRepository = new ChannelConnectionsRepository()
+
+function toListedChannelConnection(row: {
+  id: string
+  channelType: ChannelType
+  provider: ChannelProvider
+  name: string
+  displayName: string | null
+  address: string | null
+  status: ChannelConnectionStatus
+  inboxId: string | null
+  updatedAt: Date
+  sessionState: ChannelSessionState | null
+  lastError: string | null
+  lastConnectedAt: Date | null
+  lastSeenAt: Date | null
+}): ListedChannelConnection {
+  return {
+    id: row.id,
+    channelType: row.channelType,
+    provider: row.provider,
+    name: row.name,
+    displayName: row.displayName,
+    address: row.address,
+    status: row.status,
+    inboxId: row.inboxId,
+    updatedAt: row.updatedAt,
+    session:
+      row.sessionState === null
+        ? null
+        : {
+            state: row.sessionState,
+            lastError: row.lastError,
+            lastConnectedAt: row.lastConnectedAt,
+            lastSeenAt: row.lastSeenAt,
+          },
+  }
+}
+
+function postgresErrorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null) return undefined
+  if ("code" in error && typeof error.code === "string") return error.code
+  if ("cause" in error) return postgresErrorCode(error.cause)
+  return undefined
+}

@@ -56,8 +56,3 @@ export interface SupportInboxConversationDetail {
     operatorName: string | null
   }>
 }
-
-export interface SupportConversationUpdatedEvent {
-  type: "support_conversation.updated"
-  conversationId: string
-}

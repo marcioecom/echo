@@ -91,4 +91,22 @@ describe("API health", () => {
     await app.close()
   })
 
+  it("lets the dashboard preflight channel updates and removals", async () => {
+    const app = createApp()
+
+    const response = await app.inject({
+      method: "OPTIONS",
+      url: "/v1/channels/01K1EDN69NFBWCG42B2H99V2C1",
+      headers: {
+        origin: "http://localhost:3000",
+        "access-control-request-method": "PATCH",
+        "access-control-request-headers": "content-type",
+      },
+    })
+
+    expect(response.statusCode).toBe(204)
+    expect(response.headers["access-control-allow-methods"]).toContain("PATCH")
+    expect(response.headers["access-control-allow-methods"]).toContain("DELETE")
+    await app.close()
+  })
 })

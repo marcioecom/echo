@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { describe, it } from "node:test"
+import { describe, it } from "vitest"
 import { fileURLToPath } from "node:url"
 
 const appDir = dirname(fileURLToPath(import.meta.url))
@@ -45,9 +45,9 @@ describe("landing routes and SEO", () => {
     assert.match(portuguese, /createFileRoute\("\/pt-br"\)/)
     assert.match(portuguese, /landingHead\("pt-BR"\)/)
     assert.match(portuguese, /locale="pt-BR"/)
-    assert.match(head, /hreflang: "en"/)
-    assert.match(head, /hreflang: "pt-BR"/)
-    assert.match(head, /hreflang: "x-default"/)
+    assert.match(head, /hrefLang: "en"/)
+    assert.match(head, /hrefLang: "pt-BR"/)
+    assert.match(head, /hrefLang: "x-default"/)
     assert.match(head, /og:locale/)
   })
 

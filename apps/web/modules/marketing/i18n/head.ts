@@ -35,9 +35,9 @@ export function landingHead(locale: Locale) {
     ],
     links: [
       { rel: "canonical", href: canonical },
-      { rel: "alternate", href: enUrl, hreflang: "en" },
-      { rel: "alternate", href: ptUrl, hreflang: "pt-BR" },
-      { rel: "alternate", href: enUrl, hreflang: "x-default" },
+      { rel: "alternate", href: enUrl, hrefLang: "en" },
+      { rel: "alternate", href: ptUrl, hrefLang: "pt-BR" },
+      { rel: "alternate", href: enUrl, hrefLang: "x-default" },
     ],
   }
 }

@@ -22,6 +22,7 @@ import { Route as DashboardInboxRouteImport } from './routes/_dashboard/inbox'
 import { Route as AcceptInvitationIdRouteImport } from './routes/accept-invitation.$id'
 import { Route as DashboardInboxIndexRouteImport } from './routes/_dashboard/inbox.index'
 import { Route as DashboardInboxConversationIdRouteImport } from './routes/_dashboard/inbox.$conversationId'
+import { Route as DashboardSettingsChannelsRouteImport } from './routes/_dashboard/settings.channels'
 import { Route as DashboardSettingsKnowledgeRouteImport } from './routes/_dashboard/settings.knowledge'
 import { Route as DashboardSettingsMembersRouteImport } from './routes/_dashboard/settings.members'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -90,6 +91,12 @@ const DashboardInboxConversationIdRoute =
     path: '/$conversationId',
     getParentRoute: () => DashboardInboxRoute,
   } as any)
+const DashboardSettingsChannelsRoute =
+  DashboardSettingsChannelsRouteImport.update({
+    id: '/settings/channels',
+    path: '/settings/channels',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 const DashboardSettingsKnowledgeRoute =
   DashboardSettingsKnowledgeRouteImport.update({
     id: '/settings/knowledge',
@@ -119,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/inbox': typeof DashboardInboxRouteWithChildren
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
+  '/settings/channels': typeof DashboardSettingsChannelsRoute
   '/settings/knowledge': typeof DashboardSettingsKnowledgeRoute
   '/settings/members': typeof DashboardSettingsMembersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -134,6 +142,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof AuthSignUpRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
+  '/settings/channels': typeof DashboardSettingsChannelsRoute
   '/settings/knowledge': typeof DashboardSettingsKnowledgeRoute
   '/settings/members': typeof DashboardSettingsMembersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -153,6 +162,7 @@ export interface FileRoutesById {
   '/_dashboard/inbox': typeof DashboardInboxRouteWithChildren
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/_dashboard/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
+  '/_dashboard/settings/channels': typeof DashboardSettingsChannelsRoute
   '/_dashboard/settings/knowledge': typeof DashboardSettingsKnowledgeRoute
   '/_dashboard/settings/members': typeof DashboardSettingsMembersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/inbox'
     | '/accept-invitation/$id'
     | '/inbox/$conversationId'
+    | '/settings/channels'
     | '/settings/knowledge'
     | '/settings/members'
     | '/api/auth/$'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/accept-invitation/$id'
     | '/inbox/$conversationId'
+    | '/settings/channels'
     | '/settings/knowledge'
     | '/settings/members'
     | '/api/auth/$'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/_dashboard/inbox'
     | '/accept-invitation/$id'
     | '/_dashboard/inbox/$conversationId'
+    | '/_dashboard/settings/channels'
     | '/_dashboard/settings/knowledge'
     | '/_dashboard/settings/members'
     | '/api/auth/$'
@@ -312,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardInboxConversationIdRouteImport
       parentRoute: typeof DashboardInboxRoute
     }
+    '/_dashboard/settings/channels': {
+      id: '/_dashboard/settings/channels'
+      path: '/settings/channels'
+      fullPath: '/settings/channels'
+      preLoaderRoute: typeof DashboardSettingsChannelsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/settings/knowledge': {
       id: '/_dashboard/settings/knowledge'
       path: '/settings/knowledge'
@@ -370,12 +390,14 @@ const DashboardInboxRouteWithChildren = DashboardInboxRoute._addFileChildren(
 
 interface DashboardRouteChildren {
   DashboardInboxRoute: typeof DashboardInboxRouteWithChildren
+  DashboardSettingsChannelsRoute: typeof DashboardSettingsChannelsRoute
   DashboardSettingsKnowledgeRoute: typeof DashboardSettingsKnowledgeRoute
   DashboardSettingsMembersRoute: typeof DashboardSettingsMembersRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardInboxRoute: DashboardInboxRouteWithChildren,
+  DashboardSettingsChannelsRoute: DashboardSettingsChannelsRoute,
   DashboardSettingsKnowledgeRoute: DashboardSettingsKnowledgeRoute,
   DashboardSettingsMembersRoute: DashboardSettingsMembersRoute,
 }

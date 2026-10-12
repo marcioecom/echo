@@ -46,4 +46,20 @@ describe("SupportInboxEventBroker", () => {
 
     expect(socket.send).not.toHaveBeenCalled()
   })
+
+  it("does not deliver a channel status event to another Organization", () => {
+    const broker = new SupportInboxEventBroker()
+    const acmeSocket = createSocket()
+    const otherSocket = createSocket()
+    broker.subscribe("01K1EDN69NFBWCG42B2H99V2C1", acmeSocket)
+    broker.subscribe("01K1EDN69NFBWCG42B2H99V2C2", otherSocket)
+
+    broker.publish("01K1EDN69NFBWCG42B2H99V2C1", {
+      type: "channel.status_changed",
+      channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+    })
+
+    expect(acmeSocket.send).toHaveBeenCalledOnce()
+    expect(otherSocket.send).not.toHaveBeenCalled()
+  })
 })
