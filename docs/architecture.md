@@ -27,6 +27,7 @@ flowchart LR
 - Owns the support-inbox read/write API: conversation listing with cursor pagination, conversation detail, operator replies (`modules/support-inbox`).
 - Accepts knowledge-base document uploads via a scoped upload token and dispatches indexing jobs (`modules/knowledge-base`).
 - Exposes `/health/live` and `/health/ready`, failing closed when Postgres or Redis is unreachable.
+- Runs the Baileys ingress worker with a dedicated Redis connection: `connectTimeout` is retained, but `commandTimeout` is disabled so BullMQ's blocking reads can wait for jobs. The API's shared Redis connection keeps its command timeout.
 
 ### `apps/worker`
 

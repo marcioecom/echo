@@ -55,7 +55,10 @@ export async function handleWaIngressJob(
 }
 
 export function startWaIngressWorker(): { close: () => Promise<void> } {
-  const connection = redisConnection.duplicate({ maxRetriesPerRequest: null })
+  const connection = redisConnection.duplicate({
+    commandTimeout: undefined,
+    maxRetriesPerRequest: null,
+  })
   const worker = new Worker(waIngressQueueName, handleWaIngressJob, {
     connection,
     concurrency: 4,
