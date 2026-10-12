@@ -13,8 +13,9 @@ import {
 } from "@workspace/jobs"
 import {
   ChannelCredentialsCipher,
-  isPermanentTwilioSendError,
-  TwilioChannelProvider,
+  createChannelAdapterRegistry,
+  type ChannelAdapterRegistry,
+  type SendResult,
 } from "@workspace/messaging"
 import type { Job } from "bullmq"
 import { and, eq, inArray } from "drizzle-orm"
@@ -28,7 +29,16 @@ const credentialsCipher = new ChannelCredentialsCipher({
   keyVersion: env.CHANNEL_CREDENTIALS_KEY_VERSION,
 })
 
-export async function handleSendOutboundMessage(job: Job): Promise<void> {
+const defaultAdapters = createChannelAdapterRegistry(env.PUBLIC_API_URL)
+
+export function handleSendOutboundMessage(job: Job): Promise<void> {
+  return deliverOutboundMessage(job, defaultAdapters)
+}
+
+export async function deliverOutboundMessage(
+  job: Job,
+  adapters: ChannelAdapterRegistry
+): Promise<void> {
   const payload = sendOutboundMessageJobSchema.parse(job.data)
   const outbound = await loadOutboundMessage(payload)
 
@@ -47,6 +57,15 @@ export async function handleSendOutboundMessage(job: Job): Promise<void> {
     throw new Error("Outbound text Message has no body")
   }
 
+  const adapter = adapters.adapterFor(outbound.provider)
+  if (!adapter) {
+    await markOutboundMessageFailed({
+      ...payload,
+      reason: "provider_rejected",
+    })
+    return
+  }
+
   const authToken = credentialsCipher.decrypt(
     {
       ciphertext: outbound.ciphertext,
@@ -57,25 +76,38 @@ export async function handleSendOutboundMessage(job: Job): Promise<void> {
     {
       organizationId: payload.organizationId,
       channelConnectionId: payload.channelConnectionId,
-      provider: "twilio",
+      provider: outbound.provider,
     }
   )
 
-  const provider = new TwilioChannelProvider(outbound.accountSid, authToken)
+  let result: SendResult
   try {
-    const sent = await provider.sendWhatsAppTextMessage({
-      from: outbound.channelAddress,
-      to: outbound.contactAddress,
-      body: outbound.body,
-      statusCallbackUrl: new URL(
-        "/webhooks/twilio/whatsapp/status",
-        env.PUBLIC_API_URL
-      ).toString(),
-    })
+    result = await adapter.send(
+      {
+        organizationId: payload.organizationId,
+        channelConnectionId: payload.channelConnectionId,
+        fromAddress: outbound.channelAddress,
+        externalAccountId: outbound.externalAccountId,
+        authToken,
+      },
+      outbound.contactAddress,
+      { type: "text", body: outbound.body }
+    )
+  } catch (error) {
+    if (isFinalAttempt(job)) {
+      await markOutboundMessageFailed({
+        ...payload,
+        reason: "retry_exhausted",
+      })
+      return
+    }
+    throw error
+  }
 
+  if (result.ok) {
     await database.db
       .update(messages)
-      .set({ externalMessageId: sent.externalMessageId, status: "sent" })
+      .set({ externalMessageId: result.externalMessageId, status: "sent" })
       .where(
         and(
           eq(messages.organizationId, payload.organizationId),
@@ -89,21 +121,23 @@ export async function handleSendOutboundMessage(job: Job): Promise<void> {
       type: "support_conversation.updated",
       conversationId: payload.supportConversationId,
     })
-  } catch (error) {
-    const finalAttempt =
-      job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
-    if (isPermanentTwilioSendError(error) || finalAttempt) {
-      await markOutboundMessageFailed({
-        ...payload,
-        error,
-        reason: isPermanentTwilioSendError(error)
-          ? "provider_rejected"
-          : "retry_exhausted",
-      })
-      return
-    }
-    throw error
+    return
   }
+
+  if (!result.retryable || isFinalAttempt(job)) {
+    await markOutboundMessageFailed({
+      ...payload,
+      reason: result.retryable ? "retry_exhausted" : "provider_rejected",
+      providerCode: result.providerCode,
+    })
+    return
+  }
+
+  throw new Error(`Retryable outbound send failure: ${result.code}`)
+}
+
+function isFinalAttempt(job: Job): boolean {
+  return job.attemptsMade + 1 >= (job.opts.attempts ?? 1)
 }
 
 async function loadOutboundMessage(input: {
@@ -118,7 +152,8 @@ async function loadOutboundMessage(input: {
       body: messages.body,
       contactAddress: channelIdentities.address,
       channelAddress: channelConnections.address,
-      accountSid: channelConnectionProviderBindings.externalAccountId,
+      provider: channelConnectionProviderBindings.provider,
+      externalAccountId: channelConnectionProviderBindings.externalAccountId,
       ciphertext: channelConnectionProviderBindings.credentialsCiphertext,
       nonce: channelConnectionProviderBindings.credentialsNonce,
       authTag: channelConnectionProviderBindings.credentialsAuthTag,
@@ -160,8 +195,7 @@ async function loadOutboundMessage(input: {
         eq(
           channelConnectionProviderBindings.channelConnectionId,
           messages.channelConnectionId
-        ),
-        eq(channelConnectionProviderBindings.provider, "twilio")
+        )
       )
     )
     .innerJoin(
@@ -191,8 +225,8 @@ async function markOutboundMessageFailed(input: {
   channelConnectionId: string
   supportConversationId: string
   messageId: string
-  error: unknown
   reason: "provider_rejected" | "retry_exhausted"
+  providerCode?: number
 }): Promise<void> {
   await database.db.transaction(async (transaction) => {
     const updated = await transaction
@@ -209,10 +243,6 @@ async function markOutboundMessageFailed(input: {
       .returning({ id: messages.id })
     if (updated.length === 0) return
 
-    const providerCode =
-      typeof input.error === "object" && input.error !== null
-        ? (input.error as { code?: unknown }).code
-        : undefined
     await transaction.insert(auditEvents).values({
       organizationId: input.organizationId,
       eventType: "message.outbound_delivery_failed",
@@ -221,7 +251,9 @@ async function markOutboundMessageFailed(input: {
       subjectId: input.messageId,
       data: {
         reason: input.reason,
-        ...(typeof providerCode === "number" ? { providerCode } : {}),
+        ...(typeof input.providerCode === "number"
+          ? { providerCode: input.providerCode }
+          : {}),
       },
     })
   })

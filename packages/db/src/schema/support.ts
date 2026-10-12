@@ -2,6 +2,7 @@ import {
 	type ActorType,
 	type ChannelConnectionStatus,
 	type ChannelProvider,
+	type ChannelSessionState,
 	type ChannelType,
 	createId,
 	type MessageContentType,
@@ -14,6 +15,7 @@ import {
 	check,
 	foreignKey,
 	index,
+	integer,
 	jsonb,
 	pgTable,
 	text,
@@ -43,6 +45,8 @@ export const channelConnections = pgTable(
 			.references(() => organizations.id, { onDelete: "restrict" }),
 		channelType: text("channel_type").$type<ChannelType>().notNull(),
 		name: text("name").notNull(),
+		displayName: text("display_name"),
+		inboxId: text("inbox_id"),
 		address: text("address"),
 		status: text("status")
 			.$type<ChannelConnectionStatus>()
@@ -111,8 +115,82 @@ export const channelConnectionProviderBindings = pgTable(
 		),
 		check(
 			"channel_connection_provider_bindings_provider_check",
-			sql`${table.provider} in ('twilio')`
+			sql`${table.provider} in ('twilio', 'baileys', 'meta_cloud')`
 		),
+	]
+);
+
+export const channelSessionStates = pgTable(
+	"channel_session_states",
+	{
+		id: text("id").primaryKey().$defaultFn(createId),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "restrict" }),
+		channelConnectionId: text("channel_connection_id").notNull(),
+		state: text("state").$type<ChannelSessionState>().notNull(),
+		lastError: text("last_error"),
+		lastConnectedAt: timestamp("last_connected_at", { withTimezone: true }),
+		lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
+		ownerPod: text("owner_pod"),
+		reconnectAttempts: integer("reconnect_attempts").default(0).notNull(),
+		...timestamps,
+	},
+	(table) => [
+		foreignKey({
+			name: "channel_session_states_connection_fk",
+			columns: [table.organizationId, table.channelConnectionId],
+			foreignColumns: [
+				channelConnections.organizationId,
+				channelConnections.id,
+			],
+		}).onDelete("restrict"),
+		unique("channel_session_states_connection_unique").on(
+			table.organizationId,
+			table.channelConnectionId
+		),
+		index("channel_session_states_organization_id_idx").on(
+			table.organizationId
+		),
+		check(
+			"channel_session_states_state_check",
+			sql`${table.state} in ('connecting', 'qr_pending', 'pairing_code_pending', 'connected', 'disconnected', 'logged_out', 'banned_suspected')`
+		),
+	]
+);
+
+export const baileysAuthKeys = pgTable(
+	"baileys_auth_keys",
+	{
+		id: text("id").primaryKey().$defaultFn(createId),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "restrict" }),
+		channelConnectionId: text("channel_connection_id").notNull(),
+		keyType: text("key_type").notNull(),
+		keyId: text("key_id").notNull(),
+		ciphertext: text("ciphertext").notNull(),
+		nonce: text("nonce").notNull(),
+		authTag: text("auth_tag").notNull(),
+		keyVersion: text("key_version").notNull(),
+		...timestamps,
+	},
+	(table) => [
+		foreignKey({
+			name: "baileys_auth_keys_connection_fk",
+			columns: [table.organizationId, table.channelConnectionId],
+			foreignColumns: [
+				channelConnections.organizationId,
+				channelConnections.id,
+			],
+		}).onDelete("restrict"),
+		unique("baileys_auth_keys_connection_key_unique").on(
+			table.organizationId,
+			table.channelConnectionId,
+			table.keyType,
+			table.keyId
+		),
+		index("baileys_auth_keys_organization_id_idx").on(table.organizationId),
 	]
 );
 

@@ -37,6 +37,9 @@ describe("channel credentials cipher", () => {
         organizationId: "01K1EF2SKJGM5S5BW7RNFRPRY4",
       })
     ).toThrow()
+    expect(() =>
+      cipher.decrypt(encrypted, { ...context, provider: "baileys" })
+    ).toThrow()
   })
 
   it("rejects credentials encrypted with another key version", () => {

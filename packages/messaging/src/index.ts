@@ -1,2 +1,5 @@
+export * from "./channel-adapter"
+export * from "./channel-adapters"
 export * from "./channel-credentials-cipher"
+export * from "./twilio-adapter"
 export * from "./twilio-channel-provider"
