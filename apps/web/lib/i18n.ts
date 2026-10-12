@@ -1,16 +1,32 @@
+import { authMessages, type AuthMessages } from "@/modules/auth/i18n"
 import {
   channelsMessages,
   type ChannelsMessages,
 } from "@/modules/channels/i18n"
+import { inboxMessages, type InboxMessages } from "@/modules/inbox/i18n"
+import {
+  knowledgeMessages,
+  type KnowledgeMessages,
+} from "@/modules/knowledge-base/i18n"
 import {
   prefersPortuguese,
   readLanguageCookie,
 } from "@/modules/marketing/i18n/negotiation"
+import {
+  membersMessages,
+  type MembersMessages,
+} from "@/modules/organization/i18n"
+import { shellMessages, type ShellMessages } from "@/modules/shell/i18n"
 
 export type AppLocale = "en" | "pt-BR"
 
 type Catalog = {
+  auth: AuthMessages
   channels: ChannelsMessages
+  inbox: InboxMessages
+  knowledge: KnowledgeMessages
+  members: MembersMessages
+  shell: ShellMessages
 }
 
 type LeafPaths<T, Prefix extends string = ""> = {
@@ -24,8 +40,22 @@ type LeafPaths<T, Prefix extends string = ""> = {
 export type MessageKey = LeafPaths<Catalog>
 
 const catalogs: Record<AppLocale, Catalog> = {
-  en: { channels: channelsMessages.en },
-  "pt-BR": { channels: channelsMessages["pt-BR"] },
+  en: {
+    auth: authMessages.en,
+    channels: channelsMessages.en,
+    inbox: inboxMessages.en,
+    knowledge: knowledgeMessages.en,
+    members: membersMessages.en,
+    shell: shellMessages.en,
+  },
+  "pt-BR": {
+    auth: authMessages["pt-BR"],
+    channels: channelsMessages["pt-BR"],
+    inbox: inboxMessages["pt-BR"],
+    knowledge: knowledgeMessages["pt-BR"],
+    members: membersMessages["pt-BR"],
+    shell: shellMessages["pt-BR"],
+  },
 }
 
 const tables: Record<AppLocale, Record<string, string>> = {
@@ -52,8 +82,13 @@ export function appLocale(): AppLocale {
   })
 }
 
-export function t(key: MessageKey): string {
-  return tables[appLocale()][key] ?? tables.en[key] ?? key
+export function t(key: MessageKey, values?: Record<string, string>): string {
+  const message = tables[appLocale()][key] ?? tables.en[key] ?? key
+  if (!values) return message
+  return message.replace(/\{([A-Za-z0-9_]+)\}/g, (token, name: string) => {
+    const value = values[name]
+    return value === undefined ? token : value
+  })
 }
 
 export function isMessageKey(value: string): value is MessageKey {

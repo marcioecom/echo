@@ -7,10 +7,11 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@workspace/ui/components/form"
 import { Link } from "@tanstack/react-router"
 
+import { t } from "@/lib/i18n"
+import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { usePasswordResetForm } from "@/modules/auth/hooks/use-password-reset-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
 
@@ -22,16 +23,18 @@ export function PasswordResetView() {
     return (
       <div>
         <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Link unavailable</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {t("auth.reset.invalidTitle")}
+          </h1>
           <p className="mt-2 text-base text-muted-foreground">
-            This password reset link is invalid or has expired. Request a new one.
+            {t("auth.reset.invalidBody")}
           </p>
         </header>
         <Link
           to="/forgot-password"
           className="text-sm font-medium text-foreground underline underline-offset-4"
         >
-          Request a new link
+          {t("auth.reset.requestNew")}
         </Link>
       </div>
     )
@@ -40,9 +43,11 @@ export function PasswordResetView() {
   return (
     <div>
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Choose a new password</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {t("auth.reset.title")}
+        </h1>
         <p className="mt-2 text-base text-muted-foreground">
-          Use at least 8 characters. You&apos;ll be signed out everywhere else.
+          {t("auth.reset.description")}
         </p>
       </header>
       <Form {...form}>
@@ -52,11 +57,11 @@ export function PasswordResetView() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New password</FormLabel>
+                <FormLabel>{t("auth.reset.password")}</FormLabel>
                 <FormControl>
                   <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
-                <FormMessage />
+                <TranslatedFormMessage />
               </FormItem>
             )}
           />
@@ -65,16 +70,16 @@ export function PasswordResetView() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm new password</FormLabel>
+                <FormLabel>{t("auth.reset.confirmPassword")}</FormLabel>
                 <FormControl>
                   <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
-                <FormMessage />
+                <TranslatedFormMessage />
               </FormItem>
             )}
           />
           <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? "Resetting password..." : "Reset password"}
+            {isPending ? t("auth.reset.submitting") : t("auth.reset.submit")}
           </Button>
         </form>
       </Form>

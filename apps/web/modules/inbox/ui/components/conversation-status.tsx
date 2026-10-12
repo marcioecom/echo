@@ -1,12 +1,14 @@
 import { cn } from "@workspace/ui/lib/utils"
 import type { SupportConversationStatus } from "@workspace/domain"
 
-const statusLabels: Record<SupportConversationStatus, string> = {
-  open: "Open",
-  ai_active: "AI active",
-  human_required: "Human required",
-  resolved: "Resolved",
-}
+import { t, type MessageKey } from "@/lib/i18n"
+
+const statusKeys = {
+  open: "inbox.status.open",
+  ai_active: "inbox.status.ai_active",
+  human_required: "inbox.status.human_required",
+  resolved: "inbox.status.resolved",
+} as const satisfies Record<SupportConversationStatus, MessageKey>
 
 export function ConversationStatus({
   status,
@@ -23,7 +25,7 @@ export function ConversationStatus({
           "bg-muted text-muted-foreground"
       )}
     >
-      {statusLabels[status]}
+      {t(statusKeys[status])}
     </span>
   )
 }

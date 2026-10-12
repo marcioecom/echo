@@ -7,10 +7,11 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { translateMessage } from "@/lib/i18n"
 
 const loginSchema = z.object({
-  email: z.email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.email("auth.validation.email"),
+  password: z.string().min(1, "auth.validation.password"),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -37,7 +38,7 @@ export function useLoginForm() {
       password: values.password,
     })
     if (error) {
-      toast.error(error.message ?? "Could not sign in")
+      toast.error(translateMessage(error.message ?? "auth.errors.signIn"))
       return
     }
     router.history.push(redirectTo)

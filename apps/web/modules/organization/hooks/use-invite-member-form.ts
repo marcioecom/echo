@@ -8,9 +8,10 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { translateMessage } from "@/lib/i18n"
 
 const inviteSchema = z.object({
-  email: z.email("Enter a valid email address"),
+  email: z.email("members.validation.email"),
   role: z.enum(organizationRoleNames),
 })
 
@@ -36,7 +37,7 @@ export function useInviteMemberForm() {
       })
     },
     onError: (error) => {
-      toast.error(error.message)
+      toast.error(translateMessage(error.message))
     },
   })
 

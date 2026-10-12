@@ -5,12 +5,13 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 
 import { authClient } from "@/lib/auth-client"
+import { t } from "@/lib/i18n"
 
 type SignOutButtonProps = Omit<React.ComponentProps<typeof Button>, "onClick">
 
 export function SignOutButton({
   variant = "outline",
-  children = "Sign out",
+  children = t("shell.signOut"),
   ...props
 }: SignOutButtonProps) {
   const navigate = useNavigate()

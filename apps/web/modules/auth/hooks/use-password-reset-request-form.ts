@@ -7,9 +7,10 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { translateMessage } from "@/lib/i18n"
 
 const passwordResetRequestSchema = z.object({
-  email: z.email("Enter a valid email address"),
+  email: z.email("auth.validation.email"),
 })
 
 type PasswordResetRequestFormValues = z.infer<typeof passwordResetRequestSchema>
@@ -28,7 +29,7 @@ export function usePasswordResetRequestForm() {
     })
 
     if (error) {
-      toast.error(error.message ?? "Could not request a password reset")
+      toast.error(translateMessage(error.message ?? "auth.errors.resetRequest"))
       return
     }
 

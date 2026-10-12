@@ -13,8 +13,11 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "@tanstack/react-router"
+import type { MessageStatus } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+
+import { appLocale, t, type MessageKey } from "@/lib/i18n"
 
 import { InboxApiError } from "../../hooks/api"
 import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
@@ -22,10 +25,20 @@ import type { InboxConversationDetail } from "../../types"
 import { ConversationStatus } from "./conversation-status"
 import { ReplyComposer } from "./reply-composer"
 
-const timestamp = new Intl.DateTimeFormat("en", {
-  dateStyle: "medium",
-  timeStyle: "short",
-})
+const deliveryKeys = {
+  pending: "inbox.delivery.pending",
+  sent: "inbox.delivery.sent",
+  delivered: "inbox.delivery.delivered",
+  read: "inbox.delivery.read",
+  failed: "inbox.delivery.failed",
+} as const satisfies Record<Exclude<MessageStatus, "received">, MessageKey>
+
+function formatTimestamp(value: string) {
+  return new Intl.DateTimeFormat(appLocale(), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value))
+}
 
 export function ConversationDetail({
   organizationId,
@@ -50,16 +63,18 @@ export function ConversationDetail({
     return (
       <DetailState
         icon={AlertCircleIcon}
-        title={notFound ? "Conversation not found" : "Conversation unavailable"}
-        description={
+        title={
           notFound
-            ? "It may have been removed or belongs to another Organization."
-            : "The message timeline could not be loaded."
+            ? t("inbox.notFoundTitle")
+            : t("inbox.unavailableDetailTitle")
+        }
+        description={
+          notFound ? t("inbox.notFoundBody") : t("inbox.unavailableDetailBody")
         }
         action={
           notFound ? (
             <Button asChild variant="outline">
-              <Link to="/inbox">Back to inbox</Link>
+              <Link to="/inbox">{t("inbox.back")}</Link>
             </Button>
           ) : (
             <Button
@@ -68,7 +83,7 @@ export function ConversationDetail({
               data-icon="inline-start"
             >
               <HugeiconsIcon icon={ReloadIcon} />
-              Try again
+              {t("inbox.tryAgain")}
             </Button>
           )
         }
@@ -85,7 +100,7 @@ export function ConversationDetail({
     <section className="flex min-h-0 flex-1 flex-col bg-muted/20">
       <header className="flex min-h-16 items-center gap-3 border-b bg-background px-4 py-3">
         <Button asChild variant="ghost" size="icon" className="md:hidden">
-          <Link to="/inbox" aria-label="Back to inbox">
+          <Link to="/inbox" aria-label={t("inbox.back")}>
             <HugeiconsIcon icon={ArrowLeft01Icon} />
           </Link>
         </Button>
@@ -113,9 +128,9 @@ export function ConversationDetail({
           role="alert"
           className="flex items-center justify-between gap-3 border-b bg-destructive/5 px-4 py-2 text-xs text-destructive"
         >
-          <span>New messages could not be loaded.</span>
+          <span>{t("inbox.newMessagesError")}</span>
           <Button variant="ghost" size="sm" onClick={onRetry}>
-            Retry
+            {t("inbox.retry")}
           </Button>
         </div>
       ) : null}
@@ -124,13 +139,13 @@ export function ConversationDetail({
         ref={timelineRef}
         className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6"
         role="log"
-        aria-label="Conversation messages"
+        aria-label={t("inbox.messagesLabel")}
       >
         {detail.messages.length === 0 ? (
           <DetailState
             icon={Message01Icon}
-            title="No messages"
-            description="Messages in this Support Conversation will appear here."
+            title={t("inbox.noMessagesTitle")}
+            description={t("inbox.noMessagesBody")}
           />
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-4">
@@ -140,10 +155,10 @@ export function ConversationDetail({
                 message.senderType === "contact"
                   ? contactName
                   : message.senderType === "operator"
-                    ? (message.operatorName ?? "Operator")
+                    ? (message.operatorName ?? t("inbox.sender.operator"))
                     : message.senderType === "ai"
-                      ? "Echo AI"
-                      : "System"
+                      ? t("inbox.sender.echo")
+                      : t("inbox.sender.system")
               return (
                 <article
                   key={message.id}
@@ -177,7 +192,7 @@ export function ConversationDetail({
                         dateTime={message.occurredAt}
                         className="tabular-nums"
                       >
-                        {timestamp.format(new Date(message.occurredAt))}
+                        {formatTimestamp(message.occurredAt)}
                       </time>
                     </div>
                     <div
@@ -190,7 +205,7 @@ export function ConversationDetail({
                     >
                       {message.contentType === "unsupported" ? (
                         <span className="italic opacity-80">
-                          Unsupported attachment
+                          {t("inbox.unsupported")}
                         </span>
                       ) : (
                         message.body
@@ -215,23 +230,32 @@ export function ConversationDetail({
   )
 }
 
-function MessageDeliveryStatus({ status }: { status: InboxConversationDetail["messages"][number]["status"] }) {
+function MessageDeliveryStatus({
+  status,
+}: {
+  status: InboxConversationDetail["messages"][number]["status"]
+}) {
   if (status === "received") return null
   const failed = status === "failed"
-  const label = failed ? "Not delivered" : status
   return (
     <p
       className={cn(
-        "mt-1 flex items-center justify-end gap-1 text-[10px] capitalize",
+        "mt-1 flex items-center justify-end gap-1 text-[10px]",
         failed ? "text-destructive" : "text-muted-foreground"
       )}
     >
       <HugeiconsIcon
-        icon={failed ? AlertCircleIcon : status === "pending" ? Clock01Icon : CheckmarkCircle01Icon}
+        icon={
+          failed
+            ? AlertCircleIcon
+            : status === "pending"
+              ? Clock01Icon
+              : CheckmarkCircle01Icon
+        }
         size={11}
         strokeWidth={1.8}
       />
-      {label}
+      {t(deliveryKeys[status])}
     </p>
   )
 }
@@ -240,8 +264,8 @@ export function EmptyConversationDetail() {
   return (
     <DetailState
       icon={Message01Icon}
-      title="Select a conversation"
-      description="Choose a Support Conversation from the queue to read its message timeline."
+      title={t("inbox.selectTitle")}
+      description={t("inbox.selectBody")}
     />
   )
 }
@@ -250,7 +274,7 @@ function ConversationDetailSkeleton() {
   return (
     <section
       className="flex flex-1 flex-col bg-muted/20"
-      aria-label="Loading conversation"
+      aria-label={t("inbox.loadingDetail")}
     >
       <div className="flex h-16 items-center gap-3 border-b bg-background px-4">
         <div className="size-9 animate-pulse rounded-full bg-muted" />

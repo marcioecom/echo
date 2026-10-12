@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
+import { t } from "@/lib/i18n"
 import {
   sessionQueryOptions,
   workspaceQueryOptions,
@@ -52,7 +53,7 @@ function DashboardLayout() {
 function DashboardPending() {
   return (
     <div
-      aria-label="Loading workspace"
+      aria-label={t("shell.loadingWorkspace")}
       className="flex min-h-svh bg-background"
     >
       <div className="hidden w-60 border-r bg-sidebar md:block" />

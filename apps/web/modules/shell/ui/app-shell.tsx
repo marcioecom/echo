@@ -6,6 +6,7 @@ import { useRouterState } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
 import { BrandLogo } from "@/components/brand-logo"
+import { t } from "@/lib/i18n"
 import { AppSidebar } from "@/modules/shell/ui/app-sidebar"
 
 type AppShellProps = {
@@ -63,7 +64,7 @@ export function AppShell({
           </aside>
           <button
             type="button"
-            aria-label="Close navigation"
+            aria-label={t("shell.closeNav")}
             onClick={() => setSidebarOpen(false)}
             className="absolute top-3.5 left-64 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/30"
           >
@@ -76,7 +77,7 @@ export function AppShell({
         <header className="sticky top-0 z-(--z-sticky) flex h-12 items-center gap-2 border-b bg-background px-4 md:hidden">
           <button
             type="button"
-            aria-label="Open navigation"
+            aria-label={t("shell.openNav")}
             onClick={() => setSidebarOpen(true)}
             className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
           >

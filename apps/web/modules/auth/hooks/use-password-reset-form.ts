@@ -7,14 +7,15 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { t, translateMessage } from "@/lib/i18n"
 
 const passwordResetSchema = z
   .object({
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z.string().min(8, "auth.validation.passwordMin"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "auth.validation.passwordMismatch",
     path: ["confirmPassword"],
   })
 
@@ -31,7 +32,7 @@ export function usePasswordResetForm() {
 
   async function onSubmit(values: PasswordResetFormValues) {
     if (!token) {
-      toast.error("This password reset link is invalid or expired")
+      toast.error(t("auth.errors.resetInvalid"))
       return
     }
 
@@ -40,11 +41,11 @@ export function usePasswordResetForm() {
       token,
     })
     if (error) {
-      toast.error(error.message ?? "Could not reset your password")
+      toast.error(translateMessage(error.message ?? "auth.errors.reset"))
       return
     }
 
-    toast.success("Password reset. Sign in with your new password.")
+    toast.success(t("auth.reset.success"))
     navigate({ to: "/login" })
   }
 

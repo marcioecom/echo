@@ -7,16 +7,17 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { translateMessage } from "@/lib/i18n"
 
 const signUpSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.email("Enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().min(1, "auth.validation.name"),
+    email: z.email("auth.validation.email"),
+    password: z.string().min(8, "auth.validation.passwordMin"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "auth.validation.passwordMismatch",
     path: ["confirmPassword"],
   })
 
@@ -47,7 +48,7 @@ export function useSignUpForm() {
       password: values.password,
     })
     if (error) {
-      toast.error(error.message ?? "Could not create your account")
+      toast.error(translateMessage(error.message ?? "auth.errors.signUp"))
       return
     }
     router.history.push(redirectTo)

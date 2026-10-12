@@ -30,7 +30,7 @@ async function request<T>(
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     throw new KnowledgeBaseApiError(
-      "The Knowledge Base request could not be completed.",
+      "knowledge.errors.request",
       response.status,
       typeof body?.error === "string" ? body.error : undefined
     )
@@ -42,11 +42,17 @@ export function listKnowledgeDocuments() {
   return request<{ items: KnowledgeDocument[] }>("/v1/knowledge-documents")
 }
 
-export function createTextKnowledgeDocument(input: { title: string; content: string }) {
-  return request<{ document: KnowledgeDocument }>("/v1/knowledge-documents/text", {
-    method: "POST",
-    body: input,
-  })
+export function createTextKnowledgeDocument(input: {
+  title: string
+  content: string
+}) {
+  return request<{ document: KnowledgeDocument }>(
+    "/v1/knowledge-documents/text",
+    {
+      method: "POST",
+      body: input,
+    }
+  )
 }
 
 export function createKnowledgeUpload(input: {
@@ -60,11 +66,17 @@ export function createKnowledgeUpload(input: {
   })
 }
 
-export function completeKnowledgeUpload(input: { title: string; uploadToken: string }) {
-  return request<{ document: KnowledgeDocument }>("/v1/knowledge-documents/file", {
-    method: "POST",
-    body: input,
-  })
+export function completeKnowledgeUpload(input: {
+  title: string
+  uploadToken: string
+}) {
+  return request<{ document: KnowledgeDocument }>(
+    "/v1/knowledge-documents/file",
+    {
+      method: "POST",
+      body: input,
+    }
+  )
 }
 
 export function reindexKnowledgeDocument(documentId: string) {
@@ -74,7 +86,10 @@ export function reindexKnowledgeDocument(documentId: string) {
   )
 }
 
-export async function uploadKnowledgeFile(file: File, upload: KnowledgeUpload): Promise<Response> {
+export async function uploadKnowledgeFile(
+  file: File,
+  upload: KnowledgeUpload
+): Promise<Response> {
   return fetch(upload.uploadUrl, {
     method: "PUT",
     headers: upload.headers,
