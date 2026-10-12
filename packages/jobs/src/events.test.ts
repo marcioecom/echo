@@ -38,6 +38,45 @@ describe("parseInboxEvent", () => {
     })
   })
 
+  it("accepts ephemeral pairing events", () => {
+    const qr = parseInboxEvent(
+      channel,
+      JSON.stringify({
+        type: "channel.qr",
+        channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+        qr: "2@abc",
+      })
+    )
+    expect(qr?.event).toEqual({
+      type: "channel.qr",
+      channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+      qr: "2@abc",
+    })
+
+    const code = parseInboxEvent(
+      channel,
+      JSON.stringify({
+        type: "channel.pairing_code",
+        channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+        pairingCode: "ABCD1234",
+      })
+    )
+    expect(code?.event.type).toBe("channel.pairing_code")
+  })
+
+  it("drops a QR event that has no code", () => {
+    expect(
+      parseInboxEvent(
+        channel,
+        JSON.stringify({
+          type: "channel.qr",
+          channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+          qr: "",
+        })
+      )
+    ).toBeNull()
+  })
+
   it("drops events whose organization id is not a ULID", () => {
     expect(
       parseInboxEvent(

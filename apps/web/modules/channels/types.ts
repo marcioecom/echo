@@ -29,3 +29,15 @@ export const channelStatusChangedEventSchema = z.object({
   type: z.literal("channel.status_changed"),
   channelConnectionId: z.string(),
 })
+
+export const channelQrEventSchema = z.object({
+  type: z.literal("channel.qr"),
+  channelConnectionId: z.string(),
+  qr: z.string().min(1),
+})
+
+export const channelPairingCodeEventSchema = z.object({
+  type: z.literal("channel.pairing_code"),
+  channelConnectionId: z.string(),
+  pairingCode: z.string().min(1),
+})

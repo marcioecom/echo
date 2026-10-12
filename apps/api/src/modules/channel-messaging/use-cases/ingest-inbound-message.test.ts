@@ -17,9 +17,12 @@ vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../repositories/inbound-message-repository", () => ({
   inboundMessageRepository: { ingest: repositoryIngest },
 }))
-vi.mock("../../support-inbox/events/publish-support-conversation-updated", () => ({
-  publishSupportConversationUpdated: publish,
-}))
+vi.mock(
+  "../../support-inbox/events/publish-support-conversation-updated",
+  () => ({
+    publishSupportConversationUpdated: publish,
+  })
+)
 
 import { ingestInboundMessage } from "./ingest-inbound-message"
 
@@ -92,5 +95,20 @@ describe("ingestInboundMessage", () => {
       expect.objectContaining({ err: cause, messageId: ingested.messageId })
     )
     expect(publish).toHaveBeenCalledOnce()
+  })
+
+  it("publishes a duplicate without enqueueing another agent job", async () => {
+    repositoryIngest.mockResolvedValue({ ...ingested, duplicate: true })
+
+    await expect(ingestInboundMessage(input)).resolves.toEqual({
+      ok: true,
+      value: {
+        ...ingested,
+        duplicate: true,
+        jobId: `duplicate:${ingested.messageId}`,
+      },
+    })
+    expect(publish).toHaveBeenCalledOnce()
+    expect(enqueue).not.toHaveBeenCalled()
   })
 })

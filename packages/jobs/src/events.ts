@@ -19,9 +19,27 @@ export type ChannelStatusChangedEvent = z.infer<
   typeof channelStatusChangedEventSchema
 >
 
+export const channelQrEventSchema = z.object({
+  type: z.literal("channel.qr"),
+  channelConnectionId: ulidSchema,
+  qr: z.string().min(1),
+})
+export type ChannelQrEvent = z.infer<typeof channelQrEventSchema>
+
+export const channelPairingCodeEventSchema = z.object({
+  type: z.literal("channel.pairing_code"),
+  channelConnectionId: ulidSchema,
+  pairingCode: z.string().min(1),
+})
+export type ChannelPairingCodeEvent = z.infer<
+  typeof channelPairingCodeEventSchema
+>
+
 export const inboxEventSchema = z.discriminatedUnion("type", [
   supportConversationUpdatedEventSchema,
   channelStatusChangedEventSchema,
+  channelQrEventSchema,
+  channelPairingCodeEventSchema,
 ])
 export type InboxEvent = z.infer<typeof inboxEventSchema>
 

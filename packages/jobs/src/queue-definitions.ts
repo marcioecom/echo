@@ -3,6 +3,7 @@ import type { JobsOptions } from "bullmq"
 import { emailQueueName } from "./schemas/email"
 import { knowledgeBaseQueueName } from "./schemas/knowledge-base"
 import { supportConversationsQueueName } from "./schemas/support-conversations"
+import { waGatewayQueueName, waIngressQueueName } from "./schemas/wa-gateway"
 
 const defaultJobOptions = {
   attempts: 4,
@@ -34,10 +35,31 @@ export const knowledgeBaseQueueDefinition = {
   defaultJobOptions,
 }
 
+const waJobOptions = {
+  ...defaultJobOptions,
+  attempts: 3,
+  backoff: {
+    type: "exponential",
+    delay: 2_000,
+  },
+} satisfies JobsOptions
+
+export const waGatewayQueueDefinition = {
+  name: waGatewayQueueName,
+  defaultJobOptions: waJobOptions,
+}
+
+export const waIngressQueueDefinition = {
+  name: waIngressQueueName,
+  defaultJobOptions,
+}
+
 export const queueDefinitions = {
   [emailQueueName]: emailQueueDefinition,
   [supportConversationsQueueName]: supportConversationsQueueDefinition,
   [knowledgeBaseQueueName]: knowledgeBaseQueueDefinition,
+  [waGatewayQueueName]: waGatewayQueueDefinition,
+  [waIngressQueueName]: waIngressQueueDefinition,
 }
 
 export type QueueName = keyof typeof queueDefinitions

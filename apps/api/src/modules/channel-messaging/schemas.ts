@@ -51,6 +51,24 @@ export const updateChannelConnectionSchema = z
     "empty_update"
   )
 
+export const createBaileysChannelSchema = z.object({
+  provider: z.literal("baileys"),
+  displayName: z.string().trim().min(1).max(120),
+  inboxId: optionalInboxIdSchema,
+})
+
+export const createChannelBodySchema = z.union([
+  createTwilioChannelSchema,
+  createBaileysChannelSchema,
+])
+
+export const requestPairingCodeSchema = z.object({
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(/^\+[1-9]\d{1,14}$/),
+})
+
 export const channelConnectionParamsSchema = z.object({
   channelConnectionId: z.ulid(),
 })

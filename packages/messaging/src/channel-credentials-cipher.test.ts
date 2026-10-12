@@ -11,7 +11,10 @@ const context = {
 
 describe("channel credentials cipher", () => {
   it("round trips credentials with a fresh nonce", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
 
     const first = cipher.encrypt("secret", context)
     const second = cipher.encrypt("secret", context)
@@ -22,12 +25,18 @@ describe("channel credentials cipher", () => {
   })
 
   it("rejects tampering and the wrong authenticated context", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
     const encrypted = cipher.encrypt("secret", context)
 
     expect(() =>
       cipher.decrypt(
-        { ...encrypted, ciphertext: Buffer.from("tampered").toString("base64") },
+        {
+          ...encrypted,
+          ciphertext: Buffer.from("tampered").toString("base64"),
+        },
         context
       )
     ).toThrow()
@@ -42,8 +51,37 @@ describe("channel credentials cipher", () => {
     ).toThrow()
   })
 
+  it("binds Baileys key material to the key type and id", () => {
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
+    const scoped = {
+      ...context,
+      provider: "baileys" as const,
+      keyType: "pre-key",
+      keyId: "1",
+    }
+
+    const encrypted = cipher.encrypt("key-material", scoped)
+
+    expect(encrypted.ciphertext).not.toContain("key-material")
+    expect(cipher.decrypt(encrypted, scoped)).toBe("key-material")
+    expect(() => cipher.decrypt(encrypted, { ...scoped, keyId: "2" })).toThrow()
+    expect(() =>
+      cipher.decrypt(encrypted, {
+        organizationId: scoped.organizationId,
+        channelConnectionId: scoped.channelConnectionId,
+        provider: scoped.provider,
+      })
+    ).toThrow()
+  })
+
   it("rejects credentials encrypted with another key version", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
 
     expect(() =>
       cipher.decrypt(

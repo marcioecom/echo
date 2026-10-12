@@ -1,6 +1,7 @@
 import type { Database } from "@workspace/db"
 import {
   auditEvents,
+  baileysAuthKeys,
   channelConnectionProviderBindings,
   channelConnections,
   channelSessionStates,
@@ -17,6 +18,13 @@ import { and, desc, eq, ne, sql } from "drizzle-orm"
 
 import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
 import { database } from "@/lib/db"
+
+export class BaileysSessionExistsError extends Error {
+  constructor() {
+    super("A Baileys session is already open for this Organization")
+    this.name = "BaileysSessionExistsError"
+  }
+}
 
 export class ChannelRoutingConflictError extends Error {
   constructor() {
@@ -388,6 +396,114 @@ export class ChannelConnectionsRepository {
     }
   }
 
+  async savePendingBaileysConnection(input: {
+    organizationId: string
+    operatorUserId: string
+    displayName: string
+    inboxId: string | null
+    encryptCredentials: (
+      channelConnectionId: string
+    ) => EncryptedChannelCredentials
+  }): Promise<{ channelConnectionId: string }> {
+    try {
+      return await this.db.transaction(async (transaction) => {
+        await transaction.execute(
+          sql`select pg_advisory_xact_lock(hashtextextended(${`channel-connection-provision:${input.organizationId}:baileys`}, 0))`
+        )
+        const [organization] = await transaction
+          .select({ status: organizations.status })
+          .from(organizations)
+          .where(eq(organizations.id, input.organizationId))
+          .limit(1)
+          .for("update")
+        if (organization?.status !== "active") {
+          throw new OrganizationNotActiveError()
+        }
+
+        const [existing] = await transaction
+          .select({ id: channelConnections.id })
+          .from(channelConnections)
+          .innerJoin(
+            channelConnectionProviderBindings,
+            and(
+              eq(
+                channelConnectionProviderBindings.organizationId,
+                channelConnections.organizationId
+              ),
+              eq(
+                channelConnectionProviderBindings.channelConnectionId,
+                channelConnections.id
+              )
+            )
+          )
+          .where(
+            and(
+              eq(channelConnections.organizationId, input.organizationId),
+              eq(channelConnectionProviderBindings.provider, "baileys"),
+              ne(channelConnections.status, "disabled")
+            )
+          )
+          .limit(1)
+        if (existing) throw new BaileysSessionExistsError()
+
+        const channelConnectionId = createId()
+        const pendingAddress = `pending:${channelConnectionId}`
+        const encrypted = input.encryptCredentials(channelConnectionId)
+        await transaction.insert(channelConnections).values({
+          id: channelConnectionId,
+          organizationId: input.organizationId,
+          channelType: "whatsapp",
+          name: input.displayName,
+          displayName: input.displayName,
+          inboxId: input.inboxId,
+          status: "pending",
+        })
+        await transaction.insert(channelConnectionProviderBindings).values({
+          organizationId: input.organizationId,
+          channelConnectionId,
+          provider: "baileys",
+          externalAccountId: pendingAddress,
+          externalSenderId: pendingAddress,
+          routingAddress: pendingAddress,
+          credentialsCiphertext: encrypted.ciphertext,
+          credentialsNonce: encrypted.nonce,
+          credentialsAuthTag: encrypted.authTag,
+          credentialsKeyVersion: encrypted.keyVersion,
+        })
+        await transaction.insert(channelSessionStates).values({
+          organizationId: input.organizationId,
+          channelConnectionId,
+          state: "connecting",
+        })
+        await transaction.insert(auditEvents).values({
+          organizationId: input.organizationId,
+          eventType: "channel_connection.pairing_requested",
+          actorType: "operator",
+          operatorUserId: input.operatorUserId,
+          subjectType: "channel_connection",
+          subjectId: channelConnectionId,
+          data: {
+            provider: "baileys",
+            displayName: input.displayName,
+            inboxId: input.inboxId,
+          },
+        })
+        return { channelConnectionId }
+      })
+    } catch (error) {
+      if (
+        error instanceof OrganizationNotActiveError ||
+        error instanceof BaileysSessionExistsError
+      ) {
+        throw error
+      }
+      if (postgresErrorCode(error) === "23505") {
+        throw new ChannelRoutingConflictError()
+      }
+      throw error
+    }
+  }
+
   async updateChannelConnection(input: {
     organizationId: string
     channelConnectionId: string
@@ -396,7 +512,11 @@ export class ChannelConnectionsRepository {
     inboxId?: string | null
     status?: "active" | "disabled"
   }): Promise<
-    "updated" | "not_found" | "missing_address" | "organization_unavailable"
+    | "updated"
+    | "not_found"
+    | "missing_address"
+    | "pairing_required"
+    | "organization_unavailable"
   > {
     if (!(await this.isOrganizationActive(input.organizationId))) {
       return "organization_unavailable"
@@ -421,6 +541,16 @@ export class ChannelConnectionsRepository {
       if (input.status === "active" && !connection.address) {
         return "missing_address"
       }
+      if (
+        input.status === "active" &&
+        (await this.baileysNeedsPairing(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId
+        ))
+      ) {
+        return "pairing_required"
+      }
 
       const changes: {
         name?: string
@@ -444,6 +574,13 @@ export class ChannelConnectionsRepository {
             eq(channelConnections.id, input.channelConnectionId)
           )
         )
+      if (input.status === "disabled") {
+        await this.revokeBaileysSession(
+          transaction,
+          input.organizationId,
+          input.channelConnectionId
+        )
+      }
 
       await transaction.insert(auditEvents).values({
         organizationId: input.organizationId,
@@ -504,6 +641,11 @@ export class ChannelConnectionsRepository {
             eq(channelConnections.id, input.channelConnectionId)
           )
         )
+      await this.revokeBaileysSession(
+        transaction,
+        input.organizationId,
+        input.channelConnectionId
+      )
       await transaction.insert(auditEvents).values({
         organizationId: input.organizationId,
         eventType: "channel_connection.removed",
@@ -638,6 +780,64 @@ export class ChannelConnectionsRepository {
       data: { provider: "twilio" },
     })
   }
+
+  private async baileysNeedsPairing(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<boolean> {
+    const [binding] = await transaction
+      .select({ provider: channelConnectionProviderBindings.provider })
+      .from(channelConnectionProviderBindings)
+      .where(
+        and(
+          eq(channelConnectionProviderBindings.organizationId, organizationId),
+          eq(
+            channelConnectionProviderBindings.channelConnectionId,
+            channelConnectionId
+          )
+        )
+      )
+      .limit(1)
+    if (binding?.provider !== "baileys") return false
+
+    const [session] = await transaction
+      .select({ state: channelSessionStates.state })
+      .from(channelSessionStates)
+      .where(
+        and(
+          eq(channelSessionStates.organizationId, organizationId),
+          eq(channelSessionStates.channelConnectionId, channelConnectionId)
+        )
+      )
+      .limit(1)
+
+    return !session || session.state === "logged_out"
+  }
+
+  private async revokeBaileysSession(
+    transaction: DbTransaction,
+    organizationId: string,
+    channelConnectionId: string
+  ): Promise<void> {
+    await transaction
+      .delete(baileysAuthKeys)
+      .where(
+        and(
+          eq(baileysAuthKeys.organizationId, organizationId),
+          eq(baileysAuthKeys.channelConnectionId, channelConnectionId)
+        )
+      )
+    await transaction
+      .update(channelSessionStates)
+      .set({ state: "logged_out" })
+      .where(
+        and(
+          eq(channelSessionStates.organizationId, organizationId),
+          eq(channelSessionStates.channelConnectionId, channelConnectionId)
+        )
+      )
+  }
 }
 
 export const channelConnectionsRepository = new ChannelConnectionsRepository()
@@ -678,6 +878,8 @@ function toListedChannelConnection(row: {
           },
   }
 }
+
+type DbTransaction = Parameters<Parameters<Database["transaction"]>[0]>[0]
 
 function postgresErrorCode(error: unknown): string | undefined {
   if (typeof error !== "object" || error === null) return undefined

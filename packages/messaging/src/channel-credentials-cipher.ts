@@ -9,6 +9,8 @@ export interface ChannelCredentialContext {
   organizationId: string
   channelConnectionId: string
   provider: ChannelProvider
+  keyType?: string
+  keyId?: string
 }
 
 export interface EncryptedChannelCredentials {
@@ -35,13 +37,15 @@ export interface ChannelCredentialsCipherConfig {
 }
 
 function serializeContext(context: ChannelCredentialContext): Buffer {
-  return Buffer.from(
-    JSON.stringify([
-      context.organizationId,
-      context.channelConnectionId,
-      context.provider,
-    ])
-  )
+  const parts = [
+    context.organizationId,
+    context.channelConnectionId,
+    context.provider,
+  ]
+  if (context.keyType !== undefined || context.keyId !== undefined) {
+    parts.push(context.keyType ?? "", context.keyId ?? "")
+  }
+  return Buffer.from(JSON.stringify(parts))
 }
 
 export class ChannelCredentialsCipher implements IChannelCredentialsCipher {

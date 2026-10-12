@@ -3,16 +3,32 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 
-import { channelStatusChangedEventSchema } from "../types"
+import {
+  channelPairingCodeEventSchema,
+  channelQrEventSchema,
+  channelStatusChangedEventSchema,
+} from "../types"
 import { getChannelEventsUrl } from "./api"
 import { channelQueryKeys } from "./use-channels"
 
 const initialReconnectDelay = 1_000
 const maximumReconnectDelay = 30_000
 
-export function useChannelEvents(organizationId: string): boolean {
+export interface ChannelLiveEvents {
+  connected: boolean
+  qr: { channelConnectionId: string; qr: string } | null
+  pairingCode: {
+    channelConnectionId: string
+    pairingCode: string
+  } | null
+}
+
+export function useChannelEvents(organizationId: string): ChannelLiveEvents {
   const queryClient = useQueryClient()
   const [connected, setConnected] = useState(false)
+  const [qr, setQr] = useState<ChannelLiveEvents["qr"]>(null)
+  const [pairingCode, setPairingCode] =
+    useState<ChannelLiveEvents["pairingCode"]>(null)
 
   useEffect(() => {
     let socket: WebSocket | null = null
@@ -40,11 +56,38 @@ export function useChannelEvents(organizationId: string): boolean {
         } catch {
           return
         }
-        const parsed = channelStatusChangedEventSchema.safeParse(event)
-        if (!parsed.success) return
-        void queryClient.invalidateQueries({
-          queryKey: channelQueryKeys.list(organizationId),
-        })
+        const status = channelStatusChangedEventSchema.safeParse(event)
+        if (status.success) {
+          setQr((current) =>
+            current?.channelConnectionId === status.data.channelConnectionId
+              ? null
+              : current
+          )
+          setPairingCode((current) =>
+            current?.channelConnectionId === status.data.channelConnectionId
+              ? null
+              : current
+          )
+          void queryClient.invalidateQueries({
+            queryKey: channelQueryKeys.list(organizationId),
+          })
+          return
+        }
+        const qrEvent = channelQrEventSchema.safeParse(event)
+        if (qrEvent.success) {
+          setQr({
+            channelConnectionId: qrEvent.data.channelConnectionId,
+            qr: qrEvent.data.qr,
+          })
+          return
+        }
+        const codeEvent = channelPairingCodeEventSchema.safeParse(event)
+        if (codeEvent.success) {
+          setPairingCode({
+            channelConnectionId: codeEvent.data.channelConnectionId,
+            pairingCode: codeEvent.data.pairingCode,
+          })
+        }
       })
       socket.addEventListener("close", () => {
         socket = null
@@ -83,5 +126,5 @@ export function useChannelEvents(organizationId: string): boolean {
     }
   }, [organizationId, queryClient])
 
-  return connected
+  return { connected, qr, pairingCode }
 }

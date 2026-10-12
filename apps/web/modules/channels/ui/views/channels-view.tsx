@@ -4,6 +4,8 @@ import { Button } from "@workspace/ui/components/button"
 import { useEffect, useState } from "react"
 
 import { PageHeader } from "@/modules/shell/ui/page-header"
+import { isBaileysPairingEnabled } from "../../baileys-flag"
+import { useBaileysPairingForm } from "../../hooks/use-baileys-pairing-form"
 import { useChannelEvents } from "../../hooks/use-channel-events"
 import { useChannels } from "../../hooks/use-channels"
 import { useConnectChannelForm } from "../../hooks/use-connect-channel-form"
@@ -17,6 +19,7 @@ export function ChannelsView({ organizationId }: { organizationId: string }) {
   const channels = useChannels(organizationId)
   const live = useChannelEvents(organizationId)
   const connectForm = useConnectChannelForm(organizationId, copy)
+  const baileysForm = useBaileysPairingForm(organizationId, copy)
   const updateForm = useUpdateChannelForm(organizationId, copy)
   const [wizardOpen, setWizardOpen] = useState(false)
 
@@ -39,17 +42,25 @@ export function ChannelsView({ organizationId }: { organizationId: string }) {
       />
       {wizardOpen ? (
         <ConnectChannelWizard
+          baileysEnabled={isBaileysPairingEnabled()}
+          baileysForm={baileysForm.form}
+          baileysMutation={baileysForm.mutation}
           copy={copy}
           form={connectForm.form}
+          live={live}
           mutation={connectForm.mutation}
           onCancel={() => {
             connectForm.reset()
+            baileysForm.reset()
             setWizardOpen(false)
           }}
           onDone={() => {
             connectForm.reset()
+            baileysForm.reset()
             setWizardOpen(false)
           }}
+          pairingForm={baileysForm.pairingForm}
+          pairingMutation={baileysForm.pairingMutation}
         />
       ) : null}
       <ChannelList
@@ -62,7 +73,7 @@ export function ChannelsView({ organizationId }: { organizationId: string }) {
         isFetching={channels.query.isFetching}
         isLoading={channels.query.isLoading}
         items={channels.query.data?.items}
-        live={live}
+        live={live.connected}
         locale={locale}
         onActivate={(channelConnectionId) =>
           channels.activateMutation.mutate(channelConnectionId)

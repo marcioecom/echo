@@ -75,6 +75,9 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     disableChannelConnection: vi.fn(),
   },
 }))
+const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }))
+
+vi.mock("@/lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../twilio-inbound-webhook-url", () => ({
   twilioInboundWebhookUrl: () =>
     "http://localhost:3001/webhooks/twilio/whatsapp/inbound",
@@ -136,6 +139,7 @@ describe("channel connection use cases", () => {
     )
     findForOrganization.mockResolvedValue(storedConnection)
     publish.mockResolvedValue(undefined)
+    enqueue.mockResolvedValue({ id: "logout-job" })
   })
 
   it("rejects Twilio credentials before saving a connection", async () => {
@@ -266,5 +270,43 @@ describe("channel connection use cases", () => {
       organizationId,
       channelConnectionId,
     })
+    expect(enqueue).not.toHaveBeenCalled()
+  })
+
+  it("asks the gateway to log out a removed Baileys session", async () => {
+    findForOrganization.mockResolvedValue({
+      ...storedConnection,
+      provider: "baileys",
+    })
+    vi.mocked(
+      channelConnectionsRepository.disableChannelConnection
+    ).mockResolvedValue("disabled")
+
+    await deleteChannelConnection({
+      organizationId,
+      channelConnectionId,
+      operatorUserId: "user-id",
+    })
+
+    expect(enqueue).toHaveBeenCalledWith("wa-logout", {
+      organizationId,
+      channelConnectionId,
+    })
+  })
+
+  it("refuses to activate a Baileys number that must be paired again", async () => {
+    vi.mocked(
+      channelConnectionsRepository.updateChannelConnection
+    ).mockResolvedValue("pairing_required")
+
+    await expect(
+      updateChannelConnection({
+        organizationId,
+        channelConnectionId,
+        operatorUserId: "user-id",
+        status: "active",
+      })
+    ).resolves.toEqual({ ok: false, error: { type: "pairing_required" } })
+    expect(publish).not.toHaveBeenCalled()
   })
 })

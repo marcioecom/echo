@@ -36,6 +36,8 @@ export function channelErrorMessage(
   }
   if (error.code === "channel_routing_conflict")
     return copy.errors.routingConflict
+  if (error.code === "baileys_session_exists") return copy.errors.sessionExists
+  if (error.code === "pairing_required") return copy.errors.pairingRequired
   if (error.code === "invalid_request") return copy.errors.invalid
   return copy.errors.generic
 }
@@ -102,6 +104,26 @@ export function createTwilioChannel(input: {
     method: "POST",
     body: { provider: "twilio", ...input },
   })
+}
+
+export function createBaileysChannel(input: {
+  displayName: string
+  inboxId?: string
+}) {
+  return request<{ channel: ChannelConnection }>("/v1/channels", {
+    method: "POST",
+    body: { provider: "baileys", ...input },
+  })
+}
+
+export function requestPairingCode(
+  channelConnectionId: string,
+  phoneNumber: string
+) {
+  return request<{ accepted: boolean }>(
+    `/v1/channels/${channelConnectionId}/pairing-code`,
+    { method: "POST", body: { phoneNumber } }
+  )
 }
 
 export function updateChannel(

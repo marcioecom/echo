@@ -47,6 +47,23 @@ describe("SupportInboxEventBroker", () => {
     expect(socket.send).not.toHaveBeenCalled()
   })
 
+  it("sends a QR only to owners and admins", () => {
+    const broker = new SupportInboxEventBroker()
+    const adminSocket = createSocket()
+    const operatorSocket = createSocket()
+    broker.subscribe("01K1EDN69NFBWCG42B2H99V2C1", adminSocket, "admin")
+    broker.subscribe("01K1EDN69NFBWCG42B2H99V2C1", operatorSocket, "operator")
+
+    broker.publish("01K1EDN69NFBWCG42B2H99V2C1", {
+      type: "channel.qr",
+      channelConnectionId: "01K1EDN69NFBWCG42B2H99V2C4",
+      qr: "2@secret",
+    })
+
+    expect(adminSocket.send).toHaveBeenCalledOnce()
+    expect(operatorSocket.send).not.toHaveBeenCalled()
+  })
+
   it("does not deliver a channel status event to another Organization", () => {
     const broker = new SupportInboxEventBroker()
     const acmeSocket = createSocket()
