@@ -1,11 +1,12 @@
 import { err, ok, type Result } from "@/common/result"
 import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"
+import { statusUpdateFromTwilio } from "../adapters/twilio-channel-provider"
 import {
   parseTwilioStatusWebhookRouting,
   twilioStatusWebhookSchema,
 } from "../adapters/twilio-webhook"
-import { resolveAndVerifyTwilioWebhook } from "./process-twilio-inbound-message"
 import { outboundMessageRepository } from "../repositories/outbound-message-repository"
+import { resolveAndVerifyTwilioWebhook } from "./process-twilio-inbound-message"
 
 type StatusRejection = "unknown_connection" | "invalid_signature" | "malformed_event"
 
@@ -26,18 +27,13 @@ export async function processTwilioMessageStatus(input: {
   const status = twilioStatusWebhookSchema.safeParse(input.form)
   if (!status.success) return err("malformed_event")
 
-  const nextStatus =
-    status.data.MessageStatus === "queued"
-      ? "pending"
-      : status.data.MessageStatus === "undelivered"
-        ? "failed"
-        : status.data.MessageStatus
-  const updated = await outboundMessageRepository.applyDeliveryStatus({
+  const update = statusUpdateFromTwilio({
     organizationId: verified.value.organizationId,
     channelConnectionId: verified.value.channelConnectionId,
     externalMessageId: status.data.MessageSid,
-    status: nextStatus,
+    messageStatus: status.data.MessageStatus,
   })
+  const updated = await outboundMessageRepository.applyDeliveryStatus(update)
   if (updated?.changed) {
     await publishSupportConversationUpdated({
       organizationId: verified.value.organizationId,

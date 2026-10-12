@@ -1,12 +1,14 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto"
 
+import type { ChannelProvider } from "@workspace/domain"
+
 const ALGORITHM = "aes-256-gcm"
 const NONCE_LENGTH = 12
 
 export interface ChannelCredentialContext {
   organizationId: string
   channelConnectionId: string
-  provider: "twilio"
+  provider: ChannelProvider
 }
 
 export interface EncryptedChannelCredentials {

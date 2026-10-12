@@ -618,6 +618,9 @@ importers:
 
   packages/messaging:
     dependencies:
+      '@workspace/domain':
+        specifier: workspace:*
+        version: link:../domain
       twilio:
         specifier: ^6.0.2
         version: 6.0.2(debug@4.4.3(supports-color@10.2.2))(supports-color@10.2.2)
