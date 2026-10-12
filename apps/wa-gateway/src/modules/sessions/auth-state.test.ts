@@ -1,8 +1,8 @@
 import { ChannelCredentialsCipher } from "@workspace/messaging"
 import { describe, expect, it } from "vitest"
 
-import { MemoryAuthKeyRepository } from "./auth-key-repository"
-import { rotateBaileysAuthKeys, useEchoAuthState } from "./use-echo-auth-state"
+import { rotateBaileysAuthKeys, useEchoAuthState } from "./auth-state"
+import { MemoryAuthKeyRepository } from "./repositories/auth-keys-repository"
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64")
 const scope = {

@@ -1,23 +1,12 @@
-import { UnrecoverableError, type Job } from "bullmq"
-import {
-  waConnectJobSchema,
-  waGatewayJobNames,
-  waLogoutJobSchema,
-  waPairingCodeJobSchema,
-  waSendJobSchema,
-} from "@workspace/jobs"
+import type { SendResult } from "@workspace/messaging"
 
-import { BaileysSession } from "./session/session-runner"
-import type { ConnectionRef } from "./session/session-directory"
+import { SessionBusyError, SessionUnavailableError } from "./errors"
+import type { BaileysSession } from "./session"
+import type { ConnectionRef } from "./types"
 
-export class SessionBusyError extends Error {
-  constructor() {
-    super("session_busy")
-    this.name = "SessionBusyError"
-  }
-}
-
-export class WaGateway {
+// One socket in this process. LEA-82 replaces the slot with Redis leases
+// and a connectionId → session map. Job handlers keep calling these methods.
+export class SessionRegistry {
   private session: BaileysSession | null = null
   private activeId: string | null = null
 
@@ -54,17 +43,19 @@ export class WaGateway {
     if (!this.session || this.activeId !== input.channelConnectionId) {
       await this.connect(input)
     }
-    if (!this.session) throw new Error("session_unavailable")
+    if (!this.session) throw new SessionUnavailableError()
     await this.session.requestPairingCode(input.phoneNumber)
   }
 
-  send(input: ConnectionRef & { to: string; body: string }) {
+  async send(
+    input: ConnectionRef & { to: string; body: string }
+  ): Promise<SendResult> {
     if (!this.session || this.activeId !== input.channelConnectionId) {
-      return Promise.resolve({
-        ok: false as const,
+      return {
+        ok: false,
         retryable: true,
         code: "session_unavailable",
-      })
+      }
     }
     return this.session.sendText(input)
   }
@@ -78,34 +69,4 @@ export class WaGateway {
   async stop(): Promise<void> {
     await this.session?.stop()
   }
-}
-
-export async function handleWaGatewayJob(
-  gateway: WaGateway,
-  job: Pick<Job, "name" | "data">
-): Promise<unknown> {
-  if (job.name === waGatewayJobNames.connect) {
-    try {
-      await gateway.connect(waConnectJobSchema.parse(job.data))
-    } catch (error) {
-      if (error instanceof SessionBusyError) {
-        throw new UnrecoverableError("session_busy")
-      }
-      throw error
-    }
-    return
-  }
-  if (job.name === waGatewayJobNames.pairingCode) {
-    await gateway.requestPairingCode(waPairingCodeJobSchema.parse(job.data))
-    return
-  }
-  if (job.name === waGatewayJobNames.send) {
-    const command = waSendJobSchema.parse(job.data)
-    return gateway.send(command)
-  }
-  if (job.name === waGatewayJobNames.logout) {
-    await gateway.logout(waLogoutJobSchema.parse(job.data))
-    return
-  }
-  throw new UnrecoverableError(`Unknown wa-gateway job: ${job.name}`)
 }

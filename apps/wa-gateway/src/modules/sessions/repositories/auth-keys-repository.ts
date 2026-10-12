@@ -12,7 +12,7 @@ export interface AuthKeyScope {
   channelConnectionId: string
 }
 
-export interface BaileysAuthKeyRepository {
+export interface AuthKeysRepository {
   read(
     input: AuthKeyScope & { keyType: string; keyId: string }
   ): Promise<StoredAuthKey | null>
@@ -26,7 +26,7 @@ export interface BaileysAuthKeyRepository {
   deleteAll(input: AuthKeyScope): Promise<void>
 }
 
-export class MemoryAuthKeyRepository implements BaileysAuthKeyRepository {
+export class MemoryAuthKeyRepository implements AuthKeysRepository {
   private readonly rows = new Map<string, StoredAuthKey>()
 
   async read(

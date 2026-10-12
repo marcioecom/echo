@@ -14,9 +14,9 @@ import type {
 
 import type {
   AuthKeyScope,
-  BaileysAuthKeyRepository,
+  AuthKeysRepository,
   StoredAuthKey,
-} from "./auth-key-repository"
+} from "./repositories/auth-keys-repository"
 
 const CREDS_TYPE = "creds"
 const CREDS_ID = "creds"
@@ -32,7 +32,7 @@ export async function useEchoAuthState(input: {
   organizationId: string
   channelConnectionId: string
   cipher: IChannelCredentialsCipher
-  repository: BaileysAuthKeyRepository
+  repository: AuthKeysRepository
   flushDelayMs?: number
   batchSize?: number
 }): Promise<EchoAuthState> {
@@ -75,7 +75,7 @@ export async function useEchoAuthState(input: {
 export async function rotateBaileysAuthKeys(input: {
   organizationId: string
   channelConnectionId: string
-  repository: BaileysAuthKeyRepository
+  repository: AuthKeysRepository
   from: IChannelCredentialsCipher
   to: IChannelCredentialsCipher
 }): Promise<number> {
@@ -112,7 +112,7 @@ class KeyWriteBuffer {
     private readonly options: {
       scope: AuthKeyScope
       cipher: IChannelCredentialsCipher
-      repository: BaileysAuthKeyRepository
+      repository: AuthKeysRepository
       flushDelayMs: number
       batchSize: number
     }
@@ -249,7 +249,7 @@ type PendingKey =
 
 async function readCreds(
   cipher: IChannelCredentialsCipher,
-  repository: BaileysAuthKeyRepository,
+  repository: AuthKeysRepository,
   scope: AuthKeyScope
 ): Promise<AuthenticationCreds> {
   const row = await repository.read({
@@ -267,7 +267,7 @@ async function readCreds(
 
 async function writeCreds(
   cipher: IChannelCredentialsCipher,
-  repository: BaileysAuthKeyRepository,
+  repository: AuthKeysRepository,
   scope: AuthKeyScope,
   creds: AuthenticationCreds
 ): Promise<void> {

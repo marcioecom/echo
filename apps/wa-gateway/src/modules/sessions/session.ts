@@ -1,70 +1,18 @@
 import type { SendResult, StatusUpdate } from "@workspace/messaging"
 import type { ChannelSessionState } from "@workspace/domain"
 
-import type { EchoAuthState } from "../auth/use-echo-auth-state"
+import type { EchoAuthState } from "./auth-state"
 import { statusUpdatesFromBaileys } from "./delivery-status"
 import { classifyDisconnect, disconnectStatusCode } from "./disconnect"
+import { PairingUnavailableError, RoutingConflictError } from "./errors"
 import {
   filterInboundUpsert,
   phoneFromJid,
   type FilteredInbound,
-  type RawInboundMessage,
 } from "./inbound-filter"
-import { reconnectDelayMs } from "./pacing"
-import {
-  RoutingConflictError,
-  type SessionDirectory,
-} from "./session-directory"
-
-const MAX_RECONNECT_ATTEMPTS = 8
-
-export interface SessionSocket {
-  ev: {
-    process: (handler: (events: SessionEvents) => void | Promise<void>) => void
-  }
-  user?: { id: string }
-  sendMessage: (
-    jid: string,
-    content: { text: string }
-  ) => Promise<{ key?: { id?: string | null } } | undefined>
-  sendPresenceUpdate: (
-    type: "composing" | "paused",
-    jid?: string
-  ) => Promise<void>
-  requestPairingCode: (phoneNumber: string) => Promise<string>
-  logout: () => Promise<void>
-  end: (error: Error | undefined) => Promise<void>
-}
-
-export interface SessionEvents {
-  "connection.update"?: {
-    connection?: "open" | "connecting" | "close"
-    qr?: string
-    lastDisconnect?: { error?: unknown }
-  }
-  "creds.update"?: unknown
-  "messages.upsert"?: { type: string; messages: RawInboundMessage[] }
-  "messages.update"?: Array<{
-    key: { id?: string | null; fromMe?: boolean | null }
-    update?: { status?: number | null }
-  }>
-}
-
-type CloseOutcome =
-  | "restart"
-  | "logged_out"
-  | "replaced"
-  | "banned"
-  | "retry"
-  | "retry_after_open"
-  | "pairing_timeout"
-  | "stopped"
-
-export interface SessionLogger {
-  info: (message: string, data?: Record<string, unknown>) => void
-  warn: (message: string, data?: Record<string, unknown>) => void
-  error: (message: string, data?: Record<string, unknown>) => void
-}
+import { nextReconnect, type CloseOutcome } from "./reconnect"
+import type { SessionDirectory } from "./repositories/session-directory"
+import type { SessionEvents, SessionLogger, SessionSocket } from "./types"
 
 export class BaileysSession {
   private socket: SessionSocket | null = null
@@ -109,25 +57,22 @@ export class BaileysSession {
     let attempt = 0
     while (!this.stopped) {
       const outcome = await this.connectOnce()
-      if (this.stopped || outcome === "stopped") break
-      if (
-        outcome === "logged_out" ||
-        outcome === "replaced" ||
-        outcome === "banned" ||
-        outcome === "pairing_timeout"
-      ) {
+      const step = nextReconnect({
+        outcome,
+        attempt,
+        stopped: this.stopped,
+      })
+      if (step.type === "stop") break
+      if (step.type === "exhausted") {
+        await this.recordState(
+          "disconnected",
+          "reconnect_exhausted",
+          step.attempt
+        )
         break
       }
-      if (outcome === "restart" || outcome === "retry_after_open") {
-        attempt = 0
-        continue
-      }
-      attempt += 1
-      if (attempt >= MAX_RECONNECT_ATTEMPTS) {
-        await this.recordState("disconnected", "reconnect_exhausted", attempt)
-        break
-      }
-      await this.deps.delay(reconnectDelayMs(attempt))
+      attempt = step.attempt
+      if (step.type === "backoff") await this.deps.delay(step.delayMs)
     }
     await this.deps.auth.flush()
   }
@@ -162,7 +107,7 @@ export class BaileysSession {
   async requestPairingCode(phoneE164: string): Promise<void> {
     const ready = await this.waitForQr()
     if (!ready || !this.socket || this.deps.auth.state.creds.registered) {
-      throw new Error("pairing_unavailable")
+      throw new PairingUnavailableError()
     }
     const code = await this.socket.requestPairingCode(phoneE164.slice(1))
     await this.recordState("pairing_code_pending", null)

@@ -7,10 +7,10 @@ import {
 import type { ChannelSessionState } from "@workspace/domain"
 import { and, desc, eq, inArray } from "drizzle-orm"
 
-export interface ConnectionRef {
-  organizationId: string
-  channelConnectionId: string
-}
+import { database } from "@/lib/db"
+
+import { RoutingConflictError } from "../errors"
+import type { ConnectionRef } from "../types"
 
 export interface SessionDirectory {
   setState(
@@ -32,15 +32,8 @@ export interface SessionDirectory {
   findResumable(): Promise<ConnectionRef | null>
 }
 
-export class RoutingConflictError extends Error {
-  constructor() {
-    super("Channel routing key is already in use")
-    this.name = "RoutingConflictError"
-  }
-}
-
 export class PostgresSessionDirectory implements SessionDirectory {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Database = database.db) {}
 
   async setState(
     input: ConnectionRef & {
