@@ -8,6 +8,7 @@ import {
   knowledgeMessages,
   type KnowledgeMessages,
 } from "@/modules/knowledge-base/i18n"
+import { localeFromPath } from "@/modules/marketing/i18n/dictionary"
 import {
   prefersPortuguese,
   readLanguageCookie,
@@ -80,6 +81,12 @@ export function appLocale(): AppLocale {
     cookie: document.cookie,
     language: navigator.language,
   })
+}
+
+export function documentLang(pathname: string): AppLocale {
+  const fromPath = localeFromPath(pathname)
+  if (pathname === "/" || fromPath === "pt-BR") return fromPath
+  return appLocale()
 }
 
 export function t(key: MessageKey, values?: Record<string, string>): string {

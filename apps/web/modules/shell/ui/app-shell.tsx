@@ -13,6 +13,7 @@ type AppShellProps = {
   organizationId: string
   organizationName: string
   userName: string
+  userEmail: string
   userRole: string
   children: React.ReactNode
 }
@@ -21,6 +22,7 @@ export function AppShell({
   organizationId,
   organizationName,
   userName,
+  userEmail,
   userRole,
   children,
 }: AppShellProps) {
@@ -44,7 +46,13 @@ export function AppShell({
     return () => document.removeEventListener("keydown", onKeyDown)
   }, [sidebarOpen])
 
-  const sidebarProps = { organizationId, organizationName, userName, userRole }
+  const sidebarProps = {
+    organizationId,
+    organizationName,
+    userName,
+    userEmail,
+    userRole,
+  }
 
   return (
     <div className="min-h-svh">

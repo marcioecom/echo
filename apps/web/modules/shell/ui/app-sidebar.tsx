@@ -4,7 +4,6 @@ import { cn } from "@workspace/ui/lib/utils"
 import {
   BookOpen01Icon,
   InboxIcon,
-  Logout01Icon,
   SmartPhone01Icon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
@@ -14,14 +13,14 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { BrandLogo } from "@/components/brand-logo"
 import { t } from "@/lib/i18n"
 import { canManageOrganization } from "@/modules/auth/permissions"
-import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
-import { memberRoleLabel } from "@/modules/organization/role-label"
+import { AccountMenu } from "@/modules/shell/ui/account-menu"
 import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
   organizationId: string
   organizationName: string
   userName: string
+  userEmail: string
   userRole: string
   organizationSwitcherSide?: "bottom" | "right"
 }
@@ -56,19 +55,11 @@ const NAV_ITEMS = [
   },
 ] as const
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("")
-}
-
 export function AppSidebar({
   organizationId,
   organizationName,
   userName,
+  userEmail,
   userRole,
   organizationSwitcherSide,
 }: AppSidebarProps) {
@@ -156,27 +147,12 @@ export function AppSidebar({
         ))}
       </nav>
 
-      <div className="flex shrink-0 items-center gap-2.5 border-t border-sidebar-border p-3">
-        <div
-          aria-hidden
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary"
-        >
-          {initials(userName)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium">{userName}</p>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {memberRoleLabel(userRole)}
-          </p>
-        </div>
-        <SignOutButton
-          variant="ghost"
-          size="icon-sm"
-          aria-label={t("shell.signOut")}
-          className="text-muted-foreground"
-        >
-          <HugeiconsIcon icon={Logout01Icon} size={14} strokeWidth={1.8} />
-        </SignOutButton>
+      <div className="shrink-0 border-t border-sidebar-border p-2">
+        <AccountMenu
+          userName={userName}
+          userEmail={userEmail}
+          userRole={userRole}
+        />
       </div>
     </div>
   )

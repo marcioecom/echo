@@ -7,7 +7,13 @@ import { knowledgeMessages } from "@/modules/knowledge-base/i18n"
 import { membersMessages } from "@/modules/organization/i18n"
 import { shellMessages } from "@/modules/shell/i18n"
 
-import { isMessageKey, resolveLocale, t, translateMessage } from "./i18n"
+import {
+  documentLang,
+  isMessageKey,
+  resolveLocale,
+  t,
+  translateMessage,
+} from "./i18n"
 
 const catalogs = [
   authMessages,
@@ -71,6 +77,12 @@ describe("app i18n", () => {
     try {
       expect(t("inbox.title")).toBe("Inbox de suporte")
       expect(t("auth.login.submit")).toBe("Entrar")
+      expect(t("shell.language")).toBe("Idioma")
+      expect(t("shell.signOut")).toBe("Sair")
+      expect(documentLang("/")).toBe("en")
+      expect(documentLang("/pt-br")).toBe("pt-BR")
+      expect(documentLang("/inbox")).toBe("pt-BR")
+      expect(documentLang("/login")).toBe("pt-BR")
     } finally {
       Object.defineProperty(globalThis, "document", {
         configurable: true,

@@ -43,6 +43,7 @@ function DashboardLayout() {
       organizationId={workspace.organization.id}
       organizationName={workspace.organization.name}
       userName={workspace.user.name}
+      userEmail={workspace.user.email}
       userRole={workspace.role}
     >
       <Outlet />
