@@ -27,14 +27,12 @@ describe("channels route", () => {
       "utf8"
     )
     assert.match(sidebar, /\/settings\/channels/)
-    assert.match(sidebar, /t\("channels\.nav"\)/)
+    assert.match(sidebar, /channels\.nav/)
+    assert.match(sidebar, /\bt\(/)
   })
 
   it("offers Twilio as the recommended path and an enabled QR path", () => {
-    const copy = readFileSync(
-      join(webDir, "modules/channels/i18n.ts"),
-      "utf8"
-    )
+    const copy = readFileSync(join(webDir, "modules/channels/i18n.ts"), "utf8")
     assert.match(copy, /Recomendado/)
     assert.match(copy, /Recommended/)
     assert.match(copy, /nav: "Canais"/)
@@ -72,7 +70,10 @@ describe("channels route", () => {
     assert.match(events, /channelQueryKeys\.list\(organizationId\)/)
     assert.match(events, /getChannelEventsUrl/)
 
-    const types = readFileSync(join(webDir, "modules/channels/types.ts"), "utf8")
+    const types = readFileSync(
+      join(webDir, "modules/channels/types.ts"),
+      "utf8"
+    )
     assert.match(types, /channel\.status_changed/)
   })
 })

@@ -13,6 +13,7 @@ function InboxIndexPage() {
   return (
     <InboxView
       organizationId={workspace.organization.id}
+      organizationName={workspace.organization.name}
       selectedConversationId={null}
       status={status}
     />

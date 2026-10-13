@@ -4,7 +4,6 @@ import { cn } from "@workspace/ui/lib/utils"
 import {
   BookOpen01Icon,
   InboxIcon,
-  Logout01Icon,
   SmartPhone01Icon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons"
@@ -13,81 +12,70 @@ import { Link, useRouterState } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { t } from "@/lib/i18n"
-import { SignOutButton } from "@/modules/auth/ui/components/sign-out-button"
 import { canManageOrganization } from "@/modules/auth/permissions"
+import { AccountMenu } from "@/modules/shell/ui/account-menu"
 import { OrganizationSwitcher } from "@/modules/shell/ui/organization-switcher"
 
 type AppSidebarProps = {
   organizationId: string
   organizationName: string
   userName: string
+  userEmail: string
   userRole: string
   organizationSwitcherSide?: "bottom" | "right"
 }
 
-const NAV_SECTIONS: {
-  label?: string
-  items: {
-    href: string
-    label: string
-    icon: typeof InboxIcon
-    exact?: boolean
-    requiresManage?: boolean
-  }[]
-}[] = [
+const NAV_ITEMS = [
   {
     items: [
-      { href: "/inbox", label: "Support Inbox", icon: InboxIcon, exact: true },
+      { href: "/inbox", label: "inbox.nav", icon: InboxIcon, exact: true },
     ],
   },
   {
-    label: "Settings",
+    label: "shell.settings",
     items: [
-      { href: "/settings/members", label: "Members", icon: UserMultiple02Icon },
+      {
+        href: "/settings/members",
+        label: "members.nav",
+        icon: UserMultiple02Icon,
+      },
       {
         href: "/settings/channels",
-        label: "Channels",
+        label: "channels.nav",
         icon: SmartPhone01Icon,
         requiresManage: true,
       },
       {
         href: "/settings/knowledge",
-        label: "Knowledge Base",
+        label: "knowledge.nav",
         icon: BookOpen01Icon,
         requiresManage: true,
       },
     ],
   },
-]
-
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("")
-}
+] as const
 
 export function AppSidebar({
   organizationId,
   organizationName,
   userName,
+  userEmail,
   userRole,
   organizationSwitcherSide,
 }: AppSidebarProps) {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
-  const navSections = NAV_SECTIONS.map((section) => ({
-    ...section,
+  const navSections = NAV_ITEMS.map((section) => ({
+    label: "label" in section ? t(section.label) : undefined,
     items: section.items
-      .filter((item) => !item.requiresManage || canManageOrganization(userRole))
-      .map((item) =>
-        item.href === "/settings/channels"
-          ? { ...item, label: t("channels.nav") }
-          : item
-      ),
+      .filter(
+        (item) =>
+          !("requiresManage" in item) ||
+          !item.requiresManage ||
+          canManageOrganization(userRole)
+      )
+      .map((item) => ({ ...item, label: t(item.label) })),
   })).filter((section) => section.items.length > 0)
 
   return (
@@ -106,7 +94,7 @@ export function AppSidebar({
       </div>
 
       <nav
-        aria-label="Primary"
+        aria-label={t("shell.primaryNav")}
         className="flex-1 space-y-5 overflow-y-auto p-3"
       >
         {navSections.map((section, index) => (
@@ -117,9 +105,10 @@ export function AppSidebar({
               </p>
             ) : null}
             {section.items.map((item) => {
-              const active = item.exact
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
+              const active =
+                "exact" in item && item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.href}
@@ -158,27 +147,12 @@ export function AppSidebar({
         ))}
       </nav>
 
-      <div className="flex shrink-0 items-center gap-2.5 border-t border-sidebar-border p-3">
-        <div
-          aria-hidden
-          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary"
-        >
-          {initials(userName)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium">{userName}</p>
-          <p className="truncate text-[11px] text-muted-foreground capitalize">
-            {userRole}
-          </p>
-        </div>
-        <SignOutButton
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Sign out"
-          className="text-muted-foreground"
-        >
-          <HugeiconsIcon icon={Logout01Icon} size={14} strokeWidth={1.8} />
-        </SignOutButton>
+      <div className="shrink-0 border-t border-sidebar-border p-2">
+        <AccountMenu
+          userName={userName}
+          userEmail={userEmail}
+          userRole={userRole}
+        />
       </div>
     </div>
   )

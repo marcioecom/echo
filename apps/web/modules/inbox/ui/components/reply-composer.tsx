@@ -6,6 +6,8 @@ import { Button } from "@workspace/ui/components/button"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { useRef } from "react"
 
+import { t, translateMessage } from "@/lib/i18n"
+
 import { useReplyForm } from "../../hooks/use-reply-form"
 
 export function ReplyComposer({
@@ -40,34 +42,30 @@ export function ReplyComposer({
           }}
           rows={2}
           disabled={disabled || replyMutation.isPending}
-          aria-label="Reply to customer"
+          aria-label={t("inbox.replyLabel")}
           placeholder={
-            disabled
-              ? "Replies are unavailable for resolved conversations."
-              : "Write a reply..."
+            disabled ? t("inbox.replyDisabled") : t("inbox.replyPlaceholder")
           }
           onKeyDown={(event) => {
             if (event.key !== "Enter" || event.shiftKey) return
             event.preventDefault()
-            void submit()
+            submit()
           }}
         />
         <Button
           type="submit"
           size="icon"
           disabled={
-            disabled ||
-            replyMutation.isPending ||
-            !form.watch("body").trim()
+            disabled || replyMutation.isPending || !form.watch("body").trim()
           }
-          aria-label="Send reply"
+          aria-label={t("inbox.send")}
         >
           <HugeiconsIcon icon={SentIcon} size={16} strokeWidth={1.8} />
         </Button>
       </div>
-      {form.formState.errors.body ? (
+      {form.formState.errors.body?.message ? (
         <p className="mx-auto mt-1 max-w-3xl text-xs text-destructive">
-          {form.formState.errors.body.message}
+          {translateMessage(form.formState.errors.body.message)}
         </p>
       ) : null}
     </form>

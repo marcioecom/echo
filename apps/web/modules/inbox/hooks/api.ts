@@ -26,10 +26,7 @@ export async function inboxApiRequest<T>(
   })
 
   if (!response.ok) {
-    throw new InboxApiError(
-      "The Support Inbox request could not be completed.",
-      response.status
-    )
+    throw new InboxApiError("inbox.errors.request", response.status)
   }
 
   return response.json() as Promise<T>

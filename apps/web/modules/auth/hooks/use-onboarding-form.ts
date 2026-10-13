@@ -10,12 +10,12 @@ import { z } from "zod"
 import { authClient } from "@/lib/auth-client"
 
 const organizationSchema = z.object({
-  name: z.string().min(1, "Organization name is required"),
+  name: z.string().min(1, "auth.validation.organizationName"),
   slug: z
     .string()
-    .min(1, "Slug is required")
-    .max(SLUG_MAX_LENGTH, `Keep it under ${SLUG_MAX_LENGTH} characters`)
-    .regex(SLUG_PATTERN, "Lowercase letters, numbers, and hyphens only"),
+    .min(1, "auth.validation.slug")
+    .max(SLUG_MAX_LENGTH, "auth.validation.slugMax")
+    .regex(SLUG_PATTERN, "auth.validation.slugPattern"),
 })
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>
@@ -80,15 +80,15 @@ export function useOnboardingForm() {
     if (slugError) {
       form.setError("slug", {
         message: isTakenSlugError(slugError)
-          ? "This slug is taken. Try another one"
-          : "Could not check availability. Try again",
+          ? "auth.validation.slugTaken"
+          : "auth.validation.slugCheck",
       })
       setAvailability(isTakenSlugError(slugError) ? "taken" : "error")
       return
     }
     if (slugAvailability?.status !== true) {
       form.setError("slug", {
-        message: "This slug is taken. Try another one",
+        message: "auth.validation.slugTaken",
       })
       setAvailability("taken")
       return
@@ -99,7 +99,7 @@ export function useOnboardingForm() {
     })
     if (error) {
       form.setError("slug", {
-        message: error.message ?? "Could not create the organization",
+        message: error.message ?? "auth.validation.organizationCreate",
       })
       return
     }

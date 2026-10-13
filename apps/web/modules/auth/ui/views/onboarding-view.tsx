@@ -14,7 +14,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
@@ -25,6 +24,8 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
+import { t, type MessageKey } from "@/lib/i18n"
+import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { useOnboardingForm } from "@/modules/auth/hooks/use-onboarding-form"
 
 const AVAILABILITY_STATUS = {
@@ -32,27 +33,35 @@ const AVAILABILITY_STATUS = {
     icon: Loading03Icon,
     className: "text-muted-foreground",
     spin: true,
-    text: (slug: string) => `Checking ${slug}...`,
+    message: "auth.onboarding.checking",
   },
   available: {
     icon: CheckmarkCircle02Icon,
     className: "text-primary",
     spin: false,
-    text: (slug: string) => `${slug} is available`,
+    message: "auth.onboarding.available",
   },
   taken: {
     icon: Alert02Icon,
     className: "text-destructive",
     spin: false,
-    text: (slug: string) => `${slug} is taken. Try another one`,
+    message: "auth.onboarding.taken",
   },
   error: {
     icon: Alert02Icon,
     className: "text-muted-foreground",
     spin: false,
-    text: () => "Could not check availability. It will be verified on submit",
+    message: "auth.onboarding.checkError",
   },
-} as const
+} as const satisfies Record<
+  string,
+  {
+    icon: typeof Loading03Icon
+    className: string
+    spin: boolean
+    message: MessageKey
+  }
+>
 
 export function OnboardingView() {
   const { form, onSubmit, slug, availability, markSlugTouched } =
@@ -64,12 +73,8 @@ export function OnboardingView() {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle>Create your organization</CardTitle>
-        <CardDescription>
-          Your organization is the tenant that holds your support workspace. To
-          join an existing one instead, open the link from your invitation
-          email.
-        </CardDescription>
+        <CardTitle>{t("auth.onboarding.title")}</CardTitle>
+        <CardDescription>{t("auth.onboarding.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -79,15 +84,15 @@ export function OnboardingView() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Organization name</FormLabel>
+                  <FormLabel>{t("auth.onboarding.name")}</FormLabel>
                   <FormControl>
                     <Input
                       autoComplete="organization"
-                      placeholder="Acme Support"
+                      placeholder={t("auth.onboarding.namePlaceholder")}
                       {...field}
                     />
                   </FormControl>
-                  <FormMessage />
+                  <TranslatedFormMessage />
                 </FormItem>
               )}
             />
@@ -96,12 +101,12 @@ export function OnboardingView() {
               name="slug"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Slug</FormLabel>
+                  <FormLabel>{t("auth.onboarding.slug")}</FormLabel>
                   <FormControl>
                     <Input
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder="acme-support"
+                      placeholder={t("auth.onboarding.slugPlaceholder")}
                       className="font-mono"
                       {...field}
                       onChange={(event) => {
@@ -125,13 +130,13 @@ export function OnboardingView() {
                           strokeWidth={1.8}
                           className={status.spin ? "animate-spin" : undefined}
                         />
-                        {status.text(slug)}
+                        {t(status.message, { slug })}
                       </>
                     ) : (
-                      "URL-safe identifier. Lowercase letters, numbers, and hyphens."
+                      t("auth.onboarding.slugHint")
                     )}
                   </p>
-                  <FormMessage />
+                  <TranslatedFormMessage />
                 </FormItem>
               )}
             />
@@ -140,7 +145,9 @@ export function OnboardingView() {
               className="w-full"
               disabled={isPending || availability === "taken"}
             >
-              {isPending ? "Creating..." : "Create organization"}
+              {isPending
+                ? t("auth.onboarding.submitting")
+                : t("auth.onboarding.submit")}
             </Button>
           </form>
         </Form>

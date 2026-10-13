@@ -155,7 +155,7 @@ describe("landing locale wiring", () => {
     assert.match(start, /Cache-Control/)
     assert.match(switcher, /persistLanguageChoice/)
     assert.match(brand, /translate="no"/)
-    assert.match(root, /htmlLang\(localeFromPath\(pathname\)\)/)
+    assert.match(root, /htmlLang\(documentLang\(pathname\)\)/)
     assert.match(head, /hrefLang: "en"/)
     assert.match(head, /hrefLang: "pt-BR"/)
     assert.match(head, /hrefLang: "x-default"/)

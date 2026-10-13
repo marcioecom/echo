@@ -6,11 +6,12 @@ import {
   Scripts,
   useLocation,
 } from "@tanstack/react-router"
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
 
 import { DefaultError } from "@/components/default-error"
 import { NotFound } from "@/components/not-found"
-import { htmlLang, localeFromPath } from "@/modules/marketing/i18n/dictionary"
+import { documentLang } from "@/lib/i18n"
+import { htmlLang } from "@/modules/marketing/i18n/dictionary"
 import { Toaster } from "@workspace/ui/components/sonner"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -65,7 +66,11 @@ function RootComponent() {
 
 function RootDocument({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: (location) => location.pathname })
-  const lang = htmlLang(localeFromPath(pathname))
+  const lang = htmlLang(documentLang(pathname))
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   return (
     <html

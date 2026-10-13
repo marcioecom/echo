@@ -1,5 +1,8 @@
 "use client"
 
+import { t } from "@/lib/i18n"
+import { PageHeader } from "@/modules/shell/ui/page-header"
+
 import {
   useInboxConversation,
   useInboxConversations,
@@ -14,10 +17,12 @@ import { ConversationList } from "../components/conversation-list"
 
 export function InboxView({
   organizationId,
+  organizationName,
   selectedConversationId,
   status,
 }: {
   organizationId: string
+  organizationName: string
   selectedConversationId: string | null
   status: InboxStatusFilter
 }) {
@@ -32,43 +37,51 @@ export function InboxView({
     conversationsQuery.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
-    <div className="flex h-[calc(100svh-10rem)] min-h-96 overflow-hidden rounded-lg border bg-background">
-      <div
-        className={
-          selectedConversationId ? "hidden md:flex" : "flex flex-1 md:flex-none"
-        }
-      >
-        <ConversationList
-          conversations={conversations}
-          selectedConversationId={selectedConversationId}
-          status={status}
-          isLoading={conversationsQuery.isPending}
-          isError={conversationsQuery.isError}
-          isFetchingNextPage={conversationsQuery.isFetchingNextPage}
-          hasNextPage={conversationsQuery.hasNextPage}
-          onRetry={() => conversationsQuery.refetch()}
-          onLoadMore={() => conversationsQuery.fetchNextPage()}
-        />
-      </div>
-      <div
-        className={
-          selectedConversationId
-            ? "flex min-w-0 flex-1"
-            : "hidden min-w-0 flex-1 md:flex"
-        }
-      >
-        {selectedConversationId ? (
-          <ConversationDetail
-            organizationId={organizationId}
-            detail={detailQuery.data}
-            isLoading={detailQuery.isPending}
-            error={detailQuery.error}
-            onRetry={() => detailQuery.refetch()}
+    <>
+      <PageHeader
+        title={t("inbox.title")}
+        description={t("inbox.description", { name: organizationName })}
+      />
+      <div className="flex h-[calc(100svh-10rem)] min-h-96 overflow-hidden rounded-lg border bg-background">
+        <div
+          className={
+            selectedConversationId
+              ? "hidden md:flex"
+              : "flex flex-1 md:flex-none"
+          }
+        >
+          <ConversationList
+            conversations={conversations}
+            selectedConversationId={selectedConversationId}
+            status={status}
+            isLoading={conversationsQuery.isPending}
+            isError={conversationsQuery.isError}
+            isFetchingNextPage={conversationsQuery.isFetchingNextPage}
+            hasNextPage={conversationsQuery.hasNextPage}
+            onRetry={() => conversationsQuery.refetch()}
+            onLoadMore={() => conversationsQuery.fetchNextPage()}
           />
-        ) : (
-          <EmptyConversationDetail />
-        )}
+        </div>
+        <div
+          className={
+            selectedConversationId
+              ? "flex min-w-0 flex-1"
+              : "hidden min-w-0 flex-1 md:flex"
+          }
+        >
+          {selectedConversationId ? (
+            <ConversationDetail
+              organizationId={organizationId}
+              detail={detailQuery.data}
+              isLoading={detailQuery.isPending}
+              error={detailQuery.error}
+              onRetry={() => detailQuery.refetch()}
+            />
+          ) : (
+            <EmptyConversationDetail />
+          )}
+        </div>
       </div>
-    </div>
+    </>
   )
 }

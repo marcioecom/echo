@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 
 import { authClient } from "@/lib/auth-client"
+import { t } from "@/lib/i18n"
 
 type SignInButtonProps = Omit<
   React.ComponentProps<typeof Button>,
@@ -13,7 +14,7 @@ type SignInButtonProps = Omit<
 }
 
 export function SignInButton({
-  children = "Sign in",
+  children = t("auth.login.submit"),
   ...props
 }: SignInButtonProps) {
   const { data } = authClient.useSession()
@@ -21,7 +22,7 @@ export function SignInButton({
   return (
     <Button asChild {...props}>
       <Link to={data?.session ? "/inbox" : "/login"}>
-        {data?.session ? "Dashboard" : children}
+        {data?.session ? t("auth.dashboard") : children}
       </Link>
     </Button>
   )

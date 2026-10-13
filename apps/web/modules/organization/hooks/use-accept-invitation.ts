@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { translateMessage } from "@/lib/i18n"
 
 export function useAcceptInvitation(invitationId: string) {
   const navigate = useNavigate()
@@ -16,7 +17,7 @@ export function useAcceptInvitation(invitationId: string) {
         query: { id: invitationId },
       })
       if (error || !data) {
-        throw new Error(error?.message ?? "Invalid invitation")
+        throw new Error(error?.message ?? "members.errors.invalidInvitation")
       }
       return data
     },
@@ -29,7 +30,7 @@ export function useAcceptInvitation(invitationId: string) {
         invitationId,
       })
       if (error || !data) {
-        throw new Error(error?.message ?? "Could not accept the invitation")
+        throw new Error(error?.message ?? "members.errors.accept")
       }
       if (data.invitation.organizationId) {
         const { error: activeOrganizationError } =
@@ -38,8 +39,7 @@ export function useAcceptInvitation(invitationId: string) {
           })
         if (activeOrganizationError) {
           throw new Error(
-            activeOrganizationError.message ??
-              "Could not switch to the organization"
+            activeOrganizationError.message ?? "members.errors.switch"
           )
         }
       }
@@ -48,7 +48,7 @@ export function useAcceptInvitation(invitationId: string) {
       navigate({ to: "/" })
     },
     onError: (error) => {
-      toast.error(error.message)
+      toast.error(translateMessage(error.message))
     },
   })
 

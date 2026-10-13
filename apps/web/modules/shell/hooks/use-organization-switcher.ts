@@ -6,6 +6,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { authClient } from "@/lib/auth-client"
+import { t, translateMessage } from "@/lib/i18n"
 import { workspaceQueryKey } from "@/modules/auth/queries"
 
 export type OrganizationOption = {
@@ -51,7 +52,9 @@ export function useOrganizationSwitcher(activeOrganizationId: string) {
       return true
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Could not switch organization"
+        error instanceof Error
+          ? translateMessage(error.message)
+          : t("shell.errors.switch")
       )
       return false
     } finally {

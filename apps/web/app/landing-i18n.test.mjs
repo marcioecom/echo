@@ -53,7 +53,9 @@ describe("landing routes and SEO", () => {
 
   it("sets html lang from the pathname", () => {
     const root = read("app/routes/__root.tsx")
-    assert.match(root, /htmlLang\(localeFromPath\(pathname\)\)/)
+    assert.match(root, /htmlLang\(documentLang\(pathname\)\)/)
+    assert.match(root, /document\.documentElement\.lang = lang/)
+    assert.match(read("lib/i18n.ts"), /localeFromPath\(pathname\)/)
     assert.match(root, /lang=\{lang\}/)
   })
 

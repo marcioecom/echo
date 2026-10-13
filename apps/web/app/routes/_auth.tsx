@@ -3,6 +3,7 @@ import { WhatsappIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
 import { BrandLogo } from "@/components/brand-logo"
+import { t } from "@/lib/i18n"
 
 export const Route = createFileRoute("/_auth")({
   ssr: false,
@@ -17,19 +18,18 @@ function AuthLayout() {
         <div className="my-auto max-w-xl py-12">
           <p className="flex items-center gap-2 text-sm font-medium text-primary">
             <HugeiconsIcon icon={WhatsappIcon} size={17} strokeWidth={1.8} />
-            WhatsApp customer support
+            {t("auth.layout.eyebrow")}
           </p>
           <h1 className="mt-5 max-w-md text-4xl font-semibold tracking-[-0.035em] text-balance xl:text-5xl">
-            Keep every customer conversation in reach.
+            {t("auth.layout.title")}
           </h1>
           <p className="mt-5 max-w-[52ch] text-base leading-7 text-pretty text-muted-foreground">
-            Echo gives your team a focused place to follow support, use AI with
-            care, and step in when a person is needed.
+            {t("auth.layout.body")}
           </p>
           <AuthInboxPreview />
         </div>
         <p className="text-sm leading-6 text-muted-foreground">
-          A private workspace for teams invited to Echo.
+          {t("auth.layout.note")}
         </p>
       </aside>
 
@@ -44,7 +44,7 @@ function AuthLayout() {
             to="/"
             className="inline-flex h-11 items-center text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30"
           >
-            Back to home
+            {t("auth.layout.back")}
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center py-12 sm:py-16">
@@ -66,12 +66,16 @@ function AuthInboxPreview() {
             <HugeiconsIcon icon={WhatsappIcon} size={15} strokeWidth={1.8} />
           </span>
           <div>
-            <p className="text-sm font-medium">Support Inbox</p>
-            <p className="text-[11px] text-muted-foreground">WhatsApp</p>
+            <p className="text-sm font-medium">
+              {t("auth.layout.previewTitle")}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {t("auth.layout.previewChannel")}
+            </p>
           </div>
         </div>
         <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-          AI active
+          {t("auth.layout.previewStatus")}
         </span>
       </div>
       <div className="grid grid-cols-[40%_60%]">
@@ -79,35 +83,34 @@ function AuthInboxPreview() {
           <PreviewConversation
             active
             name="Marina Costa"
-            message="Could you help me with my order?"
+            message={t("auth.layout.previewMarina")}
           />
           <PreviewConversation
             name="Lucas Almeida"
-            message="Thank you, that worked."
+            message={t("auth.layout.previewLucas")}
           />
           <PreviewConversation
             name="Ana Ribeiro"
-            message="I need to change my delivery address."
+            message={t("auth.layout.previewAna")}
           />
         </div>
         <div className="flex min-w-0 flex-col p-4">
           <div className="border-b pb-3">
             <p className="text-sm font-medium">Marina Costa</p>
             <p className="mt-0.5 text-[11px] text-muted-foreground">
-              Needs a reply
+              {t("auth.layout.previewNeedsReply")}
             </p>
           </div>
           <div className="flex min-h-40 flex-1 flex-col justify-end gap-3 py-4 text-xs leading-5">
             <p className="max-w-[85%] rounded-md bg-muted px-3 py-2 text-muted-foreground">
-              Hi, could you help me with my order? I have not received an
-              update.
+              {t("auth.layout.previewInbound")}
             </p>
             <p className="ml-auto max-w-[85%] rounded-md bg-primary px-3 py-2 text-primary-foreground">
-              I&apos;ll check the latest status for you now.
+              {t("auth.layout.previewOutbound")}
             </p>
           </div>
           <div className="flex h-9 items-center rounded-md border px-3 text-xs text-muted-foreground">
-            Reply to Marina...
+            {t("auth.layout.previewReply")}
           </div>
         </div>
       </div>

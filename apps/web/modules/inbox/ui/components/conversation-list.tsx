@@ -8,23 +8,34 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useNavigate } from "@tanstack/react-router"
+import type { ActorType } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+
+import { appLocale, t, type MessageKey } from "@/lib/i18n"
 
 import type { InboxConversation, InboxStatusFilter } from "../../types"
 import { ConversationStatus } from "./conversation-status"
 
-const filters: Array<{ value: InboxStatusFilter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "open", label: "Open" },
-  { value: "ai_active", label: "AI active" },
-  { value: "human_required", label: "Human" },
-  { value: "resolved", label: "Resolved" },
+const filters: Array<{ value: InboxStatusFilter; label: MessageKey }> = [
+  { value: "all", label: "inbox.filter.all" },
+  { value: "open", label: "inbox.filter.open" },
+  { value: "ai_active", label: "inbox.filter.ai_active" },
+  { value: "human_required", label: "inbox.filter.human_required" },
+  { value: "resolved", label: "inbox.filter.resolved" },
 ]
 
-const relativeTime = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+const senderKeys = {
+  contact: "inbox.sender.contact",
+  ai: "inbox.sender.ai",
+  operator: "inbox.sender.operator",
+  system: "inbox.sender.system",
+} as const satisfies Record<ActorType, MessageKey>
 
 function formatRelativeTime(value: string): string {
+  const relativeTime = new Intl.RelativeTimeFormat(appLocale(), {
+    numeric: "auto",
+  })
   const difference = new Date(value).getTime() - Date.now()
   const minute = 60_000
   const hour = minute * 60
@@ -37,13 +48,7 @@ function formatRelativeTime(value: string): string {
 }
 
 function senderLabel(sender: NonNullable<InboxConversation["lastMessage"]>) {
-  const labels = {
-    contact: "Contact",
-    ai: "AI",
-    operator: "Operator",
-    system: "System",
-  }
-  return labels[sender.senderType]
+  return t(senderKeys[sender.senderType])
 }
 
 export function ConversationList({
@@ -74,7 +79,7 @@ export function ConversationList({
       <div className="border-b px-3 py-3">
         <div
           className="flex gap-1 overflow-x-auto"
-          aria-label="Conversation status filters"
+          aria-label={t("inbox.filtersLabel")}
         >
           {filters.map((filter) => (
             <Button
@@ -88,7 +93,7 @@ export function ConversationList({
                 })
               }}
             >
-              {filter.label}
+              {t(filter.label)}
             </Button>
           ))}
         </div>
@@ -100,9 +105,9 @@ export function ConversationList({
             role="alert"
             className="flex items-center justify-between gap-3 border-b bg-destructive/5 px-4 py-2 text-xs text-destructive"
           >
-            <span>New conversations could not be loaded.</span>
+            <span>{t("inbox.staleError")}</span>
             <Button variant="ghost" size="sm" onClick={onRetry}>
-              Retry
+              {t("inbox.retry")}
             </Button>
           </div>
         ) : null}
@@ -110,8 +115,8 @@ export function ConversationList({
         {isError && !conversations.length ? (
           <ListState
             icon={AlertCircleIcon}
-            title="Inbox unavailable"
-            description="The conversation queue could not be loaded."
+            title={t("inbox.unavailableTitle")}
+            description={t("inbox.unavailableBody")}
             action={
               <Button
                 variant="outline"
@@ -119,7 +124,7 @@ export function ConversationList({
                 data-icon="inline-start"
               >
                 <HugeiconsIcon icon={ReloadIcon} />
-                Try again
+                {t("inbox.tryAgain")}
               </Button>
             }
           />
@@ -127,8 +132,8 @@ export function ConversationList({
         {!isLoading && !isError && conversations.length === 0 ? (
           <ListState
             icon={WhatsappIcon}
-            title="No conversations yet"
-            description="New WhatsApp support conversations will appear here as messages arrive."
+            title={t("inbox.emptyTitle")}
+            description={t("inbox.emptyBody")}
           />
         ) : null}
         {conversations.map((conversation) => {
@@ -164,7 +169,7 @@ export function ConversationList({
                 </p>
               ) : null}
               <p className="mt-2 truncate text-xs text-muted-foreground">
-                {conversation.lastMessage?.preview ?? "No messages yet"}
+                {conversation.lastMessage?.preview ?? t("inbox.noMessagesYet")}
               </p>
               <div className="mt-2 flex items-center justify-between gap-2">
                 <ConversationStatus status={conversation.status} />
@@ -189,7 +194,9 @@ export function ConversationList({
               disabled={isFetchingNextPage}
               onClick={onLoadMore}
             >
-              {isFetchingNextPage ? "Loading..." : "Load more"}
+              {isFetchingNextPage
+                ? t("inbox.loadingMore")
+                : t("inbox.loadMore")}
             </Button>
           </div>
         ) : null}
@@ -200,7 +207,7 @@ export function ConversationList({
 
 function ConversationListSkeleton() {
   return (
-    <div aria-label="Loading conversations" className="divide-y">
+    <div aria-label={t("inbox.loadingList")} className="divide-y">
       {Array.from({ length: 6 }, (_, index) => (
         <div key={index} className="space-y-2 px-4 py-3">
           <div className="flex justify-between gap-4">

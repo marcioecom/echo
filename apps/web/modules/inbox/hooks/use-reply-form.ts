@@ -6,11 +6,13 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { translateMessage } from "@/lib/i18n"
+
 import { inboxQueryKeys } from "./use-inbox-conversations"
 import { inboxApiRequest } from "./api"
 
 const replySchema = z.object({
-  body: z.string().trim().min(1, "Write a reply before sending.").max(1600),
+  body: z.string().trim().min(1, "inbox.validation.body").max(1600),
 })
 
 type ReplyFormValues = z.infer<typeof replySchema>
@@ -46,7 +48,7 @@ export function useReplyForm(input: {
       ])
     },
     onError: (error) => {
-      toast.error(error.message)
+      toast.error(translateMessage(error.message))
     },
   })
 

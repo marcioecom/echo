@@ -2,6 +2,7 @@
 
 import { Button } from "@workspace/ui/components/button"
 
+import { t } from "@/lib/i18n"
 import { useAcceptInvitation } from "@/modules/organization/hooks/use-accept-invitation"
 
 export function AcceptInvitationView({
@@ -16,19 +17,20 @@ export function AcceptInvitationView({
     <div className="flex min-h-svh items-center justify-center p-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="space-y-1">
-          <h1 className="text-lg font-medium">Accept invitation</h1>
+          <h1 className="text-lg font-medium">{t("members.accept.title")}</h1>
           {invitation ? (
             <p className="text-sm text-muted-foreground">
-              You were invited to join{" "}
-              <strong>{invitation.organizationName}</strong> on Echo.
+              {t("members.accept.invitedBefore")}{" "}
+              <strong>{invitation.organizationName}</strong>{" "}
+              {t("members.accept.invitedAfter")}
             </p>
           ) : isInvalid ? (
             <p className="text-sm text-destructive">
-              This invitation is invalid or has expired.
+              {t("members.accept.invalid")}
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Loading invitation details...
+              {t("members.accept.loading")}
             </p>
           )}
         </div>
@@ -37,7 +39,9 @@ export function AcceptInvitationView({
           disabled={acceptMutation.isPending || !invitation}
           className="w-full"
         >
-          {acceptMutation.isPending ? "Accepting..." : "Accept and continue"}
+          {acceptMutation.isPending
+            ? t("members.accept.accepting")
+            : t("members.accept.submit")}
         </Button>
       </div>
     </div>

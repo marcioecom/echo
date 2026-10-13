@@ -14,6 +14,7 @@ import {
 import { cn } from "@workspace/ui/lib/utils"
 import { useState } from "react"
 
+import { t } from "@/lib/i18n"
 import { useOrganizationSwitcher } from "@/modules/shell/hooks/use-organization-switcher"
 
 type OrganizationSwitcherProps = {
@@ -57,7 +58,7 @@ export function OrganizationSwitcher({
       <PopoverTrigger asChild>
         <button
           type="button"
-          aria-label={`Switch organization. Current organization: ${activeOrganizationName}`}
+          aria-label={t("shell.switchLabel", { name: activeOrganizationName })}
           className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold tracking-tight transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30"
         >
           <span className="truncate">{activeOrganizationName}</span>
@@ -79,10 +80,13 @@ export function OrganizationSwitcher({
         )}
       >
         <p className="px-2 py-1.5 text-xs text-muted-foreground">
-          Organizations
+          {t("shell.organizations")}
         </p>
         {isLoading ? (
-          <div className="space-y-1 p-1" aria-label="Loading organizations">
+          <div
+            className="space-y-1 p-1"
+            aria-label={t("shell.loadingOrganizations")}
+          >
             {[0, 1, 2].map((index) => (
               <div
                 key={index}
@@ -93,22 +97,22 @@ export function OrganizationSwitcher({
         ) : isError ? (
           <div className="space-y-2 px-2 py-3">
             <p className="text-xs text-muted-foreground">
-              Couldn&apos;t load organizations.
+              {t("shell.organizationsError")}
             </p>
             <button
               type="button"
               onClick={() => refetch()}
               className="text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/30"
             >
-              Try again
+              {t("shell.tryAgain")}
             </button>
           </div>
         ) : organizations.length === 0 ? (
           <p className="px-2 py-3 text-xs text-muted-foreground">
-            No organizations found.
+            {t("shell.organizationsEmpty")}
           </p>
         ) : (
-          <ul aria-label="Organizations" className="space-y-0.5">
+          <ul aria-label={t("shell.organizations")} className="space-y-0.5">
             {organizations.map((organization) => {
               const active = organization.id === activeOrganizationId
               const switching = switchingOrganizationId === organization.id
