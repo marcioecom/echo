@@ -3,7 +3,8 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
 import { t } from "@/lib/i18n"
 import {
-  sessionQueryOptions,
+  loadSession,
+  loadWorkspace,
   workspaceQueryOptions,
 } from "@/modules/auth/queries"
 import { AppShell } from "@/modules/shell/ui/app-shell"
@@ -11,9 +12,7 @@ import { AppShell } from "@/modules/shell/ui/app-shell"
 export const Route = createFileRoute("/_dashboard")({
   ssr: false,
   beforeLoad: async ({ context, location }) => {
-    const session = await context.queryClient.ensureQueryData(
-      sessionQueryOptions()
-    )
+    const session = await loadSession(context.queryClient)
     if (!session) {
       throw redirect({
         to: "/login",
@@ -21,9 +20,7 @@ export const Route = createFileRoute("/_dashboard")({
       })
     }
 
-    const workspace = await context.queryClient.ensureQueryData(
-      workspaceQueryOptions()
-    )
+    const workspace = await loadWorkspace(context.queryClient)
     if (!workspace) {
       throw redirect({ to: "/onboarding" })
     }

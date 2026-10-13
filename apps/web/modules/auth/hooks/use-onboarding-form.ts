@@ -2,12 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { deriveSlug, SLUG_MAX_LENGTH, SLUG_PATTERN } from "@workspace/domain"
-import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
+import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
 
 const organizationSchema = z.object({
   name: z.string().min(1, "auth.validation.organizationName"),
@@ -32,7 +32,7 @@ function isTakenSlugError(error: unknown) {
 }
 
 export function useOnboardingForm() {
-  const navigate = useNavigate()
+  const navigateAfterAuth = useNavigateAfterAuth()
 
   const form = useForm<OrganizationFormValues>({
     resolver: zodResolver(organizationSchema),
@@ -103,7 +103,7 @@ export function useOnboardingForm() {
       })
       return
     }
-    navigate({ to: "/inbox" })
+    await navigateAfterAuth("/inbox")
   }
 
   return {
