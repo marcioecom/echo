@@ -1,6 +1,8 @@
 import { loadEnv, serverEnvSchema } from "@workspace/config"
 import { z } from "zod"
 
+import { configureLangSmithTracing, langSmithEnvShape } from "./langsmith"
+
 const encryptionKeySchema = z.string().refine((value) => {
   const decoded = Buffer.from(value, "base64")
   return decoded.length === 32 && decoded.toString("base64") === value
@@ -19,12 +21,20 @@ const workerEnvSchema = serverEnvSchema.extend({
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   AI_GATEWAY_API_KEY: z.string().min(1),
-  AI_EMBEDDING_MODEL: z.literal("openai/text-embedding-3-small").default(
-    "openai/text-embedding-3-small"
-  ),
-  AI_CHAT_MODEL: z.literal("openai/gpt-5.6-luna").default("openai/gpt-5.6-luna"),
+  AI_EMBEDDING_MODEL: z
+    .literal("openai/text-embedding-3-small")
+    .default("openai/text-embedding-3-small"),
+  AI_CHAT_MODEL: z
+    .literal("openai/gpt-5.6-luna")
+    .default("openai/gpt-5.6-luna"),
+  ...langSmithEnvShape,
 })
 
 export type WorkerEnv = z.output<typeof workerEnvSchema>
 
 export const env = loadEnv(workerEnvSchema)
+
+configureLangSmithTracing({
+  apiKey: env.LANGSMITH_API_KEY,
+  project: env.LANGSMITH_PROJECT,
+})

@@ -4,6 +4,7 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { createDatabase } from "@workspace/db"
 import {
   auditEvents,
+  channelConnectionProviderBindings,
   channelConnections,
   channelIdentities,
   contacts,
@@ -16,13 +17,26 @@ import type { ProcessInboundMessageJob } from "@workspace/jobs"
 import type { Job } from "bullmq"
 import { and, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest"
 
 const { databaseRef, supportAgentGraph } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
   supportAgentGraph: { invoke: vi.fn() },
 }))
 
+vi.mock("../../config/env", () => ({
+  env: {
+    AI_CHAT_MODEL: "openai/gpt-5.6-luna",
+  },
+}))
 vi.mock("../../lib/db", () => ({
   database: new Proxy(
     {},
@@ -83,13 +97,26 @@ describe("process inbound Message", () => {
       channelType: "whatsapp",
       address: `+5511${organizationId.slice(-8).replace(/[A-Z]/g, "1")}`,
     })
+    const channelAddress = `+5521${channelConnectionId.slice(-8).replace(/[A-Z]/g, "2")}`
     await database.db.insert(channelConnections).values({
       id: channelConnectionId,
       organizationId,
       channelType: "whatsapp",
       name: "Support",
-      address: `+5521${channelConnectionId.slice(-8).replace(/[A-Z]/g, "2")}`,
+      address: channelAddress,
       status: "active",
+    })
+    await database.db.insert(channelConnectionProviderBindings).values({
+      organizationId,
+      channelConnectionId,
+      provider: "twilio",
+      externalAccountId: "AC11111111111111111111111111111111",
+      externalSenderId: "XE11111111111111111111111111111111",
+      routingAddress: channelAddress,
+      credentialsCiphertext: "not-a-credential",
+      credentialsNonce: "not-a-credential",
+      credentialsAuthTag: "not-a-credential",
+      credentialsKeyVersion: "v1",
     })
     await database.db.insert(supportConversations).values({
       id: supportConversationId,
@@ -158,6 +185,27 @@ describe("process inbound Message", () => {
     const payload = await createState("worker-text", "text")
 
     await processInboundMessage(payload)
+
+    expect(supportAgentGraph.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: payload.organizationId,
+        query: "Help",
+      }),
+      {
+        runName: "support-agent",
+        tags: ["support-agent", "inbound-message", "twilio"],
+        metadata: {
+          organizationId: payload.organizationId,
+          conversationId: payload.supportConversationId,
+          messageId: payload.messageId,
+          channelProvider: "twilio",
+          model: "openai/gpt-5.6-luna",
+        },
+      }
+    )
+    const invokeMetadata = supportAgentGraph.invoke.mock.calls[0]?.[1]?.metadata
+    expect(invokeMetadata).not.toHaveProperty("body")
+    expect(JSON.stringify(invokeMetadata)).not.toContain("not-a-credential")
 
     const [conversation] = await database.db
       .select()

@@ -1,3 +1,4 @@
+import { awaitAllCallbacks } from "@langchain/core/callbacks/promises"
 import { workbench } from "@getworkbench/fastify"
 import { createLoggerWithContext } from "@workspace/logger"
 import { Worker } from "bullmq"
@@ -77,6 +78,10 @@ async function main(): Promise<void> {
     const steps: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["app.close", () => app.close()],
       ["workers.close", () => Promise.all(workers.map((w) => w.close()))],
+      [
+        "langsmith.flush",
+        () => (env.LANGSMITH_API_KEY ? awaitAllCallbacks() : Promise.resolve()),
+      ],
       ["redis.quit", () => redisConnection.quit()],
       ["database.close", () => database.close()],
     ]
