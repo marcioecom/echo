@@ -1,13 +1,10 @@
 import type { AuthenticationCreds } from "@whiskeysockets/baileys"
 import { describe, expect, it, vi } from "vitest"
 
-import type { EchoAuthState } from "../auth/use-echo-auth-state"
-import {
-  BaileysSession,
-  type SessionEvents,
-  type SessionSocket,
-} from "./session-runner"
-import type { SessionDirectory } from "./session-directory"
+import type { EchoAuthState } from "./auth-state"
+import type { SessionDirectory } from "./repositories/session-directory"
+import { BaileysSession } from "./session"
+import type { SessionEvents, SessionSocket } from "./types"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"

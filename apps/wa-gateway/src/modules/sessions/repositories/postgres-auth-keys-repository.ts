@@ -3,14 +3,16 @@ import { baileysAuthKeys } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
 import { and, eq, sql } from "drizzle-orm"
 
+import { database } from "@/lib/db"
+
 import type {
   AuthKeyScope,
-  BaileysAuthKeyRepository,
+  AuthKeysRepository,
   StoredAuthKey,
-} from "./auth-key-repository"
+} from "./auth-keys-repository"
 
-export class PostgresAuthKeyRepository implements BaileysAuthKeyRepository {
-  constructor(private readonly db: Database) {}
+export class PostgresAuthKeysRepository implements AuthKeysRepository {
+  constructor(private readonly db: Database = database.db) {}
 
   async read(
     input: AuthKeyScope & { keyType: string; keyId: string }

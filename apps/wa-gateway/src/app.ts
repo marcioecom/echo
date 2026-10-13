@@ -1,29 +1,11 @@
 import { createLoggerWithContext } from "@workspace/logger"
-import Fastify from "fastify"
+import Fastify, { type FastifyBaseLogger } from "fastify"
 
-import { database } from "./lib/db"
-import { pingRedis } from "./lib/redis"
+import { registerHealthRoutes } from "./plugins/health"
 
 export function createApp() {
-  const logger = createLoggerWithContext("wa-gateway:api")
+  const logger: FastifyBaseLogger = createLoggerWithContext("wa-gateway")
   const app = Fastify({ loggerInstance: logger })
-
-  app.get("/healthz", { logLevel: "silent" }, async () => ({ status: "ok" }))
-  app.get("/readyz", { logLevel: "silent" }, async (_request, reply) => {
-    const checks = await Promise.allSettled([database.check(), pingRedis()])
-    const [postgres, redis] = checks
-    const body = {
-      status: checks.every((check) => check.status === "fulfilled")
-        ? "ok"
-        : "unavailable",
-      dependencies: {
-        postgres: postgres?.status === "fulfilled" ? "ok" : "unavailable",
-        redis: redis?.status === "fulfilled" ? "ok" : "unavailable",
-      },
-    }
-    if (body.status !== "ok") return reply.code(503).send(body)
-    return body
-  })
-
+  registerHealthRoutes(app)
   return app
 }
