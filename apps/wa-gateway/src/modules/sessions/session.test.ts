@@ -1,4 +1,7 @@
-import type { AuthenticationCreds } from "@whiskeysockets/baileys"
+import {
+  DisconnectReason,
+  type AuthenticationCreds,
+} from "@whiskeysockets/baileys"
 import { describe, expect, it, vi } from "vitest"
 
 import type { EchoAuthState } from "./auth-state"
@@ -35,12 +38,14 @@ function harness(options?: {
   pairingTimeoutMs?: number
   registered?: boolean
   claim?: (id: string) => Promise<boolean>
+  isOwner?: () => boolean
 }) {
   const opened: ReturnType<typeof fakeSocket>[] = []
   const directory: SessionDirectory = {
     setState: vi.fn(async () => undefined),
     markConnected: vi.fn(async () => undefined),
-    findResumable: vi.fn(async () => null),
+    listClaimable: vi.fn(async () => []),
+    setOwner: vi.fn(async () => undefined),
   }
   const publishQr = vi.fn(async () => undefined)
   const publishPairingCode = vi.fn(async () => undefined)
@@ -78,9 +83,10 @@ function harness(options?: {
     claimInbound: options?.claim ?? (async () => true),
     acquireSendSlot: async () => "ok",
     composeDelayMs: () => 0,
-    delay: async () => undefined,
+    delay: vi.fn(async () => undefined),
     pairingTimeoutMs: options?.pairingTimeoutMs ?? 60_000,
     ownerPod: "pod-a",
+    isOwner: options?.isOwner ?? (() => true),
     logger,
   })
   return {
@@ -233,4 +239,86 @@ describe("BaileysSession", () => {
     await setup.session.stop()
     await running
   })
+
+  it("backs off after connectionLost and does not open another socket after logout", async () => {
+    const setup = harness()
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    await setup.opened[0]?.emit(closeWith(DisconnectReason.connectionLost))
+    await vi.waitFor(() => expect(setup.opened[1]?.ready()).toBe(true))
+    expect(setup.directory.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: "connecting",
+        lastError: "connection_lost",
+        reconnectAttempts: 1,
+      })
+    )
+
+    await setup.opened[1]?.emit(closeWith(DisconnectReason.loggedOut))
+    await running
+    expect(setup.clear).toHaveBeenCalled()
+    expect(setup.opened).toHaveLength(2)
+    expect(setup.logger.error).toHaveBeenCalledWith(
+      "channel session alert",
+      expect.objectContaining({ kind: "logged_out", reason: "logged_out" })
+    )
+  })
+
+  it("pauses on a suspected ban and alerts", async () => {
+    const setup = harness()
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    await setup.opened[0]?.emit(closeWith(DisconnectReason.forbidden))
+    await running
+
+    expect(setup.directory.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: "banned_suspected",
+        lastError: "forbidden",
+      })
+    )
+    expect(setup.logger.error).toHaveBeenCalledWith(
+      "channel session alert",
+      expect.objectContaining({ kind: "banned_suspected" })
+    )
+    expect(setup.opened).toHaveLength(1)
+  })
+
+  it("reconnects immediately when Baileys asks for a restart", async () => {
+    const setup = harness()
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    await setup.opened[0]?.emit(closeWith(DisconnectReason.restartRequired))
+    await vi.waitFor(() => expect(setup.opened[1]?.ready()).toBe(true))
+    expect(setup.directory.setState).not.toHaveBeenCalledWith(
+      expect.objectContaining({ reconnectAttempts: 1 })
+    )
+    await setup.session.stop()
+    await running
+  })
+
+  it("does not write session state after the lease is lost", async () => {
+    let owner = true
+    const setup = harness({ isOwner: () => owner })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    owner = false
+    await setup.opened[0]?.emit({
+      "connection.update": { qr: "2@secret-qr" },
+    })
+    expect(setup.directory.setState).not.toHaveBeenCalledWith(
+      expect.objectContaining({ state: "qr_pending" })
+    )
+    await setup.session.stop()
+    await running
+  })
 })
+
+function closeWith(statusCode: number) {
+  return {
+    "connection.update": {
+      connection: "close" as const,
+      lastDisconnect: { error: { output: { statusCode } } },
+    },
+  }
+}

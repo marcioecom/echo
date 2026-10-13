@@ -1,7 +1,9 @@
 import { UnrecoverableError } from "bullmq"
 import { describe, expect, it, vi } from "vitest"
 
-import { SessionRegistry } from "../registry"
+import { InMemoryCommandBus } from "../adapters/session-commands"
+import { InMemorySessionLease } from "../adapters/session-lease"
+import { SessionManager } from "../session-manager"
 import type { BaileysSession } from "../session"
 import { handleWaGatewayJob } from "./handle-gateway-job"
 
@@ -22,34 +24,42 @@ function fakeSession() {
   }
 }
 
-describe("SessionRegistry", () => {
-  it("resumes one saved session and refuses a second connection", async () => {
-    const sessions = [fakeSession(), fakeSession()]
-    const registry = new SessionRegistry({
-      findResumable: async () => ({ organizationId, channelConnectionId }),
-      createSession: () => sessions.shift() as unknown as BaileysSession,
-    })
-    await registry.start()
-    expect(sessions).toHaveLength(1)
-
-    await expect(
-      handleWaGatewayJob(registry, {
-        name: "wa-connect",
-        data: { organizationId, channelConnectionId: otherConnectionId },
-      })
-    ).rejects.toBeInstanceOf(UnrecoverableError)
+function managerFor(sessions: Map<string, ReturnType<typeof fakeSession>>) {
+  return new SessionManager({
+    podId: "pod-a",
+    maxSessions: 10,
+    leaseTtlMs: 30_000,
+    renewIntervalMs: 5_000,
+    leases: new InMemorySessionLease(),
+    bus: new InMemoryCommandBus(),
+    listClaimable: async () => [],
+    setOwner: async () => undefined,
+    createSession: (connection) => {
+      const session = fakeSession()
+      sessions.set(connection.channelConnectionId, session)
+      return session as unknown as BaileysSession
+    },
+    logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   })
+}
 
-  it("sends only through the active session", async () => {
-    const session = fakeSession()
-    const registry = new SessionRegistry({
-      findResumable: async () => null,
-      createSession: () => session as unknown as BaileysSession,
+describe("handleWaGatewayJob", () => {
+  it("opens more than one session and sends through the matching one", async () => {
+    const sessions = new Map<string, ReturnType<typeof fakeSession>>()
+    const manager = managerFor(sessions)
+
+    await handleWaGatewayJob(manager, {
+      name: "wa-connect",
+      data: { organizationId, channelConnectionId },
     })
-    await registry.connect({ organizationId, channelConnectionId })
+    await handleWaGatewayJob(manager, {
+      name: "wa-connect",
+      data: { organizationId, channelConnectionId: otherConnectionId },
+    })
+    expect(sessions.size).toBe(2)
 
     await expect(
-      handleWaGatewayJob(registry, {
+      handleWaGatewayJob(manager, {
         name: "wa-send",
         data: {
           organizationId,
@@ -60,8 +70,16 @@ describe("SessionRegistry", () => {
         },
       })
     ).resolves.toEqual({ ok: true, externalMessageId: "wamid.out" })
-    expect(session.sendText).toHaveBeenCalledWith(
+    expect(sessions.get(channelConnectionId)?.sendText).toHaveBeenCalledWith(
       expect.objectContaining({ to: "+5511888888888", body: "Oi" })
     )
+    expect(sessions.get(otherConnectionId)?.sendText).not.toHaveBeenCalled()
+  })
+
+  it("rejects an unknown job", async () => {
+    const manager = managerFor(new Map())
+    await expect(
+      handleWaGatewayJob(manager, { name: "wa-nope", data: {} })
+    ).rejects.toBeInstanceOf(UnrecoverableError)
   })
 })

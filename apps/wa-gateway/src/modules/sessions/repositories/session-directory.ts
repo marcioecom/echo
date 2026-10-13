@@ -5,7 +5,7 @@ import {
   channelSessionStates,
 } from "@workspace/db/schema"
 import type { ChannelSessionState } from "@workspace/domain"
-import { and, desc, eq, inArray } from "drizzle-orm"
+import { and, asc, eq, inArray } from "drizzle-orm"
 
 import { database } from "@/lib/db"
 
@@ -29,7 +29,8 @@ export interface SessionDirectory {
       ownerPod?: string | null
     }
   ): Promise<void>
-  findResumable(): Promise<ConnectionRef | null>
+  listClaimable(): Promise<ConnectionRef[]>
+  setOwner(input: ConnectionRef & { ownerPod: string | null }): Promise<void>
 }
 
 export class PostgresSessionDirectory implements SessionDirectory {
@@ -141,8 +142,8 @@ export class PostgresSessionDirectory implements SessionDirectory {
     }
   }
 
-  async findResumable(): Promise<ConnectionRef | null> {
-    const rows = await this.db
+  async listClaimable(): Promise<ConnectionRef[]> {
+    return this.db
       .select({
         organizationId: channelConnections.organizationId,
         channelConnectionId: channelConnections.id,
@@ -183,9 +184,24 @@ export class PostgresSessionDirectory implements SessionDirectory {
           ])
         )
       )
-      .orderBy(desc(channelSessionStates.updatedAt))
-      .limit(1)
-    return rows[0] ?? null
+      .orderBy(asc(channelSessionStates.updatedAt), asc(channelConnections.id))
+  }
+
+  async setOwner(
+    input: ConnectionRef & { ownerPod: string | null }
+  ): Promise<void> {
+    await this.db
+      .update(channelSessionStates)
+      .set({ ownerPod: input.ownerPod, lastSeenAt: new Date() })
+      .where(
+        and(
+          eq(channelSessionStates.organizationId, input.organizationId),
+          eq(
+            channelSessionStates.channelConnectionId,
+            input.channelConnectionId
+          )
+        )
+      )
   }
 }
 

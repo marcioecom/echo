@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { nextReconnect } from "./reconnect"
 
 describe("nextReconnect", () => {
-  it("retries immediately after pairing and after a drop that followed open", () => {
+  it("retries immediately after pairing and backs off after an open connection drops", () => {
     expect(
       nextReconnect({ outcome: "restart", attempt: 4, stopped: false })
     ).toEqual({ type: "immediately", attempt: 0 })
@@ -12,11 +12,12 @@ describe("nextReconnect", () => {
         outcome: "retry_after_open",
         attempt: 3,
         stopped: false,
+        random: () => 0,
       })
-    ).toEqual({ type: "immediately", attempt: 0 })
+    ).toEqual({ type: "backoff", attempt: 1, delayMs: 1_000 })
   })
 
-  it("backs off and stops after the attempt cap", () => {
+  it("backs off with jitter and stops after the attempt cap", () => {
     expect(
       nextReconnect({
         outcome: "retry",
@@ -28,11 +29,26 @@ describe("nextReconnect", () => {
     expect(
       nextReconnect({
         outcome: "retry",
-        attempt: 7,
+        attempt: 1,
         stopped: false,
         random: () => 0,
       })
-    ).toEqual({ type: "exhausted", attempt: 8 })
+    ).toEqual({ type: "backoff", attempt: 2, delayMs: 2_000 })
+    const jittered = nextReconnect({
+      outcome: "retry",
+      attempt: 0,
+      stopped: false,
+      random: () => 0.5,
+    })
+    expect(jittered).toEqual({ type: "backoff", attempt: 1, delayMs: 1_125 })
+    expect(
+      nextReconnect({
+        outcome: "retry",
+        attempt: 9,
+        stopped: false,
+        random: () => 0,
+      })
+    ).toEqual({ type: "exhausted", attempt: 10 })
   })
 
   it("does not reconnect after logout, replacement, ban, or stop", () => {

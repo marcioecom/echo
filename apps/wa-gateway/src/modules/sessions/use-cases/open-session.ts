@@ -8,6 +8,8 @@ import { jobs } from "@/lib/jobs"
 import { redisConnection } from "@/lib/redis"
 
 import { openBaileysSocket } from "../adapters/baileys-socket"
+import { createRedisCommandBus } from "../adapters/session-commands"
+import { RedisSessionLease } from "../adapters/session-lease"
 import { credentialsCipher } from "../adapters/credentials-cipher"
 import { useEchoAuthState } from "../auth-state"
 import {
@@ -23,7 +25,7 @@ import {
 } from "../repositories/session-directory"
 import { acquireSendSlot, claimInboundMessage } from "../rate-limit"
 import { recallRecentMessage, rememberRecentMessage } from "../recent-messages"
-import { SessionRegistry } from "../registry"
+import { SessionManager } from "../session-manager"
 import { BaileysSession } from "../session"
 import type { ConnectionRef } from "../types"
 
@@ -35,6 +37,7 @@ export async function openSession(
     authKeys: PostgresAuthKeysRepository
     directory: SessionDirectory
     ownerPod: string
+    isOwner: () => boolean
   }
 ): Promise<BaileysSession> {
   const auth = await useEchoAuthState({
@@ -62,6 +65,7 @@ export async function openSession(
     ...connection,
     auth,
     ownerPod: deps.ownerPod,
+    isOwner: deps.isOwner,
     pairingTimeoutMs: env.WA_PAIRING_TIMEOUT_MS,
     directory: deps.directory,
     logger: sessionLogger,
@@ -116,13 +120,30 @@ export async function openSession(
   })
 }
 
-export function createSessionRegistry(): SessionRegistry {
+export function createSessionManager(): SessionManager {
   const directory = new PostgresSessionDirectory()
   const authKeys = new PostgresAuthKeysRepository()
   const ownerPod = env.POD_NAME ?? hostname()
-  return new SessionRegistry({
-    findResumable: () => directory.findResumable(),
-    createSession: (connection) =>
-      openSession(connection, { authKeys, directory, ownerPod }),
+  const managerLogger = {
+    info: (message: string, data?: Record<string, unknown>) =>
+      data ? logger.info(message, data) : logger.info(message),
+    warn: (message: string, data?: Record<string, unknown>) =>
+      data ? logger.warn(message, data) : logger.warn(message),
+    error: (message: string, data?: Record<string, unknown>) =>
+      data ? logger.error(message, data) : logger.error(message),
+  }
+  return new SessionManager({
+    podId: ownerPod,
+    maxSessions: env.MAX_SESSIONS_PER_POD,
+    leaseTtlMs: env.LEASE_TTL_MS,
+    renewIntervalMs: env.LEASE_RENEW_MS,
+    leases: new RedisSessionLease(redisConnection),
+    bus: createRedisCommandBus(redisConnection, managerLogger),
+    listClaimable: () => directory.listClaimable(),
+    setOwner: (connection, podId) =>
+      directory.setOwner({ ...connection, ownerPod: podId }),
+    createSession: (connection, isOwner) =>
+      openSession(connection, { authKeys, directory, ownerPod, isOwner }),
+    logger: managerLogger,
   })
 }

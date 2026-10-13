@@ -1,9 +1,14 @@
 import type { SendResult, StatusUpdate } from "@workspace/messaging"
 import type { ChannelSessionState } from "@workspace/domain"
 
+import { emitSessionAlert, type SessionAlert } from "./alerts"
 import type { EchoAuthState } from "./auth-state"
 import { statusUpdatesFromBaileys } from "./delivery-status"
-import { classifyDisconnect, disconnectStatusCode } from "./disconnect"
+import {
+  classifyDisconnect,
+  disconnectError,
+  disconnectStatusCode,
+} from "./disconnect"
 import { PairingUnavailableError, RoutingConflictError } from "./errors"
 import {
   filterInboundUpsert,
@@ -24,6 +29,7 @@ export class BaileysSession {
   private pairingTimer: ReturnType<typeof setTimeout> | null = null
   private resolveClose: ((outcome: CloseOutcome) => void) | null = null
   private closed = false
+  private closeError: string | null = null
 
   constructor(
     private readonly deps: {
@@ -49,6 +55,7 @@ export class BaileysSession {
       delay: (ms: number) => Promise<void>
       pairingTimeoutMs: number
       ownerPod: string | null
+      isOwner: () => boolean
       logger: SessionLogger
     }
   ) {}
@@ -69,10 +76,18 @@ export class BaileysSession {
           "reconnect_exhausted",
           step.attempt
         )
+        this.alert("reconnect_exhausted", "reconnect_exhausted")
         break
       }
       attempt = step.attempt
-      if (step.type === "backoff") await this.deps.delay(step.delayMs)
+      if (step.type === "backoff") {
+        await this.recordState(
+          "connecting",
+          this.closeError ?? "connection_lost",
+          step.attempt
+        )
+        await this.deps.delay(step.delayMs)
+      }
     }
     await this.deps.auth.flush()
   }
@@ -150,6 +165,7 @@ export class BaileysSession {
   }
 
   private async onEvents(events: SessionEvents): Promise<void> {
+    if (!this.deps.isOwner()) return
     if (events["creds.update"]) await this.deps.auth.saveCreds()
     const update = events["connection.update"]
     if (update?.qr) {
@@ -173,6 +189,11 @@ export class BaileysSession {
   }
 
   private async onOpen(): Promise<void> {
+    if (!this.deps.isOwner()) {
+      this.stopped = true
+      if (this.socket) await this.socket.end(undefined)
+      return
+    }
     this.open = true
     this.sawOpen = true
     this.clearPairingTimer()
@@ -204,23 +225,32 @@ export class BaileysSession {
   private async onClose(statusCode: number | undefined): Promise<void> {
     this.open = false
     this.clearPairingTimer()
+    if (!this.deps.isOwner()) {
+      this.stopped = true
+      this.finish("stopped")
+      return
+    }
     const action = classifyDisconnect(statusCode)
+    const reason = disconnectError(statusCode)
     if (action === "logged_out") {
       this.stopped = true
       await this.deps.auth.clear()
-      await this.recordState("logged_out", null)
+      await this.recordState("logged_out", reason)
+      this.alert("logged_out", reason)
       this.finish("logged_out")
       return
     }
     if (action === "banned") {
       this.stopped = true
-      await this.recordState("banned_suspected", "forbidden")
+      await this.recordState("banned_suspected", reason)
+      this.alert("banned_suspected", reason)
       this.finish("banned")
       return
     }
     if (action === "replaced") {
       this.stopped = true
-      await this.recordState("disconnected", "connection_replaced")
+      await this.recordState("disconnected", reason)
+      this.alert("connection_replaced", reason)
       this.finish("replaced")
       return
     }
@@ -228,6 +258,7 @@ export class BaileysSession {
       this.finish("restart")
       return
     }
+    this.closeError = reason
     this.finish(this.sawOpen ? "retry_after_open" : "retry")
   }
 
@@ -279,11 +310,21 @@ export class BaileysSession {
     this.finish("pairing_timeout")
   }
 
+  private alert(kind: SessionAlert["kind"], reason: string): void {
+    emitSessionAlert(this.deps.logger, {
+      kind,
+      reason,
+      organizationId: this.deps.organizationId,
+      channelConnectionId: this.deps.channelConnectionId,
+    })
+  }
+
   private async recordState(
     state: ChannelSessionState,
     lastError: string | null,
     reconnectAttempts?: number
   ): Promise<void> {
+    if (!this.deps.isOwner()) return
     await this.deps.directory.setState({
       organizationId: this.deps.organizationId,
       channelConnectionId: this.deps.channelConnectionId,

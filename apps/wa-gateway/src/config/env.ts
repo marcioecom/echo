@@ -19,6 +19,9 @@ const gatewayEnvSchema = serverEnvSchema.extend({
   WA_COMPOSE_MS_PER_CHAR: z.coerce.number().int().min(0).default(30),
   WA_COMPOSE_MIN_MS: z.coerce.number().int().min(0).default(1_000),
   WA_COMPOSE_MAX_MS: z.coerce.number().int().min(0).default(6_000),
+  MAX_SESSIONS_PER_POD: z.coerce.number().int().positive().default(50),
+  LEASE_TTL_MS: z.coerce.number().int().min(1_000).default(30_000),
+  LEASE_RENEW_MS: z.coerce.number().int().min(1_000).default(5_000),
   POD_NAME: z.string().min(1).optional(),
 })
 

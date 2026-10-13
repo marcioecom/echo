@@ -5,14 +5,14 @@ import { env } from "./config/env"
 import { database } from "./lib/db"
 import { jobs } from "./lib/jobs"
 import { pingRedis, redisConnection } from "./lib/redis"
-import { createSessionRegistry } from "./modules/sessions/use-cases/open-session"
+import { createSessionManager } from "./modules/sessions/use-cases/open-session"
 import { startGatewayWorker } from "./modules/sessions/workers/gateway-worker"
 
 const logger = createLoggerWithContext("wa-gateway:main")
 
 async function main(): Promise<void> {
-  const registry = createSessionRegistry()
-  const worker = startGatewayWorker(registry)
+  const sessions = createSessionManager()
+  const worker = startGatewayWorker(sessions)
   const app = createApp()
 
   let shutdownPromise: Promise<void> | undefined
@@ -26,8 +26,9 @@ async function main(): Promise<void> {
     if (signal) logger.info("shutting down", { signal })
 
     const steps: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
-      ["gateway.stop", () => registry.stop()],
+      ["gateway.pause", () => sessions.pause()],
       ["worker.close", () => worker.close()],
+      ["gateway.stop", () => sessions.stop()],
       ["app.close", () => app.close()],
       ["jobs.close", () => jobs.close()],
       ["redis.quit", () => redisConnection.quit()],
@@ -59,7 +60,7 @@ async function main(): Promise<void> {
 
   await database.check()
   await pingRedis()
-  await registry.start()
+  await sessions.start()
   await app.listen({ host: env.WA_GATEWAY_HOST, port: env.WA_GATEWAY_PORT })
   logger.info("wa-gateway listening", { port: env.WA_GATEWAY_PORT })
 }

@@ -1,6 +1,6 @@
 import { reconnectDelayMs } from "./pacing"
 
-export const MAX_RECONNECT_ATTEMPTS = 8
+export const MAX_RECONNECT_ATTEMPTS = 10
 
 export type CloseOutcome =
   | "restart"
@@ -18,8 +18,8 @@ export type ReconnectStep =
   | { type: "immediately"; attempt: number }
   | { type: "backoff"; attempt: number; delayMs: number }
 
-// F2 policy: restart now, otherwise back off until the attempt cap.
-// LEA-83 replaces this function with per-reason backoff and alerts.
+// restartRequired reconnects immediately. A dropped socket backs off.
+// Logout, replacement, ban, and the attempt cap stop the loop.
 export function nextReconnect(input: {
   outcome: CloseOutcome
   attempt: number
@@ -35,11 +35,11 @@ export function nextReconnect(input: {
   ) {
     return { type: "stop" }
   }
-  if (input.outcome === "restart" || input.outcome === "retry_after_open") {
+  if (input.outcome === "restart") {
     return { type: "immediately", attempt: 0 }
   }
 
-  const attempt = input.attempt + 1
+  const attempt = input.outcome === "retry_after_open" ? 1 : input.attempt + 1
   if (attempt >= MAX_RECONNECT_ATTEMPTS) {
     return { type: "exhausted", attempt }
   }

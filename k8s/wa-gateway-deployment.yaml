@@ -7,8 +7,7 @@ metadata:
     app.kubernetes.io/name: echo-wa-gateway
     app.kubernetes.io/part-of: echo
 spec:
-  # F2 keeps a single socket. F3 (session leases) is what lets this rise above 1.
-  replicas: 1
+  replicas: 2
   revisionHistoryLimit: 3
   strategy:
     type: RollingUpdate
@@ -46,6 +45,12 @@ spec:
                   fieldPath: metadata.name
             - name: WA_GATEWAY_PORT
               value: "3003"
+            - name: MAX_SESSIONS_PER_POD
+              value: "50"
+            - name: LEASE_TTL_MS
+              value: "30000"
+            - name: LEASE_RENEW_MS
+              value: "5000"
           livenessProbe:
             httpGet:
               path: /healthz
