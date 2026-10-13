@@ -1,10 +1,11 @@
 import type { Database } from "@workspace/db"
 import {
+  knowledgeDocumentChunks,
   knowledgeDocuments,
   organizations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, asc, count, desc, eq, inArray, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
 
@@ -37,6 +38,35 @@ export class KnowledgeDocumentsRepository {
       )
       .limit(1)
     return document
+  }
+
+  async listChunks(input: {
+    organizationId: string
+    documentId: string
+    page: number
+    pageSize: number
+  }) {
+    const where = and(
+      eq(knowledgeDocumentChunks.organizationId, input.organizationId),
+      eq(knowledgeDocumentChunks.knowledgeDocumentId, input.documentId)
+    )
+    const [counted] = await this.db
+      .select({ total: count() })
+      .from(knowledgeDocumentChunks)
+      .where(where)
+    const items = await this.db
+      .select({
+        id: knowledgeDocumentChunks.id,
+        ordinal: knowledgeDocumentChunks.ordinal,
+        content: knowledgeDocumentChunks.content,
+      })
+      .from(knowledgeDocumentChunks)
+      .where(where)
+      .orderBy(asc(knowledgeDocumentChunks.ordinal))
+      .limit(input.pageSize)
+      .offset((input.page - 1) * input.pageSize)
+
+    return { items, total: Number(counted?.total ?? 0) }
   }
 
   async list(organizationId: string) {
@@ -76,7 +106,8 @@ export class KnowledgeDocumentsRepository {
         content: input.content,
       })
       .returning()
-    if (!document) throw new Error("Knowledge text document insert returned no row")
+    if (!document)
+      throw new Error("Knowledge text document insert returned no row")
     return document
   }
 
@@ -106,7 +137,8 @@ export class KnowledgeDocumentsRepository {
         sourceSizeBytes: input.sourceSizeBytes,
       })
       .returning()
-    if (!document) throw new Error("Knowledge file document insert returned no row")
+    if (!document)
+      throw new Error("Knowledge file document insert returned no row")
     return document
   }
 

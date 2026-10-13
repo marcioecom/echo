@@ -19,3 +19,9 @@ export const createTextKnowledgeDocumentSchema = z.object({
 export const knowledgeDocumentParamsSchema = z.object({
   documentId: z.string().length(26),
 })
+
+export const knowledgeDocumentChunkPageSize = 20
+
+export const knowledgeDocumentDetailQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).max(1_000).default(1),
+})

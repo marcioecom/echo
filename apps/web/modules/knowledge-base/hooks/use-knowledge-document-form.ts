@@ -1,7 +1,7 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
@@ -9,8 +9,7 @@ import {
   completeKnowledgeUpload,
   createKnowledgeUpload,
   createTextKnowledgeDocument,
-  listKnowledgeDocuments,
-  reindexKnowledgeDocument,
+  knowledgeDocumentQueryKey,
   uploadKnowledgeFile,
 } from "./api"
 
@@ -46,17 +45,6 @@ export function useKnowledgeDocumentForm() {
     resolver: zodResolver(knowledgeDocumentSchema),
     defaultValues: { title: "", sourceType: "text", content: "", file: null },
   })
-  const documentsQuery = useQuery({
-    queryKey: ["knowledge-documents"],
-    queryFn: listKnowledgeDocuments,
-    refetchInterval: (query) =>
-      query.state.data?.items.some(
-        (document) =>
-          document.status === "pending" || document.status === "processing"
-      )
-        ? 2_000
-        : false,
-  })
   const createMutation = useMutation({
     mutationFn: async (values: KnowledgeDocumentFormValues) => {
       if (values.sourceType === "text") {
@@ -89,15 +77,11 @@ export function useKnowledgeDocumentForm() {
     },
     onSuccess: () => form.reset(),
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })
-    },
-  })
-  const reindexMutation = useMutation({
-    mutationFn: reindexKnowledgeDocument,
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })
+      await queryClient.invalidateQueries({
+        queryKey: knowledgeDocumentQueryKey,
+      })
     },
   })
 
-  return { form, documentsQuery, createMutation, reindexMutation }
+  return { form, createMutation }
 }

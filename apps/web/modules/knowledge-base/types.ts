@@ -1,7 +1,12 @@
-export type KnowledgeDocumentStatus = "pending" | "processing" | "ready" | "failed"
+export type KnowledgeDocumentStatus =
+  | "pending"
+  | "processing"
+  | "ready"
+  | "failed"
 export type KnowledgeDocumentFailureReason =
   | "index_dispatch_failed"
   | "indexing_failed"
+  | "no_text_extracted"
   | null
 
 export interface KnowledgeDocument {
@@ -23,4 +28,23 @@ export interface KnowledgeUpload {
   uploadToken: string
   expiresAt: string
   headers: { "Content-Type": string }
+}
+
+export interface KnowledgeDocumentChunk {
+  id: string
+  ordinal: number
+  content: string
+  characterCount: number
+}
+
+export interface KnowledgeDocumentDetail {
+  document: KnowledgeDocument & {
+    content: string | null
+  }
+  chunks: {
+    items: KnowledgeDocumentChunk[]
+    page: number
+    pageSize: number
+    total: number
+  }
 }
