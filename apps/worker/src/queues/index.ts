@@ -6,6 +6,7 @@ import { knowledgeBaseQueue } from "./knowledge-base"
 import { knowledgeBaseQueueConfig } from "./knowledge-base.config"
 import { supportConversationsQueue } from "./support-conversations"
 import { supportConversationsQueueConfig } from "./support-conversations.config"
+import { waGatewayQueue, waIngressQueue } from "./whatsapp"
 
 export const queuesConfigs: QueueConfig[] = [
   emailQueueConfig,
@@ -14,5 +15,11 @@ export const queuesConfigs: QueueConfig[] = [
 ]
 
 export function getAllQueues(): Queue[] {
-  return [emailQueue, supportConversationsQueue, knowledgeBaseQueue]
+  return [
+    emailQueue,
+    supportConversationsQueue,
+    knowledgeBaseQueue,
+    waGatewayQueue,
+    waIngressQueue,
+  ]
 }
