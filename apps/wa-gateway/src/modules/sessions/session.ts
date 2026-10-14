@@ -96,11 +96,7 @@ export class BaileysSession {
       }
     }
     await this.deps.auth.clear()
-    try {
-      await this.recordState("logged_out", null)
-    } catch (error) {
-      if (!isMissingConnection(error)) throw error
-    }
+    await this.recordState("logged_out", null)
     this.finish("logged_out")
   }
 
@@ -142,9 +138,24 @@ export class BaileysSession {
     const done = new Promise<CloseOutcome>((resolve) => {
       this.resolveClose = resolve
     })
-    await this.recordState("connecting", null)
+    const tracked = await this.recordState("connecting", null)
+    if (!tracked) {
+      this.stopped = true
+      return "stopped"
+    }
     this.socket = await this.deps.openSocket()
-    this.socket.ev.process((events) => this.onEvents(events))
+    this.socket.ev.process(async (events) => {
+      try {
+        await this.onEvents(events)
+      } catch (error) {
+        this.deps.logger.error("Session event handler failed", {
+          error: error instanceof Error ? error.message : String(error),
+        })
+        this.stopped = true
+        this.finish("stopped")
+        if (this.socket) await this.socket.end(undefined)
+      }
+    })
     if (!this.deps.auth.state.creds.registered) this.armPairingTimeout()
     return done
   }
@@ -283,17 +294,30 @@ export class BaileysSession {
     state: ChannelSessionState,
     lastError: string | null,
     reconnectAttempts?: number
-  ): Promise<void> {
-    await this.deps.directory.setState({
-      organizationId: this.deps.organizationId,
-      channelConnectionId: this.deps.channelConnectionId,
-      state,
-      lastError,
-      reconnectAttempts,
-      ownerPod: this.deps.ownerPod,
-      connected: state === "connected",
-    })
+  ): Promise<boolean> {
+    try {
+      await this.deps.directory.setState({
+        organizationId: this.deps.organizationId,
+        channelConnectionId: this.deps.channelConnectionId,
+        state,
+        lastError,
+        reconnectAttempts,
+        ownerPod: this.deps.ownerPod,
+        connected: state === "connected",
+      })
+    } catch (error) {
+      // Delete removes the connection before logout finishes. Never crash the
+      // session loop on that race — it leaves the registry slot stuck busy.
+      if (!isMissingConnection(error)) throw error
+      this.deps.logger.warn("Skipping state write; connection gone", {
+        state,
+        lastError,
+      })
+      this.stopped = true
+      return false
+    }
     await this.deps.publishStatus()
+    return true
   }
 
   private waitForQr(): Promise<boolean> {

@@ -233,4 +233,29 @@ describe("BaileysSession", () => {
     await setup.session.stop()
     await running
   })
+
+  it("survives logged_out after the connection row was deleted", async () => {
+    const setup = harness()
+    const missing = Object.assign(new Error("fk"), {
+      cause: Object.assign(new Error("fk"), { code: "23503" }),
+    })
+    vi.mocked(setup.directory.setState)
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValue(missing)
+
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    await setup.opened[0]?.emit({
+      "connection.update": {
+        connection: "close",
+        lastDisconnect: { error: { output: { statusCode: 401 } } },
+      },
+    })
+
+    await expect(running).resolves.toBeUndefined()
+    expect(setup.logger.warn).toHaveBeenCalledWith(
+      "Skipping state write; connection gone",
+      expect.objectContaining({ state: "logged_out" })
+    )
+  })
 })

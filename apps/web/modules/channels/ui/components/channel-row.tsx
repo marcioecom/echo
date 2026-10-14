@@ -256,6 +256,7 @@ export function ChannelRow({
         <BaileysPairingSession
           channelId={channel.id}
           onDone={onPairingDone}
+          organizationId={organizationId}
           phoneNumber={phoneNumber}
         />
       ) : null}

@@ -15,14 +15,17 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { t } from "@/lib/i18n"
 
-import { channelErrorMessage } from "../../hooks/api"
+import { channelErrorMessage, deleteChannel } from "../../hooks/api"
 import { useBaileysPairingForm } from "../../hooks/use-baileys-pairing-form"
+import { useBaileysQrWait } from "../../hooks/use-baileys-qr-wait"
 import { useChannelLive } from "../../hooks/use-channel-events"
-import { BaileysQrImage } from "./baileys-qr-image"
+import { channelQueryKeys } from "../../hooks/use-channels"
+import { BaileysQrPanel } from "./baileys-qr-panel"
 
 export function BaileysPairingForm({
   organizationId,
@@ -33,16 +36,31 @@ export function BaileysPairingForm({
   onBack: () => void
   onDone: () => void
 }) {
+  const queryClient = useQueryClient()
   const { form, mutation, pairingForm, pairingMutation } =
     useBaileysPairingForm(organizationId)
   const live = useChannelLive()
-  const channelId = mutation.data?.channel.id
-  const qr =
-    channelId && live.qr?.channelConnectionId === channelId ? live.qr.qr : null
+  const channelId = mutation.data?.channel.id ?? null
+  const wait = useBaileysQrWait({ organizationId, channelId })
   const pairingCode =
     channelId && live.pairingCode?.channelConnectionId === channelId
       ? live.pairingCode.pairingCode
       : null
+
+  const retryMutation = useMutation({
+    mutationFn: async () => {
+      if (!channelId) return
+      await deleteChannel(channelId)
+    },
+    onSuccess: () => {
+      mutation.reset()
+      pairingForm.reset()
+    },
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: channelQueryKeys.list(organizationId),
+      }),
+  })
 
   return (
     <Card>
@@ -55,71 +73,80 @@ export function BaileysPairingForm({
       <CardContent className="space-y-4">
         {channelId ? (
           <div className="space-y-3">
-            {qr ? (
-              <BaileysQrImage alt={t("channels.qrScan")} value={qr} />
-            ) : (
+            <BaileysQrPanel
+              onRetry={() => retryMutation.mutate()}
+              retryPending={retryMutation.isPending}
+              wait={wait}
+            />
+            {wait.status === "ready" ? (
               <p className="text-sm text-muted-foreground">
-                {t("channels.qrWaiting")}
+                {t("channels.qrScan")}
               </p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              {t("channels.qrScan")}
-            </p>
-            {pairingCode ? (
-              <p className="space-y-1">
-                <span className="block text-xs font-medium">
-                  {t("channels.pairingWaiting")}
-                </span>
-                <span className="block font-mono text-lg tracking-widest">
-                  {pairingCode}
-                </span>
-              </p>
-            ) : (
-              <Form {...pairingForm}>
-                <form
-                  className="space-y-3"
-                  onSubmit={pairingForm.handleSubmit((values) =>
-                    pairingMutation.mutate(values)
-                  )}
-                >
-                  <FormField
-                    control={pairingForm.control}
-                    name="phoneNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t("channels.pairingPhone")}</FormLabel>
-                        <FormControl>
-                          <Input
-                            autoComplete="tel"
-                            inputMode="tel"
-                            placeholder="+5511999999999"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs text-muted-foreground">
-                          {t("channels.pairingRequest")}
-                        </p>
-                        <TranslatedFormMessage />
-                      </FormItem>
+            ) : null}
+            {wait.status !== "failed" ? (
+              pairingCode ? (
+                <p className="space-y-1">
+                  <span className="block text-xs font-medium">
+                    {t("channels.pairingWaiting")}
+                  </span>
+                  <span className="block font-mono text-lg tracking-widest">
+                    {pairingCode}
+                  </span>
+                </p>
+              ) : (
+                <Form {...pairingForm}>
+                  <form
+                    className="space-y-3"
+                    onSubmit={pairingForm.handleSubmit((values) =>
+                      pairingMutation.mutate(values)
                     )}
-                  />
-                  {pairingMutation.isError ? (
-                    <p className="text-sm text-destructive" role="alert">
-                      {channelErrorMessage(pairingMutation.error)}
-                    </p>
-                  ) : null}
-                  <Button
-                    disabled={pairingMutation.isPending}
-                    type="submit"
-                    variant="outline"
                   >
-                    {pairingMutation.isPending
-                      ? t("channels.pairingSubmitting")
-                      : t("channels.pairingSubmit")}
-                  </Button>
-                </form>
-              </Form>
-            )}
+                    <FormField
+                      control={pairingForm.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t("channels.pairingPhone")}</FormLabel>
+                          <FormControl>
+                            <Input
+                              autoComplete="tel"
+                              inputMode="tel"
+                              placeholder="+5511999999999"
+                              {...field}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            {t("channels.pairingRequest")}
+                          </p>
+                          <TranslatedFormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {pairingMutation.isError ? (
+                      <p className="text-sm text-destructive" role="alert">
+                        {channelErrorMessage(pairingMutation.error)}
+                      </p>
+                    ) : null}
+                    <Button
+                      disabled={
+                        pairingMutation.isPending || wait.status !== "ready"
+                      }
+                      type="submit"
+                      variant="outline"
+                    >
+                      {pairingMutation.isPending
+                        ? t("channels.pairingSubmitting")
+                        : t("channels.pairingSubmit")}
+                    </Button>
+                  </form>
+                </Form>
+              )
+            ) : null}
+            {retryMutation.isError ? (
+              <p className="text-sm text-destructive" role="alert">
+                {channelErrorMessage(retryMutation.error)}
+              </p>
+            ) : null}
             <Button onClick={onDone} type="button">
               {t("channels.done")}
             </Button>

@@ -24,6 +24,8 @@ const en = {
   qrTitle: "Connect with a QR code",
   qrBody: "Faster to try. Scan from this browser; keep the phone online.",
   qrWaiting: "Waiting for the QR code.",
+  qrRetry: "Generate again",
+  qrRetrying: "Restarting",
   qrScan: "On the phone, open WhatsApp, Linked devices, and scan this code.",
   qrRisk:
     "This path uses WhatsApp Web. Keep the phone nearby until it connects.",
@@ -115,6 +117,21 @@ const en = {
     provider_request_failed:
       "Echo could not validate the credentials with Twilio. Check the Account SID and auth token.",
   },
+  sessionErrors: {
+    qr_timeout:
+      "The QR code took too long to appear. Check that the connection service is running and try again.",
+    pairing_timeout:
+      "The pairing timed out before the phone scanned the code. Generate a new QR code.",
+    pairing_failed:
+      "The WhatsApp session ended before pairing finished. Generate a new QR code.",
+    reconnect_exhausted:
+      "Echo could not keep the WhatsApp session open. Try again in a moment.",
+    routing_conflict:
+      "This number is already linked to another organization.",
+    connection_replaced: "This number connected on another device.",
+    missing_phone: "WhatsApp connected, but Echo could not read the phone number.",
+    forbidden: "WhatsApp refused this session. Try again later.",
+  },
   errors: {
     routingConflict: "This number is already in use by another organization.",
     sessionExists: "This organization already has a QR session open.",
@@ -153,6 +170,8 @@ const ptBR = {
   qrBody:
     "Mais rápido para testar. Escaneie neste navegador; mantenha o celular online.",
   qrWaiting: "Aguardando o QR code.",
+  qrRetry: "Gerar de novo",
+  qrRetrying: "Reiniciando",
   qrScan:
     "No celular, abra o WhatsApp, Aparelhos conectados, e escaneie este código.",
   qrRisk:
@@ -245,6 +264,22 @@ const ptBR = {
     invalid_sandbox_address: "No sandbox, use o número +14155238886.",
     provider_request_failed:
       "Não foi possível validar as credenciais na Twilio. Confira o Account SID e o Auth token.",
+  },
+  sessionErrors: {
+    qr_timeout:
+      "O QR code demorou demais para aparecer. Confira se o serviço de conexão está no ar e tente de novo.",
+    pairing_timeout:
+      "O pareamento expirou antes de escanear o código. Gere um QR code novo.",
+    pairing_failed:
+      "A sessão do WhatsApp encerrou antes de concluir o pareamento. Gere um QR code novo.",
+    reconnect_exhausted:
+      "Não foi possível manter a sessão do WhatsApp aberta. Tente de novo em instantes.",
+    routing_conflict:
+      "Esse número já está vinculado a outra organização.",
+    connection_replaced: "Esse número conectou em outro aparelho.",
+    missing_phone:
+      "O WhatsApp conectou, mas a Echo não conseguiu ler o número.",
+    forbidden: "O WhatsApp recusou esta sessão. Tente de novo mais tarde.",
   },
   errors: {
     routingConflict: "Esse número já está em uso em outra organização.",

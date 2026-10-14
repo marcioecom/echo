@@ -907,7 +907,14 @@ export class ChannelConnectionsRepository {
       )
       .limit(1)
 
-    return !session || session.state === "logged_out"
+    if (!session) return true
+    return (
+      session.state === "logged_out" ||
+      session.state === "disconnected" ||
+      session.state === "connecting" ||
+      session.state === "qr_pending" ||
+      session.state === "pairing_code_pending"
+    )
   }
 
   private async otherOpenBaileysSession(

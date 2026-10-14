@@ -42,6 +42,17 @@ const verificationMessages = {
   sender_not_online: "channels.verification.sender_not_online",
 } as const satisfies Record<VerificationReason, MessageKey>
 
+const sessionErrorMessages = {
+  qr_timeout: "channels.sessionErrors.qr_timeout",
+  pairing_timeout: "channels.sessionErrors.pairing_timeout",
+  pairing_failed: "channels.sessionErrors.pairing_failed",
+  reconnect_exhausted: "channels.sessionErrors.reconnect_exhausted",
+  routing_conflict: "channels.sessionErrors.routing_conflict",
+  connection_replaced: "channels.sessionErrors.connection_replaced",
+  missing_phone: "channels.sessionErrors.missing_phone",
+  forbidden: "channels.sessionErrors.forbidden",
+} as const satisfies Record<string, MessageKey>
+
 export function channelErrorMessage(error: unknown): string {
   if (!(error instanceof ChannelsApiError)) return t("channels.errors.generic")
   if (error.code === "twilio_verification_failed") {
@@ -54,6 +65,9 @@ export function channelErrorMessage(error: unknown): string {
 }
 
 export function humanChannelError(value: string): string {
+  if (value in sessionErrorMessages) {
+    return t(sessionErrorMessages[value as keyof typeof sessionErrorMessages])
+  }
   return verificationMessage(value)
 }
 
