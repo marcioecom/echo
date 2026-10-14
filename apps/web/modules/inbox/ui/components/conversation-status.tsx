@@ -1,5 +1,12 @@
-import { cn } from "@workspace/ui/lib/utils"
+import {
+  BotIcon,
+  CheckmarkCircle02Icon,
+  Message01Icon,
+  UserIcon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import type { SupportConversationStatus } from "@workspace/domain"
+import { cn } from "@workspace/ui/lib/utils"
 
 import { t, type MessageKey } from "@/lib/i18n"
 
@@ -10,6 +17,13 @@ const statusKeys = {
   resolved: "inbox.status.resolved",
 } as const satisfies Record<SupportConversationStatus, MessageKey>
 
+const statusIcons = {
+  open: Message01Icon,
+  ai_active: BotIcon,
+  human_required: UserIcon,
+  resolved: CheckmarkCircle02Icon,
+} as const
+
 export function ConversationStatus({
   status,
 }: {
@@ -18,13 +32,19 @@ export function ConversationStatus({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
         status === "human_required" && "bg-warning/20 text-warning-foreground",
         status === "resolved" && "bg-primary/10 text-primary",
-        (status === "open" || status === "ai_active") &&
-          "bg-muted text-muted-foreground"
+        status === "ai_active" && "bg-primary/10 text-primary",
+        status === "open" && "bg-muted text-muted-foreground"
       )}
     >
+      <HugeiconsIcon
+        aria-hidden
+        icon={statusIcons[status]}
+        size={12}
+        strokeWidth={1.8}
+      />
       {t(statusKeys[status])}
     </span>
   )

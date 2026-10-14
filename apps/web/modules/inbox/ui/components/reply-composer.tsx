@@ -27,47 +27,53 @@ export function ReplyComposer({
 
   const submit = form.handleSubmit((values) => replyMutation.mutate(values))
   const bodyField = form.register("body")
+  const bodyValue = form.watch("body")
+  const canSend =
+    !disabled && !replyMutation.isPending && Boolean(bodyValue.trim())
 
   return (
     <form
-      className="border-t bg-background px-4 py-3 sm:px-6"
+      className="border-t border-border bg-background px-4 py-3 sm:px-6"
       onSubmit={submit}
     >
-      <div className="mx-auto flex max-w-3xl items-end gap-2">
-        <Textarea
-          {...bodyField}
-          ref={(element) => {
-            bodyField.ref(element)
-            textareaRef.current = element
-          }}
-          rows={2}
-          disabled={disabled || replyMutation.isPending}
-          aria-label={t("inbox.replyLabel")}
-          placeholder={
-            disabled ? t("inbox.replyDisabled") : t("inbox.replyPlaceholder")
-          }
-          onKeyDown={(event) => {
-            if (event.key !== "Enter" || event.shiftKey) return
-            event.preventDefault()
-            submit()
-          }}
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={
-            disabled || replyMutation.isPending || !form.watch("body").trim()
-          }
-          aria-label={t("inbox.send")}
-        >
-          <HugeiconsIcon icon={SentIcon} size={16} strokeWidth={1.8} />
-        </Button>
+      <div className="mx-auto max-w-3xl space-y-2">
+        <div className="flex items-end gap-2">
+          <Textarea
+            {...bodyField}
+            ref={(element) => {
+              bodyField.ref(element)
+              textareaRef.current = element
+            }}
+            rows={2}
+            disabled={disabled || replyMutation.isPending}
+            aria-label={t("inbox.replyLabel")}
+            placeholder={
+              disabled ? t("inbox.replyDisabled") : t("inbox.replyPlaceholder")
+            }
+            className="min-h-[4.5rem] resize-none"
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" || event.shiftKey) return
+              event.preventDefault()
+              if (canSend) submit()
+            }}
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!canSend}
+            aria-label={t("inbox.send")}
+          >
+            <HugeiconsIcon icon={SentIcon} size={16} strokeWidth={1.8} />
+          </Button>
+        </div>
+        {form.formState.errors.body?.message ? (
+          <p className="text-xs text-destructive" role="alert">
+            {translateMessage(form.formState.errors.body.message)}
+          </p>
+        ) : disabled ? null : (
+          <p className="text-[11px] text-muted-foreground">{t("inbox.replyHint")}</p>
+        )}
       </div>
-      {form.formState.errors.body?.message ? (
-        <p className="mx-auto mt-1 max-w-3xl text-xs text-destructive">
-          {translateMessage(form.formState.errors.body.message)}
-        </p>
-      ) : null}
     </form>
   )
 }

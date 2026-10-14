@@ -40,6 +40,13 @@ function formatTimestamp(value: string) {
   }).format(new Date(value))
 }
 
+function contactInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase()
+  return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase()
+}
+
 export function ConversationDetail({
   organizationId,
   detail,
@@ -95,21 +102,32 @@ export function ConversationDetail({
   const contactName =
     detail.conversation.contact.displayName ??
     detail.conversation.contact.address
+  const needsYou = detail.conversation.status === "human_required"
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col bg-muted/20">
-      <header className="flex min-h-16 items-center gap-3 border-b bg-background px-4 py-3">
+    <section className="flex min-h-0 flex-1 flex-col bg-background">
+      <header className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3">
         <Button asChild variant="ghost" size="icon" className="md:hidden">
           <Link to="/inbox" aria-label={t("inbox.back")}>
             <HugeiconsIcon icon={ArrowLeft01Icon} />
           </Link>
         </Button>
-        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <HugeiconsIcon icon={UserIcon} size={16} strokeWidth={1.8} />
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-md text-[11px] font-medium tabular-nums",
+            needsYou
+              ? "bg-warning/20 text-warning-foreground"
+              : "bg-muted text-foreground"
+          )}
+          aria-hidden
+        >
+          {contactInitials(contactName)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-sm font-semibold">{contactName}</h2>
+            <h2 className="truncate text-sm font-semibold tracking-tight">
+              {contactName}
+            </h2>
             <ConversationStatus status={detail.conversation.status} />
           </div>
           <p className="mt-0.5 flex items-center gap-1.5 truncate text-[11px] text-muted-foreground">
@@ -126,7 +144,7 @@ export function ConversationDetail({
       {error ? (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 border-b bg-destructive/5 px-4 py-2 text-xs text-destructive"
+          className="flex items-center justify-between gap-3 border-b border-border bg-destructive/5 px-4 py-2 text-xs text-destructive"
         >
           <span>{t("inbox.newMessagesError")}</span>
           <Button variant="ghost" size="sm" onClick={onRetry}>
@@ -137,7 +155,7 @@ export function ConversationDetail({
 
       <div
         ref={timelineRef}
-        className="min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6"
+        className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-5 sm:px-6"
         role="log"
         aria-label={t("inbox.messagesLabel")}
       >
@@ -148,9 +166,11 @@ export function ConversationDetail({
             description={t("inbox.noMessagesBody")}
           />
         ) : (
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-3">
             {detail.messages.map((message) => {
               const outbound = message.direction === "outbound"
+              const isAi = message.senderType === "ai"
+              const isSystem = message.senderType === "system"
               const senderName =
                 message.senderType === "contact"
                   ? contactName
@@ -162,45 +182,70 @@ export function ConversationDetail({
               return (
                 <article
                   key={message.id}
-                  className={cn("flex gap-2.5", outbound && "flex-row-reverse")}
+                  className={cn(
+                    "flex gap-2.5",
+                    outbound && "flex-row-reverse",
+                    isSystem && "justify-center"
+                  )}
                 >
-                  <div
-                    className={cn(
-                      "mt-5 flex size-7 shrink-0 items-center justify-center rounded-full",
-                      outbound
-                        ? "bg-foreground text-background"
-                        : "bg-background text-muted-foreground ring-1 ring-border"
-                    )}
-                  >
-                    <HugeiconsIcon
-                      icon={message.senderType === "ai" ? BotIcon : UserIcon}
-                      size={13}
-                      strokeWidth={1.8}
-                    />
-                  </div>
-                  <div className={cn("max-w-[78%]", outbound && "text-right")}>
+                  {isSystem ? null : (
                     <div
                       className={cn(
-                        "mb-1 flex items-center gap-2 text-[11px] text-muted-foreground",
-                        outbound && "justify-end"
+                        "mt-5 flex size-7 shrink-0 items-center justify-center rounded-full",
+                        isAi
+                          ? "bg-primary/10 text-primary"
+                          : outbound
+                            ? "bg-foreground text-background"
+                            : "bg-background text-muted-foreground ring-1 ring-border"
                       )}
                     >
-                      <span className="font-medium text-foreground">
-                        {senderName}
-                      </span>
-                      <time
-                        dateTime={message.occurredAt}
-                        className="tabular-nums"
-                      >
-                        {formatTimestamp(message.occurredAt)}
-                      </time>
+                      <HugeiconsIcon
+                        icon={isAi ? BotIcon : UserIcon}
+                        size={13}
+                        strokeWidth={1.8}
+                      />
                     </div>
+                  )}
+                  <div
+                    className={cn(
+                      isSystem ? "max-w-md text-center" : "max-w-[78%]",
+                      outbound && !isSystem && "text-right"
+                    )}
+                  >
+                    {isSystem ? null : (
+                      <div
+                        className={cn(
+                          "mb-1 flex items-center gap-2 text-[11px] text-muted-foreground",
+                          outbound && "justify-end"
+                        )}
+                      >
+                        <span className="font-medium text-foreground">
+                          {senderName}
+                        </span>
+                        <time
+                          dateTime={message.occurredAt}
+                          className="tabular-nums"
+                        >
+                          {formatTimestamp(message.occurredAt)}
+                        </time>
+                      </div>
+                    )}
                     <div
                       className={cn(
-                        "rounded-lg px-3 py-2 text-left text-sm whitespace-pre-wrap",
-                        outbound
-                          ? "bg-foreground text-background"
-                          : "bg-background ring-1 ring-border"
+                        "text-left text-sm whitespace-pre-wrap",
+                        isSystem
+                          ? "rounded-md px-3 py-1.5 text-center text-xs text-muted-foreground"
+                          : "rounded-lg px-3 py-2",
+                        !isSystem &&
+                          isAi &&
+                          "bg-primary/10 text-foreground ring-1 ring-primary/20",
+                        !isSystem &&
+                          outbound &&
+                          !isAi &&
+                          "bg-foreground text-background",
+                        !isSystem &&
+                          !outbound &&
+                          "bg-background text-foreground ring-1 ring-border"
                       )}
                     >
                       {message.contentType === "unsupported" ? (
@@ -211,7 +256,15 @@ export function ConversationDetail({
                         message.body
                       )}
                     </div>
-                    {message.direction === "outbound" ? (
+                    {isSystem ? (
+                      <time
+                        dateTime={message.occurredAt}
+                        className="mt-1 block text-[10px] text-muted-foreground tabular-nums"
+                      >
+                        {formatTimestamp(message.occurredAt)}
+                      </time>
+                    ) : null}
+                    {message.direction === "outbound" && !isSystem ? (
                       <MessageDeliveryStatus status={message.status} />
                     ) : null}
                   </div>
@@ -273,17 +326,17 @@ export function EmptyConversationDetail() {
 function ConversationDetailSkeleton() {
   return (
     <section
-      className="flex flex-1 flex-col bg-muted/20"
+      className="flex flex-1 flex-col bg-background"
       aria-label={t("inbox.loadingDetail")}
     >
-      <div className="flex h-16 items-center gap-3 border-b bg-background px-4">
-        <div className="size-9 animate-pulse rounded-full bg-muted" />
+      <div className="flex h-14 items-center gap-3 border-b border-border px-4">
+        <div className="size-9 animate-pulse rounded-md bg-muted" />
         <div className="space-y-2">
           <div className="h-4 w-32 animate-pulse rounded bg-muted" />
           <div className="h-3 w-48 animate-pulse rounded bg-muted" />
         </div>
       </div>
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-6 py-8">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 bg-muted/20 px-6 py-8">
         <div className="h-16 w-3/5 animate-pulse rounded-lg bg-muted" />
         <div className="ml-auto h-20 w-2/3 animate-pulse rounded-lg bg-muted" />
         <div className="h-14 w-1/2 animate-pulse rounded-lg bg-muted" />

@@ -14,7 +14,6 @@ function InboxConversationPage() {
   return (
     <InboxView
       organizationId={workspace.organization.id}
-      organizationName={workspace.organization.name}
       selectedConversationId={conversationId}
       status={status}
     />

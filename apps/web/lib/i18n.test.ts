@@ -47,7 +47,7 @@ describe("app i18n", () => {
 
   it("fills placeholders without translating the inserted value", () => {
     expect(t("inbox.description", { name: "Acme" })).toBe(
-      "WhatsApp conversations for Acme."
+      "Work the WhatsApp queue for Acme. Conversations that need a person surface first."
     )
     expect(t("members.description", { name: "Acme" })).toBe(
       "People with a Membership in Acme. Invitations are the only way to join."

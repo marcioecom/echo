@@ -17,12 +17,10 @@ import { ConversationList } from "../components/conversation-list"
 
 export function InboxView({
   organizationId,
-  organizationName,
   selectedConversationId,
   status,
 }: {
   organizationId: string
-  organizationName: string
   selectedConversationId: string | null
   status: InboxStatusFilter
 }) {
@@ -37,12 +35,9 @@ export function InboxView({
     conversationsQuery.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
-    <>
-      <PageHeader
-        title={t("inbox.title")}
-        description={t("inbox.description", { name: organizationName })}
-      />
-      <div className="flex h-[calc(100svh-10rem)] min-h-96 overflow-hidden rounded-lg border bg-background">
+    <div className="flex h-[calc(100svh-5.5rem)] min-h-96 flex-col md:h-[calc(100svh-4rem)]">
+      <PageHeader className="mb-4 shrink-0" title={t("inbox.title")} />
+      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background">
         <div
           className={
             selectedConversationId
@@ -82,6 +77,6 @@ export function InboxView({
           )}
         </div>
       </div>
-    </>
+    </div>
   )
 }

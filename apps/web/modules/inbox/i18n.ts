@@ -2,19 +2,44 @@ const en = {
   metaTitle: "Support Inbox | Echo",
   nav: "Support Inbox",
   title: "Support Inbox",
-  description: "WhatsApp conversations for {name}.",
+  description: "Work the WhatsApp queue for {name}. Conversations that need a person surface first.",
+  queueLabel: "Queue",
+  queueCount: "{count}",
   filtersLabel: "Conversation status filters",
   filter: {
     all: "All",
     open: "Open",
-    ai_active: "AI active",
-    human_required: "Human",
+    ai_active: "AI",
+    human_required: "Needs you",
     resolved: "Resolved",
+  },
+  filterEmpty: {
+    all: {
+      title: "No conversations yet",
+      body: "New WhatsApp support conversations appear here as messages arrive.",
+    },
+    open: {
+      title: "No open conversations",
+      body: "Open conversations waiting for a first response will show here.",
+    },
+    ai_active: {
+      title: "AI is idle",
+      body: "Conversations Echo is handling will show here while the AI is active.",
+    },
+    human_required: {
+      title: "Nothing needs you right now",
+      body: "When a contact needs a person, those conversations land here first.",
+      action: "Show all",
+    },
+    resolved: {
+      title: "No resolved conversations",
+      body: "Resolved conversations stay here for reference.",
+    },
   },
   status: {
     open: "Open",
     ai_active: "AI active",
-    human_required: "Human required",
+    human_required: "Needs you",
     resolved: "Resolved",
   },
   sender: {
@@ -53,13 +78,14 @@ const en = {
     read: "Read",
     failed: "Not delivered",
   },
-  selectTitle: "Select a conversation",
+  selectTitle: "Pick a conversation",
   selectBody:
-    "Choose a Support Conversation from the queue to read its message timeline.",
+    "Choose one from the queue to read the timeline and reply when needed.",
   loadingDetail: "Loading conversation",
   replyLabel: "Reply to customer",
-  replyPlaceholder: "Write a reply...",
-  replyDisabled: "Replies are unavailable for resolved conversations.",
+  replyPlaceholder: "Write a reply…",
+  replyHint: "Enter to send · Shift+Enter for a new line",
+  replyDisabled: "This conversation is resolved. Replies are closed.",
   send: "Send reply",
   validation: {
     body: "Write a reply before sending.",
@@ -73,19 +99,45 @@ const ptBR = {
   metaTitle: "Inbox de suporte | Echo",
   nav: "Inbox de suporte",
   title: "Inbox de suporte",
-  description: "Conversas de WhatsApp de {name}.",
+  description:
+    "Trabalhe a fila de WhatsApp de {name}. Conversas que precisam de uma pessoa aparecem primeiro.",
+  queueLabel: "Fila",
+  queueCount: "{count}",
   filtersLabel: "Filtros de status da conversa",
   filter: {
     all: "Todas",
     open: "Abertas",
-    ai_active: "IA ativa",
-    human_required: "Pessoa",
+    ai_active: "IA",
+    human_required: "Precisa de você",
     resolved: "Resolvidas",
+  },
+  filterEmpty: {
+    all: {
+      title: "Nenhuma conversa ainda",
+      body: "Conversas novas de suporte no WhatsApp aparecem aqui quando as mensagens chegam.",
+    },
+    open: {
+      title: "Nenhuma conversa aberta",
+      body: "Conversas abertas aguardando a primeira resposta aparecem aqui.",
+    },
+    ai_active: {
+      title: "IA ociosa",
+      body: "Conversas que a Echo está atendendo aparecem aqui enquanto a IA estiver ativa.",
+    },
+    human_required: {
+      title: "Nada precisa de você agora",
+      body: "Quando um contato precisar de uma pessoa, essas conversas entram aqui primeiro.",
+      action: "Ver todas",
+    },
+    resolved: {
+      title: "Nenhuma conversa resolvida",
+      body: "Conversas resolvidas ficam aqui para consulta.",
+    },
   },
   status: {
     open: "Aberta",
     ai_active: "IA ativa",
-    human_required: "Precisa de uma pessoa",
+    human_required: "Precisa de você",
     resolved: "Resolvida",
   },
   sender: {
@@ -124,12 +176,14 @@ const ptBR = {
     read: "Lida",
     failed: "Não entregue",
   },
-  selectTitle: "Selecione uma conversa",
-  selectBody: "Escolha uma conversa de suporte na fila para ler as mensagens.",
+  selectTitle: "Escolha uma conversa",
+  selectBody:
+    "Selecione uma na fila para ler as mensagens e responder quando precisar.",
   loadingDetail: "Carregando conversa",
   replyLabel: "Responder ao cliente",
-  replyPlaceholder: "Escreva uma resposta...",
-  replyDisabled: "Não dá para responder em conversas resolvidas.",
+  replyPlaceholder: "Escreva uma resposta…",
+  replyHint: "Enter envia · Shift+Enter nova linha",
+  replyDisabled: "Esta conversa está resolvida. Respostas estão fechadas.",
   send: "Enviar resposta",
   validation: {
     body: "Escreva uma resposta antes de enviar.",
