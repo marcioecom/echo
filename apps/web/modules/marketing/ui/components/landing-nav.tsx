@@ -33,7 +33,7 @@ export function LandingNav({ signedIn }: LandingNavProps) {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-(--z-sticky) flex justify-center px-3 pt-4 sm:px-5 sm:pt-5">
       <div className="pointer-events-auto w-full max-w-5xl">
-        <div className="flex items-center justify-between gap-3 rounded-full border border-white/70 bg-white/50 px-3 py-2 shadow-[0_8px_32px_oklch(0.4_0.06_130_/_0.1)] backdrop-blur-xl sm:px-4">
+        <div className="flex items-center justify-between gap-3 rounded-full border border-white/80 bg-white/80 px-3 py-2 shadow-[0_8px_24px_oklch(0.4_0.06_130_/_0.08)] backdrop-blur-md sm:px-4">
           <BrandLogo
             href={localeHomePath(locale)}
             priority
@@ -91,7 +91,7 @@ export function LandingNav({ signedIn }: LandingNavProps) {
           <nav
             id={menuId}
             aria-label={copy.nav.mobile}
-            className="mt-2 rounded-2xl border border-white/70 bg-white/70 p-2 shadow-[0_12px_32px_oklch(0.4_0.06_130_/_0.12)] backdrop-blur-xl lg:hidden"
+            className="mt-2 rounded-2xl border border-white/80 bg-white/90 p-2 shadow-[0_8px_24px_oklch(0.4_0.06_130_/_0.08)] backdrop-blur-md lg:hidden"
           >
             {navLinks.map((link) => (
               <a

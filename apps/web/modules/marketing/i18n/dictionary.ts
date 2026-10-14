@@ -30,7 +30,7 @@ const en = {
     faq: "FAQ",
     signIn: "Sign in",
     dashboard: "Dashboard",
-    getStarted: "Get started",
+    getStarted: "Start free",
     openInbox: "Open inbox",
     openMenu: "Open navigation",
     closeMenu: "Close navigation",
@@ -45,9 +45,10 @@ const en = {
     em: "WhatsApp",
     after: ", even while you sleep",
     subtext:
-      "Echo answers customer questions from your business knowledge and hands off to a human when it needs to.",
-    joinPilot: "Join the pilot",
+      "For local businesses that already live on WhatsApp. Echo answers the written repeats from your knowledge, and hands off to a human when it needs to.",
+    joinPilot: "Start free for 30 days",
     openInbox: "Open inbox",
+    clickTrigger: "Limited pilot spots · No sales call",
     chips: [
       "Answers from your own knowledge base",
       "Hands off to a human when needed",
@@ -66,7 +67,6 @@ const en = {
     handoffOut: "Passing you to Ana from the team.",
   },
   problem: {
-    eyebrow: "The problem",
     titleBefore: "The same questions, ",
     titleEm: "all day",
     titleAfter: ". Then silence after hours.",
@@ -210,8 +210,9 @@ const en = {
       "Human handoff, including audio, photos, and stickers",
       "One web inbox for your team",
     ],
-    joinPilot: "Join the pilot",
+    joinPilot: "Start free for 30 days",
     openInbox: "Open inbox",
+    clickTrigger: "Limited spots · Cancel anytime in the pilot",
   },
   faq: {
     titleBefore: "Honest answers, ",
@@ -251,9 +252,10 @@ const en = {
     titleBefore: "Answer the next WhatsApp ",
     titleEm: "without",
     titleAfter: " staying awake for it",
-    body: "Join the 30-day pilot. Echo answers from your knowledge and hands off to a human when it needs to.",
-    joinPilot: "Join the pilot",
+    body: "Start the 30-day pilot. Echo answers from your knowledge and hands off to a human when it needs to.",
+    joinPilot: "Start free for 30 days",
     openInbox: "Open inbox",
+    clickTrigger: "Limited pilot spots · No sales call",
   },
   footer: {
     blurb:
@@ -278,7 +280,7 @@ const ptBR: typeof en = {
     faq: "Dúvidas",
     signIn: "Entrar",
     dashboard: "Painel",
-    getStarted: "Começar",
+    getStarted: "Começar grátis",
     openInbox: "Abrir a inbox",
     openMenu: "Abrir o menu",
     closeMenu: "Fechar o menu",
@@ -293,9 +295,10 @@ const ptBR: typeof en = {
     em: "WhatsApp",
     after: ", mesmo dormindo",
     subtext:
-      "O Echo responde com o que a sua empresa já sabe e passa para uma pessoa quando precisa.",
-    joinPilot: "Entrar no piloto",
+      "Para negócio local que já vive no WhatsApp. O Echo responde as perguntas repetidas com o que a empresa já sabe, e passa para uma pessoa quando precisa.",
+    joinPilot: "Começar 30 dias grátis",
     openInbox: "Abrir a inbox",
+    clickTrigger: "Vagas limitadas · Sem call comercial",
     chips: [
       "Responde com a sua própria base de conhecimento",
       "Passa para uma pessoa quando precisa",
@@ -313,7 +316,6 @@ const ptBR: typeof en = {
     handoffOut: "Vou te passar para a Ana do time.",
   },
   problem: {
-    eyebrow: "O problema",
     titleBefore: "As mesmas perguntas, ",
     titleEm: "o dia inteiro",
     titleAfter: ". Depois, silêncio de noite.",
@@ -457,8 +459,9 @@ const ptBR: typeof en = {
       "Handoff para uma pessoa, inclusive áudio, foto e figurinha",
       "Uma inbox web para o time",
     ],
-    joinPilot: "Entrar no piloto",
+    joinPilot: "Começar 30 dias grátis",
     openInbox: "Abrir a inbox",
+    clickTrigger: "Vagas limitadas · Cancele quando quiser no piloto",
   },
   faq: {
     titleBefore: "Resposta reta, ",
@@ -498,9 +501,10 @@ const ptBR: typeof en = {
     titleBefore: "Responda o próximo WhatsApp ",
     titleEm: "sem",
     titleAfter: " virar a noite por causa dele",
-    body: "Entra no piloto de 30 dias. O Echo responde com o que a empresa já sabe e chama uma pessoa quando precisa.",
-    joinPilot: "Entrar no piloto",
+    body: "Comece o piloto de 30 dias. O Echo responde com o que a empresa já sabe e chama uma pessoa quando precisa.",
+    joinPilot: "Começar 30 dias grátis",
     openInbox: "Abrir a inbox",
+    clickTrigger: "Vagas limitadas · Sem call comercial",
   },
   footer: {
     blurb:

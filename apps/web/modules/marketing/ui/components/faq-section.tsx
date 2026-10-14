@@ -26,9 +26,9 @@ export function FaqSection() {
           {copy.faq.items.map((faq) => (
             <details
               key={faq.question}
-              className="group border-b border-neutral-200 py-5"
+              className="group border-b border-neutral-200"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-medium text-neutral-950 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-neutral-900/20 [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-base font-medium text-neutral-950 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-neutral-900/20 [&::-webkit-details-marker]:hidden">
                 {faq.question}
                 <span
                   aria-hidden
@@ -37,7 +37,7 @@ export function FaqSection() {
                   +
                 </span>
               </summary>
-              <p className="mt-3 max-w-[58ch] text-sm leading-6 text-pretty text-neutral-600">
+              <p className="max-w-[58ch] pb-5 text-sm leading-6 text-pretty text-neutral-600">
                 {faq.answer}
               </p>
             </details>

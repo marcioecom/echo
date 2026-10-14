@@ -30,12 +30,17 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
           <p className="mt-6 max-w-[42ch] text-base leading-7 text-pretty text-neutral-700 sm:text-lg">
             {copy.hero.subtext}
           </p>
-          <Link
-            to={ctaHref}
-            className="landing-cta mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
-          >
-            {ctaLabel}
-          </Link>
+          <div className="mt-8 flex flex-col items-center gap-2.5">
+            <Link
+              to={ctaHref}
+              className="landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
+            >
+              {ctaLabel}
+            </Link>
+            {signedIn ? null : (
+              <p className="text-sm text-neutral-600">{copy.hero.clickTrigger}</p>
+            )}
+          </div>
         </div>
         <HeroScene />
       </div>

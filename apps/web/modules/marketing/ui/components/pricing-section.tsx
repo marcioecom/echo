@@ -34,7 +34,7 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
           }
           description={copy.pricing.description}
         />
-        <div className="mx-auto mt-12 max-w-lg rounded-[2rem] border border-white/80 bg-white/75 p-8 shadow-[0_20px_50px_oklch(0.4_0.06_130_/_0.08)] backdrop-blur-xl sm:p-10">
+        <div className="mx-auto mt-12 max-w-lg rounded-2xl border border-neutral-200/90 bg-white p-8 sm:p-10">
           <p className="text-sm font-medium text-neutral-600">
             {copy.pricing.afterPilot}
           </p>
@@ -60,12 +60,19 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
               </li>
             ))}
           </ul>
-          <Link
-            to={href}
-            className="landing-cta mt-8 inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
-          >
-            {label}
-          </Link>
+          <div className="mt-8 flex flex-col items-center gap-2.5">
+            <Link
+              to={href}
+              className="landing-cta inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
+            >
+              {label}
+            </Link>
+            {signedIn ? null : (
+              <p className="text-center text-sm text-neutral-600">
+                {copy.pricing.clickTrigger}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </section>

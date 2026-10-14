@@ -10,11 +10,10 @@ export function ProblemSection() {
   return (
     <section
       id="problem"
-      className="landing-section landing-surface scroll-mt-24 border-t border-white/60"
+      className="landing-section landing-surface scroll-mt-24 border-t border-neutral-200/80"
     >
       <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 md:py-28">
         <SectionHeading
-          eyebrow={copy.problem.eyebrow}
           title={
             <>
               {copy.problem.titleBefore}
@@ -30,7 +29,7 @@ export function ProblemSection() {
           {copy.problem.cards.map((problem) => (
             <article
               key={problem.title}
-              className="rounded-3xl border border-white/80 bg-white/70 p-6 shadow-[0_12px_40px_oklch(0.4_0.06_130_/_0.06)] backdrop-blur-xl sm:p-8"
+              className="rounded-2xl border border-neutral-200/90 bg-white p-6 sm:p-8"
             >
               <p className="font-instrument-serif text-xl text-neutral-800 italic">
                 “{problem.quote}”

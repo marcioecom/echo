@@ -29,7 +29,7 @@ export function NichesSection() {
           {copy.niches.items.map((niche) => (
             <li
               key={niche.name}
-              className="rounded-3xl border border-neutral-200/80 bg-white px-6 py-7"
+              className="rounded-2xl border border-neutral-200/90 bg-white px-6 py-7"
             >
               <h3 className="font-instrument-serif text-2xl italic">
                 {niche.name}

@@ -26,12 +26,17 @@ export function FinalCta({ signedIn }: FinalCtaProps) {
         <p className="mx-auto mt-5 max-w-[42ch] text-base leading-7 text-pretty text-white/80">
           {copy.finalCta.body}
         </p>
-        <Link
-          to={href}
-          className="landing-cta mt-8 inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-        >
-          {label}
-        </Link>
+        <div className="mt-8 flex flex-col items-center gap-2.5">
+          <Link
+            to={href}
+            className="landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+          >
+            {label}
+          </Link>
+          {signedIn ? null : (
+            <p className="text-sm text-white/70">{copy.finalCta.clickTrigger}</p>
+          )}
+        </div>
       </div>
     </section>
   )
