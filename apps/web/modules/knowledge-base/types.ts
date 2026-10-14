@@ -30,21 +30,8 @@ export interface KnowledgeUpload {
   headers: { "Content-Type": string }
 }
 
-export interface KnowledgeDocumentChunk {
-  id: string
-  ordinal: number
-  content: string
-  characterCount: number
-}
-
 export interface KnowledgeDocumentDetail {
   document: KnowledgeDocument & {
     content: string | null
-  }
-  chunks: {
-    items: KnowledgeDocumentChunk[]
-    page: number
-    pageSize: number
-    total: number
   }
 }

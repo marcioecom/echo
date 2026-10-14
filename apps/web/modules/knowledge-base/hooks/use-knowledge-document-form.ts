@@ -3,7 +3,10 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
+
+import { t } from "@/lib/i18n"
 
 import {
   completeKnowledgeUpload,
@@ -77,6 +80,7 @@ export function useKnowledgeDocumentForm(options?: { onSuccess?: () => void }) {
     },
     onSuccess: () => {
       form.reset()
+      toast.success(t("knowledge.toast.added"))
       options?.onSuccess?.()
     },
     onSettled: async () => {

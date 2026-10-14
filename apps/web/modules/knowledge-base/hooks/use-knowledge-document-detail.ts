@@ -1,17 +1,13 @@
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
 
 import { getKnowledgeDocument, knowledgeDocumentDetailQueryKey } from "./api"
 
 export function useKnowledgeDocumentDetail(documentId: string) {
-  const [page, setPage] = useState(1)
   const query = useQuery({
-    queryKey: knowledgeDocumentDetailQueryKey(documentId, page),
-    queryFn: () => getKnowledgeDocument(documentId, page),
-    placeholderData: (previous) =>
-      previous?.document.id === documentId ? previous : undefined,
+    queryKey: knowledgeDocumentDetailQueryKey(documentId),
+    queryFn: () => getKnowledgeDocument(documentId),
     refetchInterval: (current) => {
       const status = current.state.data?.document.status
       if (status === "pending" || status === "processing") return 2_000
@@ -19,5 +15,5 @@ export function useKnowledgeDocumentDetail(documentId: string) {
     },
   })
 
-  return { query, page, setPage }
+  return { query }
 }

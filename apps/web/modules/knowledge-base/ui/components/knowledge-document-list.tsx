@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 import {
   Add01Icon,
@@ -10,6 +11,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { t } from "@/lib/i18n"
 
@@ -25,6 +27,7 @@ export function KnowledgeDocumentList({ onAdd }: { onAdd: () => void }) {
   const { documentsQuery, reindexMutation } = useKnowledgeDocuments()
   const [selected, setSelected] = useState<KnowledgeDocument | null>(null)
   const [filter, setFilter] = useState<StatusFilter>("all")
+  const [query, setQuery] = useState("")
   const items = documentsQuery.data?.items ?? []
   const openDocument =
     items.find((document) => document.id === selected?.id) ?? selected
@@ -35,9 +38,19 @@ export function KnowledgeDocumentList({ onAdd }: { onAdd: () => void }) {
     return next
   }, [items])
 
-  const visible = items.filter((document) =>
-    matchesFilter(document.status, filter)
-  )
+  const visible = useMemo(() => {
+    const normalized = query.trim().toLocaleLowerCase()
+    return items
+      .filter((document) => matchesFilter(document.status, filter))
+      .filter((document) => {
+        if (!normalized) return true
+        const haystack =
+          `${document.title} ${document.sourceName ?? ""}`.toLocaleLowerCase()
+        return haystack.includes(normalized)
+      })
+      .slice()
+      .sort((left, right) => statusRank(left.status) - statusRank(right.status))
+  }, [filter, items, query])
 
   return (
     <section
@@ -114,6 +127,15 @@ export function KnowledgeDocumentList({ onAdd }: { onAdd: () => void }) {
         </div>
       </div>
 
+      {items.length > 0 ? (
+        <Input
+          aria-label={t("knowledge.searchLabel")}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t("knowledge.searchPlaceholder")}
+          value={query}
+        />
+      ) : null}
+
       {documentsQuery.isLoading ? (
         <DocumentListSkeleton />
       ) : documentsQuery.isError ? (
@@ -151,14 +173,21 @@ export function KnowledgeDocumentList({ onAdd }: { onAdd: () => void }) {
       ) : visible.length === 0 ? (
         <div className="rounded-md border border-dashed border-border px-4 py-8 text-center">
           <p className="text-sm font-medium">
-            {t("knowledge.filterEmptyTitle")}
+            {query.trim()
+              ? t("knowledge.searchEmptyTitle")
+              : t("knowledge.filterEmptyTitle")}
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {t("knowledge.filterEmptyBody")}
+            {query.trim()
+              ? t("knowledge.searchEmptyBody")
+              : t("knowledge.filterEmptyBody")}
           </p>
           <Button
             className="mt-3"
-            onClick={() => setFilter("all")}
+            onClick={() => {
+              setFilter("all")
+              setQuery("")
+            }}
             size="sm"
             type="button"
             variant="outline"
@@ -173,7 +202,11 @@ export function KnowledgeDocumentList({ onAdd }: { onAdd: () => void }) {
               key={document.id}
               document={document}
               onOpen={() => setSelected(document)}
-              onReindex={() => reindexMutation.mutate(document.id)}
+              onReindex={() =>
+                reindexMutation.mutate(document.id, {
+                  onSuccess: () => toast.success(t("knowledge.toast.reindex")),
+                })
+              }
               reindexing={
                 reindexMutation.isPending &&
                 reindexMutation.variables === document.id
@@ -236,10 +269,6 @@ function KnowledgeDocumentRow({
               </span>
               <span className="block text-xs text-muted-foreground">
                 {knowledgeSourceLabel(document)}
-                {" · "}
-                {t("knowledge.detail.revision", {
-                  revision: String(document.revision),
-                })}
               </span>
               {failure ? (
                 <span className="block text-xs text-destructive">
@@ -271,6 +300,12 @@ function matchesFilter(status: KnowledgeDocumentStatus, filter: StatusFilter) {
   if (filter === "working")
     return status === "pending" || status === "processing"
   return status === filter
+}
+
+function statusRank(status: KnowledgeDocumentStatus) {
+  if (status === "failed") return 0
+  if (status === "pending" || status === "processing") return 1
+  return 2
 }
 
 function DocumentListSkeleton() {

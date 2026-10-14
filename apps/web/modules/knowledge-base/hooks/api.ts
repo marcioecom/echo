@@ -44,25 +44,21 @@ async function request<T>(
 
 export const knowledgeDocumentQueryKey = ["knowledge-documents"] as const
 
-export function knowledgeDocumentDetailQueryKey(
-  documentId: string,
-  page: number
-) {
-  return [...knowledgeDocumentQueryKey, documentId, page] as const
+export function knowledgeDocumentDetailQueryKey(documentId: string) {
+  return [...knowledgeDocumentQueryKey, documentId] as const
 }
 
-export function knowledgeDocumentDetailPath(documentId: string, page: number) {
-  const params = new URLSearchParams({ page: String(page) })
-  return `/v1/knowledge-documents/${documentId}?${params}`
+export function knowledgeDocumentDetailPath(documentId: string) {
+  return `/v1/knowledge-documents/${documentId}`
 }
 
 export function listKnowledgeDocuments() {
   return request<{ items: KnowledgeDocument[] }>("/v1/knowledge-documents")
 }
 
-export function getKnowledgeDocument(documentId: string, page: number) {
+export function getKnowledgeDocument(documentId: string) {
   return request<KnowledgeDocumentDetail>(
-    knowledgeDocumentDetailPath(documentId, page)
+    knowledgeDocumentDetailPath(documentId)
   )
 }
 

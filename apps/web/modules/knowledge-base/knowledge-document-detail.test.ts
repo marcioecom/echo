@@ -10,9 +10,9 @@ import { knowledgeFailureMessage } from "./labels"
 const moduleDir = dirname(fileURLToPath(import.meta.url))
 
 describe("knowledge document detail", () => {
-  it("builds an org-scoped detail path with a chunk page", () => {
-    expect(knowledgeDocumentDetailPath("01K1EDN69NFBWCG42B2H99V2C4", 2)).toBe(
-      "/v1/knowledge-documents/01K1EDN69NFBWCG42B2H99V2C4?page=2"
+  it("builds an org-scoped detail path without chunk pagination", () => {
+    expect(knowledgeDocumentDetailPath("01K1EDN69NFBWCG42B2H99V2C4")).toBe(
+      "/v1/knowledge-documents/01K1EDN69NFBWCG42B2H99V2C4"
     )
   })
 
@@ -46,7 +46,7 @@ describe("knowledge document detail", () => {
     }
   })
 
-  it("opens the detail drawer from the document list", () => {
+  it("opens a content-only detail drawer from the document list", () => {
     const list = readFileSync(
       join(moduleDir, "ui/components/knowledge-document-list.tsx"),
       "utf8"
@@ -76,15 +76,23 @@ describe("knowledge document detail", () => {
       join(moduleDir, "hooks/use-knowledge-document-detail.ts"),
       "utf8"
     )
+    const types = readFileSync(join(moduleDir, "types.ts"), "utf8")
+    const api = readFileSync(join(moduleDir, "hooks/api.ts"), "utf8")
 
     expect(list).toContain("useKnowledgeDocuments")
     expect(list).toContain("<KnowledgeDocumentDrawer")
     expect(list).toContain('t("knowledge.detail.open"')
+    expect(list).toContain("searchPlaceholder")
     expect(drawer).toContain("useKnowledgeDocumentDetail")
-    expect(drawer).toContain('t("knowledge.detail.contentTab")')
-    expect(drawer).toContain('t("knowledge.detail.chunksTab")')
+    expect(drawer).toContain("DocumentContent")
+    expect(drawer).not.toContain("chunksTab")
+    expect(drawer).not.toContain("Tabs")
     expect(drawer).not.toContain("void ")
     expect(hook).not.toContain("void ")
+    expect(hook).not.toContain("setPage")
+    expect(types).not.toContain("KnowledgeDocumentChunk")
+    expect(types).not.toContain("chunks:")
+    expect(api).not.toContain("page=")
     expect(form).toContain("useKnowledgeDocumentForm")
     expect(form).toContain("<TranslatedFormMessage")
     expect(form).toContain("onCancel")
@@ -93,6 +101,7 @@ describe("knowledge document detail", () => {
     expect(formHook).toContain("knowledge.validation.content")
     expect(formHook).toContain("knowledge.validation.file")
     expect(formHook).toContain("onSuccess")
+    expect(formHook).toContain("knowledge.toast.added")
     expect(view).toContain("<KnowledgeDocumentForm")
     expect(view).toContain("<KnowledgeDocumentList")
     expect(view).toContain("setComposing")

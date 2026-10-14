@@ -2,10 +2,7 @@ import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import type { createDatabase } from "@workspace/db"
-import {
-  knowledgeDocumentChunks,
-  knowledgeDocuments,
-} from "@workspace/db/schema"
+import { knowledgeDocuments } from "@workspace/db/schema"
 import {
   createId,
   type KnowledgeDocumentFailureReason,
@@ -16,10 +13,6 @@ import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { createApp } from "@/app"
-
-import { knowledgeDocumentChunkPageSize } from "./schemas"
-
-const zeroVector = `[${"0,".repeat(1535)}0]`
 
 function extractCookies(
   headers: Record<string, string | string[] | number | undefined>
@@ -159,7 +152,6 @@ describe("knowledge document detail API", () => {
     userId: string
     title: string
     content: string
-    chunkContents?: string[]
     status?: "pending" | "processing" | "ready" | "failed"
     failureReason?: KnowledgeDocumentFailureReason | null
     revision?: number
@@ -178,19 +170,6 @@ describe("knowledge document detail API", () => {
       })
       .returning()
     if (!document) throw new Error("Knowledge document insert returned no row")
-    const chunkContents = input.chunkContents ?? []
-    if (chunkContents.length > 0) {
-      await database.db.insert(knowledgeDocumentChunks).values(
-        chunkContents.map((content, ordinal) => ({
-          organizationId: input.organizationId,
-          knowledgeDocumentId: document.id,
-          ordinal,
-          content,
-          embeddingModel: "test-embedding",
-          embedding: zeroVector,
-        }))
-      )
-    }
     return document
   }
 
@@ -220,19 +199,14 @@ describe("knowledge document detail API", () => {
     return document
   }
 
-  it("returns metadata, content, and the first page of chunks for the organization", async () => {
+  it("returns metadata and extracted content for the organization", async () => {
     const owner = await ownerContext("kb-detail")
     const other = await ownerContext("kb-other")
-    const chunkContents = Array.from(
-      { length: knowledgeDocumentChunkPageSize + 1 },
-      (_, ordinal) => `trecho ${ordinal} da padaria`
-    )
     const document = await insertTextDocument({
       organizationId: owner.organizationId,
       userId: owner.userId,
       title: "Horário da padaria",
       content: "Abrimos de segunda a sábado.",
-      chunkContents,
       revision: 4,
     })
     const foreign = await insertTextDocument({
@@ -240,7 +214,6 @@ describe("knowledge document detail API", () => {
       userId: other.userId,
       title: "Segredo da outra loja",
       content: "Conteúdo que não pode vazar.",
-      chunkContents: ["trecho secreto da outra loja"],
     })
 
     const response = await app.inject({
@@ -260,16 +233,6 @@ describe("knowledge document detail API", () => {
         revision: number
         sourceType: string
       }
-      chunks: {
-        items: Array<{
-          ordinal: number
-          content: string
-          characterCount: number
-        }>
-        page: number
-        pageSize: number
-        total: number
-      }
     }
     expect(body.document).toMatchObject({
       id: document.id,
@@ -280,26 +243,9 @@ describe("knowledge document detail API", () => {
       revision: 4,
       sourceType: "text",
     })
-    expect(body.chunks).toMatchObject({
-      page: 1,
-      pageSize: knowledgeDocumentChunkPageSize,
-      total: knowledgeDocumentChunkPageSize + 1,
-    })
-    expect(body.chunks.items).toHaveLength(knowledgeDocumentChunkPageSize)
-    expect(body.chunks.items.map((chunk) => chunk.ordinal)).toEqual(
-      Array.from(
-        { length: knowledgeDocumentChunkPageSize },
-        (_, index) => index
-      )
-    )
-    expect(body.chunks.items[0]).toMatchObject({
-      content: "trecho 0 da padaria",
-      characterCount: "trecho 0 da padaria".length,
-    })
+    expect(body).not.toHaveProperty("chunks")
     expect(response.body).not.toContain("Conteúdo que não pode vazar.")
-    expect(response.body).not.toContain("trecho secreto da outra loja")
     expect(response.body).not.toContain("sourceObjectKey")
-    expect(response.body).not.toContain(zeroVector.slice(0, 12))
 
     const leaked = await app.inject({
       method: "GET",
@@ -318,46 +264,7 @@ describe("knowledge document detail API", () => {
     expect(hiddenForeign.statusCode).toBe(404)
   })
 
-  it("returns the next page of chunks in ordinal order", async () => {
-    const owner = await ownerContext("kb-page")
-    const chunkContents = Array.from(
-      { length: knowledgeDocumentChunkPageSize + 1 },
-      (_, ordinal) => `página ${ordinal}`
-    )
-    const document = await insertTextDocument({
-      organizationId: owner.organizationId,
-      userId: owner.userId,
-      title: "Cardápio",
-      content: "Pão e bolo.",
-      chunkContents,
-    })
-
-    const response = await app.inject({
-      method: "GET",
-      url: `/v1/knowledge-documents/${document.id}?page=2`,
-      headers: { cookie: owner.cookies },
-    })
-
-    expect(response.statusCode).toBe(200)
-    const body = response.json() as {
-      chunks: {
-        items: Array<{ ordinal: number; content: string }>
-        page: number
-        total: number
-      }
-    }
-    expect(body.chunks.page).toBe(2)
-    expect(body.chunks.total).toBe(knowledgeDocumentChunkPageSize + 1)
-    expect(body.chunks.items).toEqual([
-      expect.objectContaining({
-        ordinal: knowledgeDocumentChunkPageSize,
-        content: `página ${knowledgeDocumentChunkPageSize}`,
-        characterCount: `página ${knowledgeDocumentChunkPageSize}`.length,
-      }),
-    ])
-  })
-
-  it("returns the failure reason and empty chunks for a failed document", async () => {
+  it("returns the failure reason for a failed document", async () => {
     const owner = await ownerContext("kb-failed")
     const document = await insertFailedFile({
       organizationId: owner.organizationId,
@@ -383,11 +290,11 @@ describe("knowledge document detail API", () => {
         status: "failed",
         failureReason: "no_text_extracted",
       },
-      chunks: { items: [], page: 1, total: 0 },
     })
+    expect(response.json()).not.toHaveProperty("chunks")
   })
 
-  it("rejects anonymous users, operators, unknown documents, and invalid pages", async () => {
+  it("rejects anonymous users, operators, and unknown documents", async () => {
     const owner = await ownerContext("kb-auth")
     const document = await insertTextDocument({
       organizationId: owner.organizationId,
@@ -438,11 +345,6 @@ describe("knowledge document detail API", () => {
       url: "/v1/knowledge-documents/not-a-document",
       headers: { cookie: owner.cookies },
     })
-    const invalidPage = await app.inject({
-      method: "GET",
-      url: `/v1/knowledge-documents/${document.id}?page=0`,
-      headers: { cookie: owner.cookies },
-    })
 
     expect(anonymous.statusCode).toBe(401)
     expect(operator.statusCode).toBe(403)
@@ -450,7 +352,5 @@ describe("knowledge document detail API", () => {
     expect(operator.body).not.toContain("Texto restrito ao dono.")
     expect(missing.statusCode).toBe(404)
     expect(invalidId.statusCode).toBe(404)
-    expect(invalidPage.statusCode).toBe(400)
-    expect(invalidPage.json()).toEqual({ error: "invalid_query" })
   })
 })

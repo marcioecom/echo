@@ -9,7 +9,6 @@ import { dispatchKnowledgeIndexing } from "../use-cases/dispatch-indexing"
 import {
   createFileKnowledgeDocumentSchema,
   createTextKnowledgeDocumentSchema,
-  knowledgeDocumentDetailQuerySchema,
   knowledgeDocumentParamsSchema,
   knowledgeDocumentUploadSchema,
 } from "../schemas"
@@ -266,14 +265,10 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
       if (!params.success) {
         return reply.code(404).send({ error: "knowledge_document_not_found" })
       }
-      const query = knowledgeDocumentDetailQuerySchema.safeParse(request.query)
-      if (!query.success)
-        return reply.code(400).send({ error: "invalid_query" })
 
       const detail = await getKnowledgeDocumentDetail({
         organizationId: auth.value.organization.id,
         documentId: params.data.documentId,
-        page: query.data.page,
       })
       if (!detail) {
         return reply.code(404).send({ error: "knowledge_document_not_found" })
