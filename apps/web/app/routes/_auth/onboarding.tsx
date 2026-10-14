@@ -1,18 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
 import { onboardingHead } from "@/modules/auth/head"
-import {
-  sessionQueryOptions,
-  workspaceQueryOptions,
-} from "@/modules/auth/queries"
+import { loadSession, loadWorkspace } from "@/modules/auth/queries"
 import { OnboardingView } from "@/modules/auth/ui/views/onboarding-view"
 
 export const Route = createFileRoute("/_auth/onboarding")({
   head: () => onboardingHead(),
   beforeLoad: async ({ context, location }) => {
-    const session = await context.queryClient.ensureQueryData(
-      sessionQueryOptions()
-    )
+    const session = await loadSession(context.queryClient)
     if (!session) {
       throw redirect({
         to: "/login",
@@ -20,9 +15,7 @@ export const Route = createFileRoute("/_auth/onboarding")({
       })
     }
 
-    const workspace = await context.queryClient.ensureQueryData(
-      workspaceQueryOptions()
-    )
+    const workspace = await loadWorkspace(context.queryClient)
     if (workspace) {
       throw redirect({ to: "/inbox" })
     }

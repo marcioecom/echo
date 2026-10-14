@@ -1,10 +1,12 @@
-import { ChatOpenAI } from "@langchain/openai"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { StateGraph, StateSchema } from "@langchain/langgraph"
+import { ChatOpenAI } from "@langchain/openai"
 import { z } from "zod"
 
 import { env } from "../../../config/env"
-import type { KnowledgeSnippet } from "../../knowledge-base/retrieve-knowledge"
 import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
+
+const retrievedChunkLimit = 6
 
 export const agentDecisionSchema = z.discriminatedUnion("action", [
   z.object({
@@ -19,31 +21,54 @@ export const agentDecisionSchema = z.discriminatedUnion("action", [
 ])
 export type AgentDecision = z.infer<typeof agentDecisionSchema>
 
+const knowledgeSnippetSchema = z.object({
+  chunkId: z.string(),
+  documentId: z.string(),
+  documentTitle: z.string(),
+  content: z.string(),
+  similarity: z.number(),
+})
+
 const graphState = new StateSchema({
   organizationId: z.string(),
   query: z.string(),
   history: z.array(z.string()),
+  snippets: z.array(knowledgeSnippetSchema).optional(),
   decision: agentDecisionSchema.optional(),
 })
 
-export function createSupportAgentGraph(input: {
-  retrieveKnowledge: (input: { organizationId: string; query: string; limit: number }) => Promise<KnowledgeSnippet[]>
-  model: Pick<ChatOpenAI, "withStructuredOutput">
-}) {
+export function createSupportAgentGraph(
+  model: Pick<BaseChatModel, "withStructuredOutput">
+) {
   return new StateGraph({ stateSchema: graphState })
-    .addNode("decide", async (state) => {
-      const snippets = await input.retrieveKnowledge({
+    .addNode("retrieve", async (state) => ({
+      snippets: await retrieveKnowledge({
         organizationId: state.organizationId,
         query: state.query,
-        limit: 6,
-      })
-      const decision = await input.model.withStructuredOutput(agentDecisionSchema).invoke([
-        ["system", "You are Echo, the first support contact. Answer only from tenant knowledge and conversation history. Use the contact language. Never invent policy or actions. Hand off for a requested human, insufficient evidence, or unsupported policy. Ask a concise clarification only when one missing fact can unlock a grounded answer."],
-        ["human", JSON.stringify({ history: state.history, snippets, query: state.query })],
-      ])
+        limit: retrievedChunkLimit,
+      }),
+    }))
+    .addNode("decide", async (state) => {
+      const decision = await model
+        .withStructuredOutput(agentDecisionSchema)
+        .invoke([
+          [
+            "system",
+            "You are Echo, the first support contact. Answer only from tenant knowledge and conversation history. Use the contact language. Never invent policy or actions. Hand off for a requested human, insufficient evidence, or unsupported policy. Ask a concise clarification only when one missing fact can unlock a grounded answer.",
+          ],
+          [
+            "human",
+            JSON.stringify({
+              history: state.history,
+              snippets: state.snippets ?? [],
+              query: state.query,
+            }),
+          ],
+        ])
       return { decision }
     })
-    .addEdge("__start__", "decide")
+    .addEdge("__start__", "retrieve")
+    .addEdge("retrieve", "decide")
     .addEdge("decide", "__end__")
     .compile()
 }
@@ -54,4 +79,4 @@ const model = new ChatOpenAI({
   configuration: { baseURL: "https://ai-gateway.vercel.sh/v1" },
 })
 
-export const supportAgentGraph = createSupportAgentGraph({ retrieveKnowledge, model })
+export const supportAgentGraph = createSupportAgentGraph(model)

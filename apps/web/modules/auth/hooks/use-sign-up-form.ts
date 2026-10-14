@@ -1,13 +1,14 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useRouter, useSearch } from "@tanstack/react-router"
+import { useSearch } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
 import { translateMessage } from "@/lib/i18n"
+import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
 
 const signUpSchema = z
   .object({
@@ -24,7 +25,7 @@ const signUpSchema = z
 type SignUpFormValues = z.infer<typeof signUpSchema>
 
 export function useSignUpForm() {
-  const router = useRouter()
+  const navigateAfterAuth = useNavigateAfterAuth()
   const search = useSearch({ strict: false })
   const redirectTo =
     typeof search.redirect === "string" && search.redirect.startsWith("/")
@@ -51,7 +52,7 @@ export function useSignUpForm() {
       toast.error(translateMessage(error.message ?? "auth.errors.signUp"))
       return
     }
-    router.history.push(redirectTo)
+    await navigateAfterAuth(redirectTo)
   }
 
   return { form, onSubmit }

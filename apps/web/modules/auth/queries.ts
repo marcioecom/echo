@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query"
+import { queryOptions, type QueryClient } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
 
@@ -7,11 +7,14 @@ import type { Workspace } from "./session"
 export const sessionQueryKey = ["auth", "session"] as const
 export const workspaceQueryKey = ["auth", "workspace"] as const
 
+const AUTH_QUERY_STALE_TIME = 60_000
+
 export function sessionQueryOptions() {
   return queryOptions({
     queryKey: sessionQueryKey,
     queryFn: fetchSession,
-    staleTime: 60_000,
+    staleTime: (query) =>
+      query.state.data == null ? 0 : AUTH_QUERY_STALE_TIME,
   })
 }
 
@@ -19,8 +22,22 @@ export function workspaceQueryOptions() {
   return queryOptions({
     queryKey: workspaceQueryKey,
     queryFn: fetchWorkspace,
-    staleTime: 60_000,
+    staleTime: (query) =>
+      query.state.data == null ? 0 : AUTH_QUERY_STALE_TIME,
   })
+}
+
+export function loadSession(queryClient: QueryClient) {
+  return queryClient.query(sessionQueryOptions())
+}
+
+export function loadWorkspace(queryClient: QueryClient) {
+  return queryClient.query(workspaceQueryOptions())
+}
+
+export function clearAuthQueries(queryClient: QueryClient) {
+  queryClient.removeQueries({ queryKey: sessionQueryKey })
+  queryClient.removeQueries({ queryKey: workspaceQueryKey })
 }
 
 export async function fetchSession() {
