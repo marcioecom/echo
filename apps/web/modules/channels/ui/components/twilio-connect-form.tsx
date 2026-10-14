@@ -1,5 +1,7 @@
 "use client"
 
+import { CheckmarkCircle02Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -39,13 +41,22 @@ export function TwilioConnectForm({
   if (mutation.isSuccess && webhookUrl) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            {t("channels.successTitle")}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {t("channels.successBody")}
-          </p>
+        <CardHeader className="space-y-3">
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <HugeiconsIcon
+              icon={CheckmarkCircle02Icon}
+              size={18}
+              strokeWidth={1.8}
+            />
+          </div>
+          <div className="space-y-1">
+            <CardTitle className="text-sm font-medium">
+              {t("channels.successTitle")}
+            </CardTitle>
+            <p className="text-sm text-pretty text-muted-foreground">
+              {t("channels.successBody")}
+            </p>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="space-y-1.5">
@@ -54,7 +65,7 @@ export function TwilioConnectForm({
               {webhookUrl}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => {
                 navigator.clipboard.writeText(webhookUrl).then(() => {
@@ -63,11 +74,10 @@ export function TwilioConnectForm({
                 })
               }}
               type="button"
-              variant="outline"
             >
               {copied ? t("channels.copied") : t("channels.copyWebhook")}
             </Button>
-            <Button onClick={onDone} type="button">
+            <Button onClick={onDone} type="button" variant="ghost">
               {t("channels.done")}
             </Button>
           </div>
@@ -193,7 +203,7 @@ export function TwilioConnectForm({
               </p>
             ) : null}
             <div className="flex gap-2">
-              <Button onClick={onBack} type="button" variant="outline">
+              <Button onClick={onBack} type="button" variant="ghost">
                 {t("channels.back")}
               </Button>
               <Button disabled={mutation.isPending} type="submit">

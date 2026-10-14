@@ -1,5 +1,7 @@
 "use client"
 
+import { Add01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
 import { useState } from "react"
 
@@ -19,7 +21,12 @@ export function ChannelsView({ organizationId }: { organizationId: string }) {
         <PageHeader
           actions={
             wizardOpen ? null : (
-              <Button onClick={() => setWizardOpen(true)} type="button">
+              <Button
+                data-icon="inline-start"
+                onClick={() => setWizardOpen(true)}
+                type="button"
+              >
+                <HugeiconsIcon icon={Add01Icon} size={16} strokeWidth={1.8} />
                 {t("channels.add")}
               </Button>
             )
@@ -33,7 +40,11 @@ export function ChannelsView({ organizationId }: { organizationId: string }) {
             organizationId={organizationId}
           />
         ) : null}
-        <ChannelList organizationId={organizationId} />
+        <ChannelList
+          onAdd={() => setWizardOpen(true)}
+          organizationId={organizationId}
+          wizardOpen={wizardOpen}
+        />
       </div>
     </ChannelLiveProvider>
   )

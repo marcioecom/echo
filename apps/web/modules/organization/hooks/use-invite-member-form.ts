@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { z } from "zod"
 
 import { authClient } from "@/lib/auth-client"
-import { translateMessage } from "@/lib/i18n"
+import { t, translateMessage } from "@/lib/i18n"
 
 const inviteSchema = z.object({
   email: z.email("members.validation.email"),
@@ -31,7 +31,8 @@ export function useInviteMemberForm() {
       if (error) throw new Error(error.message)
     },
     onSuccess: async () => {
-      form.reset()
+      form.reset({ email: "", role: "operator" })
+      toast.success(t("members.inviteSuccess"))
       await queryClient.invalidateQueries({
         queryKey: ["organization", "invitations"],
       })

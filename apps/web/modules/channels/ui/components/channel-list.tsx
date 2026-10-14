@@ -1,7 +1,9 @@
 "use client"
 
-import { cn } from "@workspace/ui/lib/utils"
+import { WhatsappIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
+import { cn } from "@workspace/ui/lib/utils"
 import { useState } from "react"
 
 import { t } from "@/lib/i18n"
@@ -11,7 +13,15 @@ import { useChannels } from "../../hooks/use-channels"
 import type { ChannelConnection } from "../../types"
 import { ChannelRow } from "./channel-row"
 
-export function ChannelList({ organizationId }: { organizationId: string }) {
+export function ChannelList({
+  organizationId,
+  onAdd,
+  wizardOpen = false,
+}: {
+  organizationId: string
+  onAdd?: () => void
+  wizardOpen?: boolean
+}) {
   const query = useChannels(organizationId)
   const live = useChannelLive()
   const [pairingId, setPairingId] = useState<string | null>(null)
@@ -59,11 +69,33 @@ export function ChannelList({ organizationId }: { organizationId: string }) {
               pairingId={visiblePairingId}
             />
           ) : archived.length === 0 ? (
-            <div className="rounded-md border border-dashed px-4 py-8 text-center">
+            <div className="flex min-h-48 flex-col items-center justify-center rounded-md border border-dashed border-border px-6 py-10 text-center">
+              <div className="mb-3 flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <HugeiconsIcon
+                  icon={WhatsappIcon}
+                  size={18}
+                  strokeWidth={1.8}
+                />
+              </div>
               <p className="text-sm font-medium">{t("channels.emptyTitle")}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 max-w-md text-sm text-pretty text-muted-foreground">
                 {t("channels.emptyBody")}
               </p>
+              {!wizardOpen && onAdd ? (
+                <Button
+                  className="mt-4"
+                  data-icon="inline-start"
+                  onClick={onAdd}
+                  type="button"
+                >
+                  <HugeiconsIcon
+                    icon={WhatsappIcon}
+                    size={16}
+                    strokeWidth={1.8}
+                  />
+                  {t("channels.emptyCta")}
+                </Button>
+              ) : null}
             </div>
           ) : null}
           {archived.length > 0 ? (
