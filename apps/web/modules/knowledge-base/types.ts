@@ -6,6 +6,7 @@ export type KnowledgeDocumentStatus =
 export type KnowledgeDocumentFailureReason =
   | "index_dispatch_failed"
   | "indexing_failed"
+  | "no_text_extracted"
   | null
 
 export interface KnowledgeDocument {
@@ -27,4 +28,10 @@ export interface KnowledgeUpload {
   uploadToken: string
   expiresAt: string
   headers: { "Content-Type": string }
+}
+
+export interface KnowledgeDocumentDetail {
+  document: KnowledgeDocument & {
+    content: string | null
+  }
 }

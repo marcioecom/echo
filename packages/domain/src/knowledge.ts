@@ -1,7 +1,9 @@
 import { z } from "zod"
 
 export const knowledgeDocumentSourceTypes = ["text", "file"] as const
-export const knowledgeDocumentSourceTypeSchema = z.enum(knowledgeDocumentSourceTypes)
+export const knowledgeDocumentSourceTypeSchema = z.enum(
+  knowledgeDocumentSourceTypes
+)
 export type KnowledgeDocumentSourceType = z.infer<
   typeof knowledgeDocumentSourceTypeSchema
 >
@@ -13,11 +15,14 @@ export const knowledgeDocumentStatuses = [
   "failed",
 ] as const
 export const knowledgeDocumentStatusSchema = z.enum(knowledgeDocumentStatuses)
-export type KnowledgeDocumentStatus = z.infer<typeof knowledgeDocumentStatusSchema>
+export type KnowledgeDocumentStatus = z.infer<
+  typeof knowledgeDocumentStatusSchema
+>
 
 export const knowledgeDocumentFailureReasons = [
   "index_dispatch_failed",
   "indexing_failed",
+  "no_text_extracted",
 ] as const
 export const knowledgeDocumentFailureReasonSchema = z.enum(
   knowledgeDocumentFailureReasons

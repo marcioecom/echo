@@ -1,8 +1,5 @@
 import type { Database } from "@workspace/db"
-import {
-  knowledgeDocuments,
-  organizations,
-} from "@workspace/db/schema"
+import { knowledgeDocuments, organizations } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
 import { and, desc, eq, inArray, sql } from "drizzle-orm"
 
@@ -76,7 +73,8 @@ export class KnowledgeDocumentsRepository {
         content: input.content,
       })
       .returning()
-    if (!document) throw new Error("Knowledge text document insert returned no row")
+    if (!document)
+      throw new Error("Knowledge text document insert returned no row")
     return document
   }
 
@@ -106,7 +104,8 @@ export class KnowledgeDocumentsRepository {
         sourceSizeBytes: input.sourceSizeBytes,
       })
       .returning()
-    if (!document) throw new Error("Knowledge file document insert returned no row")
+    if (!document)
+      throw new Error("Knowledge file document insert returned no row")
     return document
   }
 

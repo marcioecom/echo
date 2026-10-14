@@ -16,7 +16,7 @@ export const Route = createFileRoute("/_dashboard/settings/knowledge")({
 
 function KnowledgePage() {
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <KnowledgeBaseView />
     </div>
   )

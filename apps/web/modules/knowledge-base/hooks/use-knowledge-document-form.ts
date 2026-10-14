@@ -1,16 +1,18 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
+
+import { t } from "@/lib/i18n"
 
 import {
   completeKnowledgeUpload,
   createKnowledgeUpload,
   createTextKnowledgeDocument,
-  listKnowledgeDocuments,
-  reindexKnowledgeDocument,
+  knowledgeDocumentQueryKey,
   uploadKnowledgeFile,
 } from "./api"
 
@@ -40,22 +42,11 @@ const knowledgeDocumentSchema = z
 
 type KnowledgeDocumentFormValues = z.infer<typeof knowledgeDocumentSchema>
 
-export function useKnowledgeDocumentForm() {
+export function useKnowledgeDocumentForm(options?: { onSuccess?: () => void }) {
   const queryClient = useQueryClient()
   const form = useForm<KnowledgeDocumentFormValues>({
     resolver: zodResolver(knowledgeDocumentSchema),
     defaultValues: { title: "", sourceType: "text", content: "", file: null },
-  })
-  const documentsQuery = useQuery({
-    queryKey: ["knowledge-documents"],
-    queryFn: listKnowledgeDocuments,
-    refetchInterval: (query) =>
-      query.state.data?.items.some(
-        (document) =>
-          document.status === "pending" || document.status === "processing"
-      )
-        ? 2_000
-        : false,
   })
   const createMutation = useMutation({
     mutationFn: async (values: KnowledgeDocumentFormValues) => {
@@ -87,17 +78,17 @@ export function useKnowledgeDocumentForm() {
         uploadToken: upload.uploadToken,
       })
     },
-    onSuccess: () => form.reset(),
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })
+    onSuccess: () => {
+      form.reset()
+      toast.success(t("knowledge.toast.added"))
+      options?.onSuccess?.()
     },
-  })
-  const reindexMutation = useMutation({
-    mutationFn: reindexKnowledgeDocument,
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })
+      await queryClient.invalidateQueries({
+        queryKey: knowledgeDocumentQueryKey,
+      })
     },
   })
 
-  return { form, documentsQuery, createMutation, reindexMutation }
+  return { form, createMutation }
 }

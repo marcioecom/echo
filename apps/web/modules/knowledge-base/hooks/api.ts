@@ -1,4 +1,8 @@
-import type { KnowledgeDocument, KnowledgeUpload } from "../types"
+import type {
+  KnowledgeDocument,
+  KnowledgeDocumentDetail,
+  KnowledgeUpload,
+} from "../types"
 
 import { getApiUrl } from "@/lib/env"
 
@@ -38,8 +42,24 @@ async function request<T>(
   return response.json() as Promise<T>
 }
 
+export const knowledgeDocumentQueryKey = ["knowledge-documents"] as const
+
+export function knowledgeDocumentDetailQueryKey(documentId: string) {
+  return [...knowledgeDocumentQueryKey, documentId] as const
+}
+
+export function knowledgeDocumentDetailPath(documentId: string) {
+  return `/v1/knowledge-documents/${documentId}`
+}
+
 export function listKnowledgeDocuments() {
   return request<{ items: KnowledgeDocument[] }>("/v1/knowledge-documents")
+}
+
+export function getKnowledgeDocument(documentId: string) {
+  return request<KnowledgeDocumentDetail>(
+    knowledgeDocumentDetailPath(documentId)
+  )
 }
 
 export function createTextKnowledgeDocument(input: {

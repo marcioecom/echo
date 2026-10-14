@@ -12,6 +12,7 @@ import {
   knowledgeDocumentParamsSchema,
   knowledgeDocumentUploadSchema,
 } from "../schemas"
+import { getKnowledgeDocumentDetail } from "../use-cases/get-knowledge-document-detail"
 import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
 import {
   createKnowledgeUploadToken,
@@ -252,6 +253,29 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
       ).map(documentDto),
     })
   })
+
+  app.get(
+    "/v1/knowledge-documents/:documentId",
+    { preHandler },
+    async (request, reply) => {
+      const auth = getOrganizationAuth(request)
+      if (!auth.ok)
+        return reply.code(403).send({ error: "membership_required" })
+      const params = knowledgeDocumentParamsSchema.safeParse(request.params)
+      if (!params.success) {
+        return reply.code(404).send({ error: "knowledge_document_not_found" })
+      }
+
+      const detail = await getKnowledgeDocumentDetail({
+        organizationId: auth.value.organization.id,
+        documentId: params.data.documentId,
+      })
+      if (!detail) {
+        return reply.code(404).send({ error: "knowledge_document_not_found" })
+      }
+      return reply.send(detail)
+    }
+  )
 
   app.post(
     "/v1/knowledge-documents/:documentId/reindex",
