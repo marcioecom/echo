@@ -33,4 +33,3 @@ const workerEnvSchema = serverEnvSchema.extend({
 export type WorkerEnv = z.output<typeof workerEnvSchema>
 
 export const env = loadEnv(workerEnvSchema)
-

@@ -13,7 +13,8 @@ export function useTimelineAutoScroll(
   useEffect(() => {
     if (!timelineRef.current || !conversationId) return
 
-    const conversationChanged = previousConversationId.current !== conversationId
+    const conversationChanged =
+      previousConversationId.current !== conversationId
     const messageArrived =
       !conversationChanged &&
       previousLastMessageId.current !== null &&

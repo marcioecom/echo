@@ -47,6 +47,7 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
     )
     .orderBy(desc(messages.occurredAt), desc(messages.id))
     .limit(20)
+
   const channelProvider = state.channelProvider ?? "unknown"
   const result = await supportAgentGraph.invoke(
     {
