@@ -1,4 +1,4 @@
-import type { ChatOpenAI } from "@langchain/openai"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 vi.mock("../../../config/env", () => ({
@@ -12,6 +12,11 @@ vi.mock("../../../lib/db", () => ({
   database: { db: {} },
 }))
 
+vi.mock("../../knowledge-base/retrieve-knowledge", () => ({
+  retrieveKnowledge: vi.fn(),
+}))
+
+import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
 import { createSupportAgentGraph } from "./support-agent-graph"
 
 const snippet = {
@@ -29,7 +34,7 @@ describe("createSupportAgentGraph", () => {
   })
 
   it("retrieves knowledge before asking the model to decide", async () => {
-    const retrieveKnowledge = vi.fn(async () => [snippet])
+    vi.mocked(retrieveKnowledge).mockResolvedValue([snippet])
     const invoke = vi.fn<
       (
         messages: Array<[string, string]>
@@ -42,10 +47,9 @@ describe("createSupportAgentGraph", () => {
     const model = {
       withStructuredOutput: vi.fn(() => ({ invoke })),
     }
-    const graph = createSupportAgentGraph({
-      retrieveKnowledge,
-      model: model as unknown as Pick<ChatOpenAI, "withStructuredOutput">,
-    })
+    const graph = createSupportAgentGraph(
+      model as unknown as Pick<BaseChatModel, "withStructuredOutput">
+    )
 
     const result = await graph.invoke({
       organizationId: "01ORGANIZATION000000000000",
@@ -58,7 +62,7 @@ describe("createSupportAgentGraph", () => {
       query: "vocês abrem domingo?",
       limit: 6,
     })
-    expect(retrieveKnowledge.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(vi.mocked(retrieveKnowledge).mock.invocationCallOrder[0]).toBeLessThan(
       invoke.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     )
     const messages = invoke.mock.calls[0]?.[0]

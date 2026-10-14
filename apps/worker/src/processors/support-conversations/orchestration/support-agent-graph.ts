@@ -1,9 +1,9 @@
-import { ChatOpenAI } from "@langchain/openai"
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { StateGraph, StateSchema } from "@langchain/langgraph"
+import { ChatOpenAI } from "@langchain/openai"
 import { z } from "zod"
 
 import { env } from "../../../config/env"
-import type { KnowledgeSnippet } from "../../knowledge-base/retrieve-knowledge"
 import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
 
 const retrievedChunkLimit = 6
@@ -37,24 +37,19 @@ const graphState = new StateSchema({
   decision: agentDecisionSchema.optional(),
 })
 
-export function createSupportAgentGraph(input: {
-  retrieveKnowledge: (input: {
-    organizationId: string
-    query: string
-    limit: number
-  }) => Promise<KnowledgeSnippet[]>
-  model: Pick<ChatOpenAI, "withStructuredOutput">
-}) {
+export function createSupportAgentGraph(
+  model: Pick<BaseChatModel, "withStructuredOutput">
+) {
   return new StateGraph({ stateSchema: graphState })
     .addNode("retrieve", async (state) => ({
-      snippets: await input.retrieveKnowledge({
+      snippets: await retrieveKnowledge({
         organizationId: state.organizationId,
         query: state.query,
         limit: retrievedChunkLimit,
       }),
     }))
     .addNode("decide", async (state) => {
-      const decision = await input.model
+      const decision = await model
         .withStructuredOutput(agentDecisionSchema)
         .invoke([
           [
@@ -84,7 +79,4 @@ const model = new ChatOpenAI({
   configuration: { baseURL: "https://ai-gateway.vercel.sh/v1" },
 })
 
-export const supportAgentGraph = createSupportAgentGraph({
-  retrieveKnowledge,
-  model,
-})
+export const supportAgentGraph = createSupportAgentGraph(model)
