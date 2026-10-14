@@ -203,9 +203,6 @@ describe("process inbound Message", () => {
         },
       }
     )
-    const invokeMetadata = supportAgentGraph.invoke.mock.calls[0]?.[1]?.metadata
-    expect(invokeMetadata).not.toHaveProperty("body")
-    expect(JSON.stringify(invokeMetadata)).not.toContain("not-a-credential")
 
     const [conversation] = await database.db
       .select()

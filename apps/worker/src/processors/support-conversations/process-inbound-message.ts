@@ -17,7 +17,6 @@ import { env } from "../../config/env"
 import { database } from "../../lib/db"
 import { supportConversationsQueue } from "../../queues/support-conversations"
 import { supportAgentGraph } from "./orchestration/support-agent-graph"
-import { buildSupportAgentRunConfig } from "./support-agent-run"
 
 export async function handleProcessInboundMessage(job: Job): Promise<void> {
   const payload = processInboundMessageJobSchema.parse(job.data)
@@ -48,6 +47,7 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
     )
     .orderBy(desc(messages.occurredAt), desc(messages.id))
     .limit(20)
+  const channelProvider = state.channelProvider ?? "unknown"
   const result = await supportAgentGraph.invoke(
     {
       organizationId: payload.organizationId,
@@ -56,13 +56,17 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
         .reverse()
         .map((message) => `${message.senderType}: ${message.body ?? ""}`),
     },
-    buildSupportAgentRunConfig({
-      organizationId: payload.organizationId,
-      conversationId: payload.supportConversationId,
-      messageId: payload.messageId,
-      channelProvider: state.channelProvider,
-      model: env.AI_CHAT_MODEL,
-    })
+    {
+      runName: "support-agent",
+      tags: ["support-agent", "inbound-message", channelProvider],
+      metadata: {
+        organizationId: payload.organizationId,
+        conversationId: payload.supportConversationId,
+        messageId: payload.messageId,
+        channelProvider,
+        model: env.AI_CHAT_MODEL,
+      },
+    }
   )
   const decision = result.decision
   if (!decision) throw new Error("Support agent returned no decision")

@@ -5,10 +5,6 @@ import { z } from "zod"
 import { env } from "../../../config/env"
 import type { KnowledgeSnippet } from "../../knowledge-base/retrieve-knowledge"
 import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
-import {
-  KnowledgeBaseRetriever,
-  snippetsFromDocuments,
-} from "./knowledge-retriever"
 
 const retrievedChunkLimit = 6
 
@@ -50,14 +46,13 @@ export function createSupportAgentGraph(input: {
   model: Pick<ChatOpenAI, "withStructuredOutput">
 }) {
   return new StateGraph({ stateSchema: graphState })
-    .addNode("retrieve", async (state) => {
-      const documents = await new KnowledgeBaseRetriever({
-        retrieveKnowledge: input.retrieveKnowledge,
+    .addNode("retrieve", async (state) => ({
+      snippets: await input.retrieveKnowledge({
         organizationId: state.organizationId,
+        query: state.query,
         limit: retrievedChunkLimit,
-      }).invoke(state.query, { runName: "retrieve_knowledge" })
-      return { snippets: snippetsFromDocuments(documents) }
-    })
+      }),
+    }))
     .addNode("decide", async (state) => {
       const decision = await input.model
         .withStructuredOutput(agentDecisionSchema)

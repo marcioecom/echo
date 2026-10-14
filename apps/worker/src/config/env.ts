@@ -25,11 +25,12 @@ const workerEnvSchema = serverEnvSchema.extend({
   AI_CHAT_MODEL: z
     .literal("openai/gpt-5.6-luna")
     .default("openai/gpt-5.6-luna"),
-  LANGSMITH_TRACING: z.boolean().optional().default(false),
+  LANGSMITH_TRACING: z.enum(["true", "false"]).optional(),
   LANGSMITH_API_KEY: z.string().min(1).optional(),
-  LANGSMITH_PROJECT: z.string().min(1).default("echo"),
+  LANGSMITH_PROJECT: z.string().min(1).optional(),
 })
 
 export type WorkerEnv = z.output<typeof workerEnvSchema>
 
 export const env = loadEnv(workerEnvSchema)
+

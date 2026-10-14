@@ -80,7 +80,7 @@ async function main(): Promise<void> {
       ["workers.close", () => Promise.all(workers.map((w) => w.close()))],
       [
         "langsmith.flush",
-        () => (env.LANGSMITH_API_KEY ? awaitAllCallbacks() : Promise.resolve()),
+        () => (env.LANGSMITH_TRACING === "true" ? awaitAllCallbacks() : Promise.resolve()),
       ],
       ["redis.quit", () => redisConnection.quit()],
       ["database.close", () => database.close()],

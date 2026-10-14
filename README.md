@@ -52,34 +52,9 @@ The local services use these addresses:
 
 ## Trace agent runs in LangSmith
 
-The worker sends a LangSmith trace for each inbound support-agent run when `LANGSMITH_API_KEY` is set in `apps/worker/.env`. Without that key, tracing stays off and the worker starts normally. You do not set `LANGSMITH_TRACING` yourself: the worker enables it when the key is present.
+To trace inbound support-agent runs, set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `apps/worker/.env`. Tracing is off by default; `LANGSMITH_PROJECT=echo` in the example selects the project. Traces include the customer message, retrieved snippets, model call, and filterable organization, conversation, and message IDs.
 
-```bash
-LANGSMITH_API_KEY=lsv2_...
-LANGSMITH_PROJECT=echo
-```
-
-`LANGSMITH_PROJECT` defaults to `echo`. Each trace is named `support-agent` and includes:
-
-- metadata: `organizationId`, `conversationId`, `messageId`, `channelProvider`, `model`
-- tags: `support-agent`, `inbound-message`, and the channel provider (`twilio`, `baileys`, `meta_cloud`, or `unknown`)
-
-The trace shows the graph, a `retrieve_knowledge` retrieval span, and the model call. It includes the customer message and retrieved snippets, which are needed to inspect the run. It does not include channel credentials. Traces are sent in the background and flushed when the worker shuts down.
-
-### Verify a trace locally
-
-1. Create an API key at [smith.langchain.com](https://smith.langchain.com) and a project named `echo`, or set `LANGSMITH_PROJECT` to a project you already have.
-2. Put the key in `apps/worker/.env`. Do not commit it.
-3. Start infrastructure and the worker:
-
-```bash
-pnpm infra:up
-pnpm db:migrate
-pnpm --filter @workspace/worker dev
-```
-
-4. Send a text inbound message through a provisioned WhatsApp connection. The API webhook `POST /webhooks/twilio/whatsapp/inbound` enqueues `process-inbound-message`, which runs the agent.
-5. Open the LangSmith project and filter by metadata `organizationId` or `conversationId`. The run should show the `retrieve` step, the `retrieve_knowledge` span, and the model call.
+To verify locally, start the worker with `pnpm --filter @workspace/worker dev`, send a text message through a configured WhatsApp connection, and inspect the `support-agent` run in LangSmith.
 
 ## Verify connectivity
 
