@@ -1,4 +1,8 @@
-export type KnowledgeDocumentStatus = "pending" | "processing" | "ready" | "failed"
+export type KnowledgeDocumentStatus =
+  | "pending"
+  | "processing"
+  | "ready"
+  | "failed"
 export type KnowledgeDocumentFailureReason =
   | "index_dispatch_failed"
   | "indexing_failed"

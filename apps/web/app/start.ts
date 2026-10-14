@@ -37,4 +37,3 @@ export const startInstance = createStart(() => ({
   requestMiddleware: [sentryGlobalRequestMiddleware, landingLocaleMiddleware],
   functionMiddleware: [sentryGlobalFunctionMiddleware],
 }))
-

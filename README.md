@@ -50,6 +50,12 @@ The local services use these addresses:
 | Postgres      | localhost:5432        |
 | Redis         | localhost:6379        |
 
+## Trace agent runs in LangSmith
+
+To trace inbound support-agent runs, set `LANGSMITH_TRACING=true` and `LANGSMITH_API_KEY` in `apps/worker/.env`. Tracing is off by default; `LANGSMITH_PROJECT=echo` in the example selects the project. Traces include the customer message, retrieved snippets, model call, and filterable organization, conversation, and message IDs.
+
+To verify locally, start the worker with `pnpm --filter @workspace/worker dev`, send a text message through a configured WhatsApp connection, and inspect the `support-agent` run in LangSmith.
+
 ## Verify connectivity
 
 Both server runtimes fail during startup if Postgres or Redis is unavailable. Once `pnpm dev` is running, verify their probes:

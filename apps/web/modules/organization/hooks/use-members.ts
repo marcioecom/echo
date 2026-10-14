@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { authClient } from "@/lib/auth-client"
 import { canManageOrganization } from "@/modules/auth/permissions"
 
-
 export function useMembers(currentRole: string) {
   const queryClient = useQueryClient()
   const manageable = canManageOrganization(currentRole)

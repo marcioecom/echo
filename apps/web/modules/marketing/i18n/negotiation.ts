@@ -23,7 +23,10 @@ export function readLanguageCookie(
     const name = part.slice(0, separator).trim().toLowerCase()
     if (name !== LANGUAGE_COOKIE_NAME) continue
 
-    const value = part.slice(separator + 1).trim().toLowerCase()
+    const value = part
+      .slice(separator + 1)
+      .trim()
+      .toLowerCase()
     if (value === "en" || value === "pt-br") return value
   }
 
@@ -60,7 +63,10 @@ export function preferredLanguageTag(
     }
 
     if (quality <= 0) continue
-    if (quality > bestQuality || (quality === bestQuality && index < bestIndex)) {
+    if (
+      quality > bestQuality ||
+      (quality === bestQuality && index < bestIndex)
+    ) {
       bestTag = tag
       bestQuality = quality
       bestIndex = index
