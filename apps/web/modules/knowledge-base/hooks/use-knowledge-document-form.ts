@@ -39,7 +39,7 @@ const knowledgeDocumentSchema = z
 
 type KnowledgeDocumentFormValues = z.infer<typeof knowledgeDocumentSchema>
 
-export function useKnowledgeDocumentForm() {
+export function useKnowledgeDocumentForm(options?: { onSuccess?: () => void }) {
   const queryClient = useQueryClient()
   const form = useForm<KnowledgeDocumentFormValues>({
     resolver: zodResolver(knowledgeDocumentSchema),
@@ -75,7 +75,10 @@ export function useKnowledgeDocumentForm() {
         uploadToken: upload.uploadToken,
       })
     },
-    onSuccess: () => form.reset(),
+    onSuccess: () => {
+      form.reset()
+      options?.onSuccess?.()
+    },
     onSettled: async () => {
       await queryClient.invalidateQueries({
         queryKey: knowledgeDocumentQueryKey,

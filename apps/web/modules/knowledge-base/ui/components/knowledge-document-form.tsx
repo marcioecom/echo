@@ -2,12 +2,6 @@
 
 import { Button } from "@workspace/ui/components/button"
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card"
-import {
   Form,
   FormControl,
   FormField,
@@ -15,35 +9,65 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@workspace/ui/components/select"
 import { Textarea } from "@workspace/ui/components/textarea"
+import { cn } from "@workspace/ui/lib/utils"
+import {
+  Cancel01Icon,
+  File01Icon,
+  TextIcon,
+  Upload01Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { useRef, useState } from "react"
 
 import { t, translateMessage } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { useKnowledgeDocumentForm } from "../../hooks/use-knowledge-document-form"
 
-export function KnowledgeDocumentForm() {
-  const { form, createMutation } = useKnowledgeDocumentForm()
+const ACCEPT =
+  ".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
+
+export function KnowledgeDocumentForm({
+  onCancel,
+  onDone,
+}: {
+  onCancel: () => void
+  onDone: () => void
+}) {
+  const { form, createMutation } = useKnowledgeDocumentForm({
+    onSuccess: onDone,
+  })
   const sourceType = form.watch("sourceType")
+  const selectedFile = form.watch("file")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [dragging, setDragging] = useState(false)
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">
-          {t("knowledge.addTitle")}
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {t("knowledge.addBody")}
-        </p>
-      </CardHeader>
-      <CardContent>
+    <section
+      aria-labelledby="knowledge-compose-heading"
+      className="rounded-md border border-border bg-background"
+    >
+      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium" id="knowledge-compose-heading">
+            {t("knowledge.addTitle")}
+          </h2>
+          <p className="text-sm text-pretty text-muted-foreground">
+            {t("knowledge.addBody")}
+          </p>
+        </div>
+        <Button
+          aria-label={t("knowledge.cancel")}
+          onClick={onCancel}
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.8} />
+        </Button>
+      </div>
+      <div className="px-4 py-4">
         <Form {...form}>
           <form
             className="space-y-5"
@@ -59,6 +83,7 @@ export function KnowledgeDocumentForm() {
                   <FormLabel>{t("knowledge.titleLabel")}</FormLabel>
                   <FormControl>
                     <Input
+                      autoFocus
                       placeholder={t("knowledge.titlePlaceholder")}
                       {...field}
                     />
@@ -67,27 +92,31 @@ export function KnowledgeDocumentForm() {
                 </FormItem>
               )}
             />
+
             <FormItem>
               <FormLabel>{t("knowledge.source")}</FormLabel>
-              <Select
-                value={sourceType}
-                onValueChange={(value: "text" | "file") => {
-                  form.setValue("sourceType", value)
-                }}
+              <div
+                aria-label={t("knowledge.source")}
+                className="grid grid-cols-2 gap-2"
+                role="group"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="text">
-                    {t("knowledge.pastedText")}
-                  </SelectItem>
-                  <SelectItem value="file">
-                    {t("knowledge.fileUpload")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                <SourceOption
+                  description={t("knowledge.pastedTextHint")}
+                  icon={TextIcon}
+                  label={t("knowledge.pastedText")}
+                  onSelect={() => form.setValue("sourceType", "text")}
+                  selected={sourceType === "text"}
+                />
+                <SourceOption
+                  description={t("knowledge.fileUploadHint")}
+                  icon={File01Icon}
+                  label={t("knowledge.fileUpload")}
+                  onSelect={() => form.setValue("sourceType", "file")}
+                  selected={sourceType === "file"}
+                />
+              </div>
             </FormItem>
+
             {sourceType === "text" ? (
               <FormField
                 control={form.control}
@@ -114,30 +143,93 @@ export function KnowledgeDocumentForm() {
                   <FormItem>
                     <FormLabel>{t("knowledge.file")}</FormLabel>
                     <FormControl>
-                      <Input
-                        accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
-                        name={field.name}
-                        onBlur={field.onBlur}
-                        ref={field.ref}
-                        type="file"
-                        onChange={(event) =>
-                          field.onChange(event.target.files?.[0] ?? null)
-                        }
-                      />
+                      <div>
+                        <input
+                          accept={ACCEPT}
+                          className="sr-only"
+                          name={field.name}
+                          onBlur={field.onBlur}
+                          onChange={(event) =>
+                            field.onChange(event.target.files?.[0] ?? null)
+                          }
+                          ref={(node) => {
+                            field.ref(node)
+                            fileInputRef.current = node
+                          }}
+                          type="file"
+                        />
+                        <button
+                          className={cn(
+                            "flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed px-4 py-8 text-center transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+                            dragging
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:bg-muted/50",
+                            selectedFile instanceof File &&
+                              "border-solid bg-muted/40"
+                          )}
+                          onClick={() => fileInputRef.current?.click()}
+                          onDragEnter={(event) => {
+                            event.preventDefault()
+                            setDragging(true)
+                          }}
+                          onDragLeave={(event) => {
+                            event.preventDefault()
+                            setDragging(false)
+                          }}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            event.preventDefault()
+                            setDragging(false)
+                            const file = event.dataTransfer.files?.[0] ?? null
+                            field.onChange(file)
+                          }}
+                          type="button"
+                        >
+                          <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <HugeiconsIcon
+                              icon={Upload01Icon}
+                              size={18}
+                              strokeWidth={1.8}
+                            />
+                          </span>
+                          {selectedFile instanceof File ? (
+                            <>
+                              <span className="text-sm font-medium">
+                                {selectedFile.name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {t("knowledge.fileReplace")}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-sm font-medium">
+                                {t("knowledge.fileDropTitle")}
+                              </span>
+                              <span className="max-w-sm text-xs text-pretty text-muted-foreground">
+                                {t("knowledge.fileHint")}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      {t("knowledge.fileHint")}
-                    </p>
                     <TranslatedFormMessage />
                   </FormItem>
                 )}
               />
             )}
-            <Button disabled={createMutation.isPending} type="submit">
-              {createMutation.isPending
-                ? t("knowledge.uploading")
-                : t("knowledge.add")}
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button disabled={createMutation.isPending} type="submit">
+                {createMutation.isPending
+                  ? t("knowledge.uploading")
+                  : t("knowledge.add")}
+              </Button>
+              <Button onClick={onCancel} type="button" variant="ghost">
+                {t("knowledge.cancel")}
+              </Button>
+            </div>
             {createMutation.isError ? (
               <p className="text-sm text-destructive" role="alert">
                 {translateMessage(createMutation.error.message)}
@@ -145,7 +237,50 @@ export function KnowledgeDocumentForm() {
             ) : null}
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
+  )
+}
+
+function SourceOption({
+  description,
+  icon,
+  label,
+  onSelect,
+  selected,
+}: {
+  description: string
+  icon: typeof TextIcon
+  label: string
+  onSelect: () => void
+  selected: boolean
+}) {
+  return (
+    <button
+      aria-pressed={selected}
+      className={cn(
+        "flex items-start gap-3 rounded-md border px-3 py-3 text-left transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
+        selected
+          ? "border-primary/40 bg-primary/5"
+          : "border-border hover:bg-muted/50"
+      )}
+      onClick={onSelect}
+      type="button"
+    >
+      <span
+        className={cn(
+          "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+          selected ? "bg-primary/10 text-primary" : "bg-muted text-foreground"
+        )}
+      >
+        <HugeiconsIcon icon={icon} size={14} strokeWidth={1.8} />
+      </span>
+      <span className="min-w-0 space-y-0.5">
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="block text-xs text-pretty text-muted-foreground">
+          {description}
+        </span>
+      </span>
+    </button>
   )
 }

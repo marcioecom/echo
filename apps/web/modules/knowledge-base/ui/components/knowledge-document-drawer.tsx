@@ -64,19 +64,36 @@ function KnowledgeDocumentDetailBody({
 
   return (
     <>
-      <SheetHeader className="border-b pr-12">
+      <SheetHeader className="border-b border-border pr-12">
         <div className="flex items-start justify-between gap-3">
-          <SheetTitle className="text-base">{shown.title}</SheetTitle>
+          <SheetTitle className="text-base text-balance">
+            {shown.title}
+          </SheetTitle>
           <KnowledgeDocumentStatusBadge status={shown.status} />
         </div>
         <SheetDescription>{knowledgeSourceLabel(shown)}</SheetDescription>
-        <p className="text-xs text-muted-foreground tabular-nums">
-          {t("knowledge.detail.revision", {
-            revision: String(shown.revision),
-          })}
-        </p>
+        <dl className="mt-2 grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <dt className="text-muted-foreground">
+              {t("knowledge.detail.revisionLabel")}
+            </dt>
+            <dd className="mt-0.5 font-medium text-foreground tabular-nums">
+              {shown.revision}
+            </dd>
+          </div>
+          {detail ? (
+            <div>
+              <dt className="text-muted-foreground">
+                {t("knowledge.detail.passagesLabel")}
+              </dt>
+              <dd className="mt-0.5 font-medium text-foreground tabular-nums">
+                {detail.chunks.total}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
         {failure ? (
-          <p className="text-sm text-destructive" role="alert">
+          <p className="mt-2 text-sm text-destructive" role="alert">
             {failure}
           </p>
         ) : null}
@@ -98,9 +115,7 @@ function KnowledgeDocumentDetailBody({
           </Button>
         </div>
       ) : (
-        <p className="px-6 py-4 text-sm text-muted-foreground">
-          {t("knowledge.detail.loading")}
-        </p>
+        <DetailSkeleton />
       )}
     </>
   )
@@ -124,7 +139,7 @@ function DocumentTabs({
 
   return (
     <Tabs className="min-h-0 flex-1 gap-0" defaultValue="content">
-      <TabsList className="mx-6 mt-4">
+      <TabsList className="mx-6 mt-4" variant="line">
         <TabsTrigger value="content">
           {t("knowledge.detail.contentTab")}
         </TabsTrigger>
@@ -133,12 +148,15 @@ function DocumentTabs({
         </TabsTrigger>
       </TabsList>
       <TabsContent
-        className="min-h-0 overflow-y-auto px-6 py-4"
+        className="min-h-0 overflow-y-auto px-6 py-4 text-sm"
         value="content"
       >
         <DocumentContent content={detail.document.content} status={status} />
       </TabsContent>
-      <TabsContent className="min-h-0 overflow-y-auto px-6 py-4" value="chunks">
+      <TabsContent
+        className="min-h-0 overflow-y-auto px-6 py-4 text-sm"
+        value="chunks"
+      >
         {detail.chunks.items.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {t(
@@ -166,7 +184,9 @@ function DocumentTabs({
                     })}
                   </p>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{chunk.content}</p>
+                <p className="text-sm text-pretty whitespace-pre-wrap">
+                  {chunk.content}
+                </p>
               </li>
             ))}
           </ol>
@@ -214,7 +234,11 @@ function DocumentContent({
   status: KnowledgeDocumentStatus
 }) {
   if (content) {
-    return <p className="text-sm whitespace-pre-wrap">{content}</p>
+    return (
+      <p className="max-w-prose text-sm leading-relaxed text-pretty whitespace-pre-wrap">
+        {content}
+      </p>
+    )
   }
   const pending = status === "pending" || status === "processing"
   return (
@@ -225,5 +249,20 @@ function DocumentContent({
           : "knowledge.detail.contentEmpty"
       )}
     </p>
+  )
+}
+
+function DetailSkeleton() {
+  return (
+    <div
+      aria-label={t("knowledge.detail.loading")}
+      className="space-y-3 px-6 py-4"
+    >
+      <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+      <div className="h-3 w-full animate-pulse rounded bg-muted" />
+      <div className="h-3 w-[92%] animate-pulse rounded bg-muted" />
+      <div className="h-3 w-[88%] animate-pulse rounded bg-muted" />
+      <div className="h-3 w-[70%] animate-pulse rounded bg-muted" />
+    </div>
   )
 }
