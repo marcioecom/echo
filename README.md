@@ -58,7 +58,7 @@ To verify locally, start the worker with `pnpm --filter @workspace/worker dev`, 
 
 ## Evaluate the support agent
 
-`pnpm --filter @workspace/worker eval` uploads golden set v1 and runs a LangSmith experiment against the current decide step. It needs `AI_GATEWAY_API_KEY` and `LANGSMITH_API_KEY` in `apps/worker/.env`. See [`apps/worker/src/evals/README.md`](apps/worker/src/evals/README.md) for the rubric and how to add a case.
+`pnpm --filter @workspace/agent eval` uploads golden set v1 and runs a LangSmith experiment against the current decide step. It needs `AI_GATEWAY_API_KEY` and `LANGSMITH_API_KEY` in `apps/worker/.env`. See [`packages/agent/src/evals/README.md`](packages/agent/src/evals/README.md) for the rubric and how to add a case.
 
 ## Verify connectivity
 

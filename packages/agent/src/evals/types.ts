@@ -112,6 +112,8 @@ export const goldenOutputsSchema = z.object({
   replyType: replyTypeSchema.nullable(),
   reason: handoffReasonSchema.nullable(),
   body: z.string().nullable(),
+  customerMessage: z.string().nullable(),
+  summary: z.string().nullable(),
 })
 
 export type GoldenInputs = z.infer<typeof goldenInputsSchema>

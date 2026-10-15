@@ -20,6 +20,8 @@ const reply: GoldenOutputs = {
   replyType: "answer",
   reason: null,
   body: "Abrimos domingo das 7h às 13h.",
+  customerMessage: null,
+  summary: null,
 }
 
 const handoff: GoldenOutputs = {
@@ -27,6 +29,8 @@ const handoff: GoldenOutputs = {
   replyType: null,
   reason: "human_requested",
   body: null,
+  customerMessage: "Vou pedir para alguém do time continuar com você.",
+  summary: "Cliente pediu atendente humano. Tom neutro.",
 }
 
 describe("retrieved snippets", () => {

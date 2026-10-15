@@ -2,9 +2,8 @@ import { awaitAllCallbacks } from "@langchain/core/callbacks/promises"
 import { Client } from "langsmith"
 import { evaluate } from "langsmith/evaluation"
 
-import { env } from "../config/env"
-import { database } from "../lib/db"
-import { createSupportAgentModel } from "../processors/support-conversations/orchestration/support-agent-graph"
+import { createSupportAgentModel } from "../support-agent-graph"
+import { evalChatModel } from "./eval-env"
 import { createGoldenEvaluators, latencyAndCostSummary } from "./evaluators"
 import { formatEvalReport, type ScoreRow } from "./report"
 import { syncGoldenDataset } from "./sync-dataset"
@@ -26,7 +25,10 @@ export async function executeEval(): Promise<void> {
       `Dataset ${goldenDatasetName} (tag ${goldenSetVersion}): ${synced.total} exemplos, ${synced.created} criados, ${synced.updated} atualizados, ${synced.deleted} removidos.`
     )
 
-    const model = createSupportAgentModel()
+    const model = createSupportAgentModel({
+      apiKey: process.env.AI_GATEWAY_API_KEY!,
+      modelName: evalChatModel(),
+    })
     const results = await evaluate(createDecideTarget(model), {
       data: client.listExamples({
         datasetId: synced.datasetId,
@@ -40,7 +42,7 @@ export async function executeEval(): Promise<void> {
       maxConcurrency: 4,
       metadata: {
         goldenSetVersion,
-        model: env.AI_CHAT_MODEL,
+        model: evalChatModel(),
         flow: "decide",
       },
       client,
@@ -66,6 +68,5 @@ export async function executeEval(): Promise<void> {
     console.log(`Experimento: ${results.experimentName}`)
   } finally {
     await awaitAllCallbacks()
-    await database.close()
   }
 }

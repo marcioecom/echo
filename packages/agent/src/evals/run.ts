@@ -9,7 +9,7 @@ if (missing.length > 0) {
       ...missing.map((key) => `- ${key}`),
       "",
       "Coloque em apps/worker/.env e rode de novo:",
-      "pnpm --filter @workspace/worker eval",
+      "pnpm --filter @workspace/agent eval",
     ].join("\n")
   )
   process.exit(1)

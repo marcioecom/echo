@@ -8,7 +8,7 @@ import {
 import { goldenDatasetName, goldenDatasetTag } from "./types"
 
 const description =
-  "Golden set v1 do agente de suporte da Echo. WhatsApp em pt-BR para padaria, clínica de estética, pet shop e loja de roupa. Fonte: apps/worker/src/evals/datasets/golden-set-v1."
+  "Golden set v1 do agente de suporte da Echo. WhatsApp em pt-BR para padaria, clínica de estética, pet shop e loja de roupa. Fonte: packages/agent/src/evals/datasets/golden-set-v1."
 
 function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortValue)

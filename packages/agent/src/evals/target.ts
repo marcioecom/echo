@@ -2,7 +2,8 @@ import {
   createSupportAgentGraph,
   createSupportAgentModel,
   type AgentDecision,
-} from "../processors/support-conversations/orchestration/support-agent-graph"
+} from "../support-agent-graph"
+import { evalChatModel } from "./eval-env"
 import {
   goldenInputsSchema,
   goldenSetVersion,
@@ -18,6 +19,8 @@ function toOutputs(decision: AgentDecision): GoldenOutputs {
       replyType: decision.replyType,
       reason: null,
       body: decision.body,
+      customerMessage: null,
+      summary: null,
     }
   }
   return {
@@ -25,6 +28,8 @@ function toOutputs(decision: AgentDecision): GoldenOutputs {
     replyType: null,
     reason: decision.reason,
     body: null,
+    customerMessage: decision.customerMessage,
+    summary: decision.summary,
   }
 }
 
@@ -49,7 +54,7 @@ export function createDecideTarget(model: SupportModel) {
           category: inputs.category,
           businessId: inputs.businessId,
           goldenSetVersion,
-          model: process.env.AI_CHAT_MODEL ?? "openai/gpt-5.6-luna",
+          model: evalChatModel(),
         },
       }
     )

@@ -27,12 +27,24 @@ import {
   vi,
 } from "vitest"
 
-const { databaseRef, supportAgentGraph, draftUnsupportedHandoffCopy } =
-  vi.hoisted(() => ({
+const {
+  databaseRef,
+  supportAgentGraph,
+  draftUnsupportedHandoffCopy,
+  createSupportAgentMock,
+} = vi.hoisted(() => {
+  const supportAgentGraph = { invoke: vi.fn() }
+  const draftUnsupportedHandoffCopy = vi.fn()
+  return {
     databaseRef: { current: {} as object },
-    supportAgentGraph: { invoke: vi.fn() },
-    draftUnsupportedHandoffCopy: vi.fn(),
-  }))
+    supportAgentGraph,
+    draftUnsupportedHandoffCopy,
+    createSupportAgentMock: vi.fn(() => ({
+      graph: supportAgentGraph,
+      draftUnsupportedHandoffCopy,
+    })),
+  }
+})
 
 vi.mock("../../config/env", () => ({
   env: {
@@ -47,9 +59,8 @@ vi.mock("../../lib/db", () => ({
     }
   ),
 }))
-vi.mock("./orchestration/support-agent-graph", () => ({
-  supportAgentGraph,
-  draftUnsupportedHandoffCopy,
+vi.mock("@workspace/agent", () => ({
+  createSupportAgent: createSupportAgentMock,
 }))
 vi.mock("../../queues/support-conversations", () => ({
   supportConversationsQueue: { add: vi.fn() },
@@ -67,6 +78,7 @@ describe("process inbound Message", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
   let stop: () => Promise<void>
+  let nextRoutingSuffix = 0
 
   beforeAll(async () => {
     const postgres = await container.start()
@@ -108,7 +120,8 @@ describe("process inbound Message", () => {
       channelType: "whatsapp",
       address: `+5511${organizationId.slice(-8).replace(/[A-Z]/g, "1")}`,
     })
-    const channelAddress = `+5521${channelConnectionId.slice(-8).replace(/[A-Z]/g, "2")}`
+    nextRoutingSuffix += 1
+    const channelAddress = `+55219${String(nextRoutingSuffix).padStart(7, "0")}`
     await database.db.insert(channelConnections).values({
       id: channelConnectionId,
       organizationId,
