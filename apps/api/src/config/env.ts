@@ -1,4 +1,8 @@
 import { loadEnv, serverEnvSchema } from "@workspace/config"
+import {
+  defaultInboundAgentDebounceMaxWaitMs,
+  defaultInboundAgentDebounceMs,
+} from "@workspace/jobs"
 import { z } from "zod"
 
 const encryptionKeySchema = z.string().refine((value) => {
@@ -6,25 +10,49 @@ const encryptionKeySchema = z.string().refine((value) => {
   return decoded.length === 32 && decoded.toString("base64") === value
 }, "must be a canonical base64-encoded 32-byte key")
 
-const apiEnvSchema = serverEnvSchema.extend({
-  API_HOST: z.string().default("0.0.0.0"),
-  API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
-  WEB_APP_URL: z.url(),
-  EMAIL_ASSET_BASE_URL: z.url(),
-  PUBLIC_API_URL: z.url(),
-  BETTER_AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
-  BETTER_AUTH_SECRET: z.string().min(1),
-  CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
-  CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),
-  R2_ENDPOINT: z.url(),
-  R2_BUCKET_NAME: z.string().min(1),
-  R2_ACCESS_KEY_ID: z.string().min(1),
-  R2_SECRET_ACCESS_KEY: z.string().min(1),
-  KNOWLEDGE_UPLOAD_TOKEN_SECRET: z.string().refine(
-    (value) => Buffer.byteLength(value) >= 32,
-    "must be at least 32 bytes"
-  ),
-})
+const apiEnvSchema = serverEnvSchema
+  .extend({
+    API_HOST: z.string().default("0.0.0.0"),
+    API_PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
+    WEB_APP_URL: z.url(),
+    EMAIL_ASSET_BASE_URL: z.url(),
+    PUBLIC_API_URL: z.url(),
+    BETTER_AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
+    BETTER_AUTH_SECRET: z.string().min(1),
+    CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
+    CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),
+    R2_ENDPOINT: z.url(),
+    R2_BUCKET_NAME: z.string().min(1),
+    R2_ACCESS_KEY_ID: z.string().min(1),
+    R2_SECRET_ACCESS_KEY: z.string().min(1),
+    KNOWLEDGE_UPLOAD_TOKEN_SECRET: z
+      .string()
+      .refine(
+        (value) => Buffer.byteLength(value) >= 32,
+        "must be at least 32 bytes"
+      ),
+    INBOUND_AGENT_DEBOUNCE_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(defaultInboundAgentDebounceMs),
+    INBOUND_AGENT_DEBOUNCE_MAX_WAIT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(defaultInboundAgentDebounceMaxWaitMs),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.INBOUND_AGENT_DEBOUNCE_MAX_WAIT_MS < value.INBOUND_AGENT_DEBOUNCE_MS
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "must be greater than or equal to INBOUND_AGENT_DEBOUNCE_MS",
+        path: ["INBOUND_AGENT_DEBOUNCE_MAX_WAIT_MS"],
+      })
+    }
+  })
 
 export type ApiEnv = z.output<typeof apiEnvSchema>
 

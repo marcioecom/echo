@@ -1,7 +1,12 @@
 import type { NormalizedInboundMessage } from "@workspace/domain"
+import {
+  defaultInboundAgentDebounceMaxWaitMs,
+  defaultInboundAgentDebounceMs,
+} from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 
 import { err, ok, type Result } from "@/common/result"
+import { env } from "@/config/env"
 import { jobs } from "@/lib/jobs-client"
 import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"
 import { inboundMessageRepository } from "../repositories/inbound-message-repository"
@@ -27,17 +32,27 @@ export async function ingestInboundMessage(
     conversationId: ingested.supportConversationId,
   })
 
-  if (ingested.duplicate) {
-    return ok({ ...ingested, jobId: `duplicate:${ingested.messageId}` })
-  }
-
   try {
-    const job = await jobs.enqueue("process-inbound-message", {
-      organizationId: ingested.organizationId,
-      channelIdentityId: ingested.channelIdentityId,
-      supportConversationId: ingested.supportConversationId,
-      messageId: ingested.messageId,
-    })
+    const job = await jobs.scheduleDebounced(
+      "process-inbound-message",
+      {
+        organizationId: ingested.organizationId,
+        channelIdentityId: ingested.channelIdentityId,
+        supportConversationId: ingested.supportConversationId,
+        messageId: ingested.messageId,
+      },
+      {
+        debounceKey: ingested.supportConversationId,
+        windowMs:
+          env.INBOUND_AGENT_DEBOUNCE_MS ?? defaultInboundAgentDebounceMs,
+        maxWaitMs:
+          env.INBOUND_AGENT_DEBOUNCE_MAX_WAIT_MS ??
+          defaultInboundAgentDebounceMaxWaitMs,
+      }
+    )
+    if (ingested.duplicate) {
+      return ok({ ...ingested, jobId: job.id })
+    }
     const result = { ...ingested, jobId: job.id }
     logger.info("Inbound Message ingested", {
       eventType: "inbound_message.ingested",

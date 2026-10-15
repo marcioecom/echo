@@ -1,19 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { enqueue, logError, logInfo, publish, repositoryIngest } = vi.hoisted(
-  () => ({
-    enqueue: vi.fn(),
+const { logError, logInfo, publish, repositoryIngest, scheduleDebounced } =
+  vi.hoisted(() => ({
     logError: vi.fn(),
     logInfo: vi.fn(),
     publish: vi.fn(),
     repositoryIngest: vi.fn(),
-  })
-)
+    scheduleDebounced: vi.fn(),
+  }))
 
 vi.mock("@workspace/logger", () => ({
   createLoggerWithContext: () => ({ error: logError, info: logInfo }),
 }))
-vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("../../../config/env", () => ({
+  env: {
+    INBOUND_AGENT_DEBOUNCE_MS: 3_000,
+    INBOUND_AGENT_DEBOUNCE_MAX_WAIT_MS: 10_000,
+  },
+}))
+vi.mock("../../../lib/jobs-client", () => ({ jobs: { scheduleDebounced } }))
 vi.mock("../repositories/inbound-message-repository", () => ({
   inboundMessageRepository: { ingest: repositoryIngest },
 }))
@@ -52,7 +57,7 @@ describe("ingestInboundMessage", () => {
 
   it("publishes an IDs-only job after persistence", async () => {
     repositoryIngest.mockResolvedValue(ingested)
-    enqueue.mockResolvedValue({ id: "job-id" })
+    scheduleDebounced.mockResolvedValue({ id: "job-id" })
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: true,
@@ -63,14 +68,22 @@ describe("ingestInboundMessage", () => {
       organizationId: ingested.organizationId,
       conversationId: ingested.supportConversationId,
     })
-    expect(enqueue).toHaveBeenCalledWith("process-inbound-message", {
-      organizationId: ingested.organizationId,
-      channelIdentityId: ingested.channelIdentityId,
-      supportConversationId: ingested.supportConversationId,
-      messageId: ingested.messageId,
-    })
+    expect(scheduleDebounced).toHaveBeenCalledWith(
+      "process-inbound-message",
+      {
+        organizationId: ingested.organizationId,
+        channelIdentityId: ingested.channelIdentityId,
+        supportConversationId: ingested.supportConversationId,
+        messageId: ingested.messageId,
+      },
+      {
+        debounceKey: ingested.supportConversationId,
+        windowMs: 3_000,
+        maxWaitMs: 10_000,
+      }
+    )
     expect(repositoryIngest.mock.invocationCallOrder[0]).toBeLessThan(
-      enqueue.mock.invocationCallOrder[0]!
+      scheduleDebounced.mock.invocationCallOrder[0]!
     )
     expect(logInfo).toHaveBeenCalledWith(
       "Inbound Message ingested",
@@ -84,7 +97,7 @@ describe("ingestInboundMessage", () => {
   it("preserves committed IDs and the cause when enqueue fails", async () => {
     const cause = new Error("Redis unavailable")
     repositoryIngest.mockResolvedValue(ingested)
-    enqueue.mockRejectedValue(cause)
+    scheduleDebounced.mockRejectedValue(cause)
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: false,
@@ -97,18 +110,29 @@ describe("ingestInboundMessage", () => {
     expect(publish).toHaveBeenCalledOnce()
   })
 
-  it("publishes a duplicate without enqueueing another agent job", async () => {
+  it("refreshes the conversation debounce for a duplicate provider event", async () => {
     repositoryIngest.mockResolvedValue({ ...ingested, duplicate: true })
+    scheduleDebounced.mockResolvedValue({ id: "job-id" })
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: true,
-      value: {
-        ...ingested,
-        duplicate: true,
-        jobId: `duplicate:${ingested.messageId}`,
-      },
+      value: { ...ingested, duplicate: true, jobId: "job-id" },
     })
     expect(publish).toHaveBeenCalledOnce()
-    expect(enqueue).not.toHaveBeenCalled()
+    expect(scheduleDebounced).toHaveBeenCalledWith(
+      "process-inbound-message",
+      {
+        organizationId: ingested.organizationId,
+        channelIdentityId: ingested.channelIdentityId,
+        supportConversationId: ingested.supportConversationId,
+        messageId: ingested.messageId,
+      },
+      {
+        debounceKey: ingested.supportConversationId,
+        windowMs: 3_000,
+        maxWaitMs: 10_000,
+      }
+    )
+    expect(logInfo).not.toHaveBeenCalled()
   })
 })
