@@ -21,7 +21,7 @@ Na raiz do repositório:
 pnpm --filter @workspace/agent eval
 ```
 
-O processo liga `LANGSMITH_TRACING` para este comando. Postgres, Redis e storage não são usados: o retrieval do experimento devolve os trechos do caso.
+O processo liga `LANGSMITH_TRACING` para este comando. Postgres, Redis e storage não são usados: o retrieval do experimento devolve os trechos do caso. A tag `v1` é fixada na versão retornada pelo LangSmith após sincronizar os exemplos, não no horário local da máquina.
 
 O log imprime o dataset, as médias e o nome do experimento. O link da comparação aparece no começo da saída do LangSmith. Lá ficam os quatro avaliadores, a latência p50/p95 e o custo médio quando o trace traz `total_cost`.
 

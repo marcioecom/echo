@@ -105,9 +105,22 @@ export async function syncGoldenDataset(client: Client) {
     await client.deleteExamples(toDelete, { hardDelete: true })
   }
 
+  const versionExamples =
+    toCreate.length || toUpdate.length || toDelete.length
+      ? client.listExamples({ datasetId: dataset.id })
+      : stored.values()
+  let latestModifiedAt: string | undefined
+  for await (const example of versionExamples) {
+    const modifiedAt = example.modified_at ?? example.created_at
+    if (!latestModifiedAt || modifiedAt > latestModifiedAt) {
+      latestModifiedAt = modifiedAt
+    }
+  }
+  if (!latestModifiedAt)
+    throw new Error("Golden dataset has no examples after sync")
   const version = await client.readDatasetVersion({
     datasetId: dataset.id,
-    asOf: new Date(),
+    asOf: latestModifiedAt,
   })
   await client.updateDatasetTag({
     datasetId: dataset.id,
