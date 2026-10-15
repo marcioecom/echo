@@ -3,6 +3,7 @@ import { resolve } from "node:path"
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { createDatabase } from "@workspace/db"
 import {
+  auditEvents,
   channelConnections,
   channelIdentities,
   contacts,
@@ -11,7 +12,7 @@ import {
   supportConversations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import { sql } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
@@ -125,7 +126,7 @@ describe("Support Inbox projections", () => {
       },
     ])
 
-    return { organizationId, conversationId }
+    return { organizationId, conversationId, channelConnectionId }
   }
 
   it("projects the latest Message and isolates list data by Organization", async () => {
@@ -180,6 +181,70 @@ describe("Support Inbox projections", () => {
       "First message",
       "Latest message",
     ])
+    expect(detail?.events).toEqual([])
+    expect(detail?.conversation.handoffReason).toBeNull()
     expect(crossTenant).toBeNull()
+  })
+
+  it("projects the handoff summary and AI escalation event", async () => {
+    const acme = await createConversationFixture({
+      slug: "inbox-handoff",
+      displayName: "Lia",
+      address: "+5511555555555",
+    })
+    const occurredAt = new Date("2026-08-02T12:06:00.000Z")
+    const [inbound] = await database.db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(eq(messages.supportConversationId, acme.conversationId))
+      .limit(1)
+    await database.db
+      .update(supportConversations)
+      .set({
+        handoffReason: "low_confidence",
+        handoffSummary: "Quer trocar o endereço. A base não cobre. Tom calmo.",
+      })
+      .where(eq(supportConversations.id, acme.conversationId))
+    await database.db.insert(messages).values({
+      organizationId: acme.organizationId,
+      supportConversationId: acme.conversationId,
+      channelConnectionId: acme.channelConnectionId,
+      direction: "outbound",
+      senderType: "ai",
+      contentType: "text",
+      body: "Vou chamar alguém da equipe pra continuar com você.",
+      status: "pending",
+      replyToMessageId: inbound?.id,
+      occurredAt,
+    })
+    await database.db.insert(auditEvents).values({
+      organizationId: acme.organizationId,
+      eventType: "support_conversation.human_required",
+      actorType: "ai",
+      subjectType: "support_conversation",
+      subjectId: acme.conversationId,
+      data: { reason: "low_confidence" },
+      occurredAt,
+    })
+    const repository = new SupportInboxRepository(database.db)
+
+    const detail = await repository.findDetail(acme)
+
+    expect(detail?.conversation).toMatchObject({
+      handoffReason: "low_confidence",
+      handoffSummary: "Quer trocar o endereço. A base não cobre. Tom calmo.",
+    })
+    expect(detail?.events).toEqual([
+      {
+        id: expect.any(String),
+        actorType: "ai",
+        occurredAt,
+        reason: "low_confidence",
+      },
+    ])
+    expect(detail?.messages.at(-1)).toMatchObject({
+      senderType: "ai",
+      body: "Vou chamar alguém da equipe pra continuar com você.",
+    })
   })
 })

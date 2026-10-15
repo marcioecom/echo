@@ -27,10 +27,12 @@ import {
   vi,
 } from "vitest"
 
-const { databaseRef, supportAgentGraph } = vi.hoisted(() => ({
-  databaseRef: { current: {} as object },
-  supportAgentGraph: { invoke: vi.fn() },
-}))
+const { databaseRef, supportAgentGraph, draftUnsupportedHandoffCopy } =
+  vi.hoisted(() => ({
+    databaseRef: { current: {} as object },
+    supportAgentGraph: { invoke: vi.fn() },
+    draftUnsupportedHandoffCopy: vi.fn(),
+  }))
 
 vi.mock("../../config/env", () => ({
   env: {
@@ -45,12 +47,21 @@ vi.mock("../../lib/db", () => ({
     }
   ),
 }))
-vi.mock("./orchestration/support-agent-graph", () => ({ supportAgentGraph }))
+vi.mock("./orchestration/support-agent-graph", () => ({
+  supportAgentGraph,
+  draftUnsupportedHandoffCopy,
+}))
 vi.mock("../../queues/support-conversations", () => ({
   supportConversationsQueue: { add: vi.fn() },
 }))
 
+import { supportConversationsQueue } from "../../queues/support-conversations"
 import { handleProcessInboundMessage } from "./process-inbound-message"
+
+const customerMessage =
+  "Vou chamar alguém da equipe pra continuar com você, tá?"
+const operatorSummary =
+  "Quer trocar o endereço. A base não cobre troca. Tom calmo."
 
 describe("process inbound Message", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
@@ -153,9 +164,27 @@ describe("process inbound Message", () => {
 
   beforeEach(() => {
     supportAgentGraph.invoke.mockReset()
+    draftUnsupportedHandoffCopy.mockReset()
+    vi.mocked(supportConversationsQueue.add).mockReset()
   })
 
+  async function outboundMessages(supportConversationId: string) {
+    return database.db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.supportConversationId, supportConversationId),
+          eq(messages.direction, "outbound")
+        )
+      )
+  }
+
   it("moves unsupported content to human_required exactly once", async () => {
+    draftUnsupportedHandoffCopy.mockResolvedValue({
+      customerMessage,
+      summary: "Cliente enviou um anexo. A Echo não lê mídia. Tom neutro.",
+    })
     const payload = await createState("worker-unsupported", "unsupported")
 
     await processInboundMessage(payload)
@@ -174,16 +203,37 @@ describe("process inbound Message", () => {
           eq(auditEvents.eventType, "support_conversation.human_required")
         )
       )
+    const outbound = await outboundMessages(payload.supportConversationId)
     expect(conversation?.status).toBe("human_required")
+    expect(conversation?.handoffReason).toBe("unsupported_content")
+    expect(conversation?.handoffSummary).toContain("anexo")
     expect(events?.value).toBe(1)
+    expect(outbound).toHaveLength(1)
+    expect(outbound[0]).toMatchObject({
+      senderType: "ai",
+      status: "pending",
+      body: customerMessage,
+      replyToMessageId: payload.messageId,
+    })
+    expect(draftUnsupportedHandoffCopy).toHaveBeenCalledTimes(1)
+    expect(draftUnsupportedHandoffCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaKind: "unknown" })
+    )
+    expect(supportConversationsQueue.add).toHaveBeenCalledTimes(1)
   })
 
   it("hands text content to a human when knowledge is insufficient", async () => {
     supportAgentGraph.invoke.mockResolvedValue({
-      decision: { action: "handoff", reason: "low_confidence" },
+      decision: {
+        action: "handoff",
+        reason: "low_confidence",
+        customerMessage,
+        summary: operatorSummary,
+      },
     })
     const payload = await createState("worker-text", "text")
 
+    await processInboundMessage(payload)
     await processInboundMessage(payload)
 
     expect(supportAgentGraph.invoke).toHaveBeenCalledWith(
@@ -208,7 +258,94 @@ describe("process inbound Message", () => {
       .select()
       .from(supportConversations)
       .where(eq(supportConversations.id, payload.supportConversationId))
+    const [event] = await database.db
+      .select()
+      .from(auditEvents)
+      .where(
+        and(
+          eq(auditEvents.organizationId, payload.organizationId),
+          eq(auditEvents.eventType, "support_conversation.human_required")
+        )
+      )
+    const outbound = await outboundMessages(payload.supportConversationId)
+    expect(supportAgentGraph.invoke).toHaveBeenCalledTimes(1)
     expect(conversation?.status).toBe("human_required")
+    expect(conversation?.handoffReason).toBe("low_confidence")
+    expect(conversation?.handoffSummary).toBe(operatorSummary)
+    expect(event?.actorType).toBe("ai")
+    expect(event?.data).toEqual({
+      messageId: payload.messageId,
+      reason: "low_confidence",
+    })
+    expect(outbound).toHaveLength(1)
+    expect(outbound[0]).toMatchObject({
+      senderType: "ai",
+      body: customerMessage,
+      replyToMessageId: payload.messageId,
+    })
+    expect(supportConversationsQueue.add).toHaveBeenCalledTimes(1)
+  })
+
+  it("escalates to human_required when the AI flow fails on the last attempt", async () => {
+    supportAgentGraph.invoke.mockRejectedValue(new Error("gateway down"))
+    const payload = await createState("worker-ai-failure", "text")
+
+    await expect(
+      handleProcessInboundMessage({
+        data: payload,
+        attemptsMade: 3,
+        opts: { attempts: 4 },
+      } as Job)
+    ).rejects.toThrow("gateway down")
+
+    const [conversation] = await database.db
+      .select()
+      .from(supportConversations)
+      .where(eq(supportConversations.id, payload.supportConversationId))
+    const [event] = await database.db
+      .select()
+      .from(auditEvents)
+      .where(
+        and(
+          eq(auditEvents.organizationId, payload.organizationId),
+          eq(auditEvents.eventType, "support_conversation.human_required")
+        )
+      )
+    const outbound = await outboundMessages(payload.supportConversationId)
+    expect(conversation?.status).toBe("human_required")
+    expect(conversation?.handoffReason).toBe("ai_failure")
+    expect(conversation?.handoffSummary).toBeNull()
+    expect(event?.actorType).toBe("ai")
+    expect(outbound).toHaveLength(1)
+    expect(outbound[0]?.body).toContain(
+      "Vou chamar alguém da equipe pra continuar com você."
+    )
+    expect(outbound[0]?.body).toContain(
+      "I'll ask someone from the team to continue with you."
+    )
+    expect(outbound[0]?.senderType).toBe("ai")
+  })
+
+  it("keeps retrying when the AI flow fails before the last attempt", async () => {
+    supportAgentGraph.invoke.mockRejectedValue(new Error("gateway down"))
+    const payload = await createState("worker-ai-retry", "text")
+
+    await expect(
+      handleProcessInboundMessage({
+        data: payload,
+        attemptsMade: 0,
+        opts: { attempts: 4 },
+      } as Job)
+    ).rejects.toThrow("gateway down")
+
+    const [conversation] = await database.db
+      .select()
+      .from(supportConversations)
+      .where(eq(supportConversations.id, payload.supportConversationId))
+    const outbound = await outboundMessages(payload.supportConversationId)
+    expect(conversation?.status).toBe("ai_active")
+    expect(conversation?.handoffReason).toBeNull()
+    expect(outbound).toHaveLength(0)
   })
 
   it("does not reopen a resolved Conversation for unsupported content", async () => {
@@ -225,6 +362,10 @@ describe("process inbound Message", () => {
       .from(supportConversations)
       .where(eq(supportConversations.id, payload.supportConversationId))
     expect(conversation?.status).toBe("resolved")
+    expect(draftUnsupportedHandoffCopy).not.toHaveBeenCalled()
+    expect(await outboundMessages(payload.supportConversationId)).toHaveLength(
+      0
+    )
   })
 
   it("rejects IDs that do not belong to one tenant-scoped state", async () => {

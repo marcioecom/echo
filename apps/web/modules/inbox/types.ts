@@ -4,6 +4,7 @@ import type {
   MessageContentType,
   MessageDirection,
   MessageStatus,
+  SupportConversationHandoffReason,
   SupportConversationStatus,
 } from "@workspace/domain"
 import { z } from "zod"
@@ -43,7 +44,15 @@ export interface InboxConversationDetail {
     }
     lastActivityAt: string
     resolvedAt: string | null
+    handoffReason: SupportConversationHandoffReason | null
+    handoffSummary: string | null
   }
+  events: Array<{
+    id: string
+    actorType: ActorType
+    occurredAt: string
+    reason: SupportConversationHandoffReason
+  }>
   messages: Array<{
     id: string
     direction: MessageDirection

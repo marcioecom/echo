@@ -8,6 +8,7 @@ import {
 	type MessageContentType,
 	type MessageDirection,
 	type MessageStatus,
+	type SupportConversationHandoffReason,
 	type SupportConversationStatus,
 } from "@workspace/domain";
 import { sql } from "drizzle-orm";
@@ -261,6 +262,8 @@ export const supportConversations = pgTable(
 			.default("open")
 			.notNull(),
 		resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+		handoffReason: text("handoff_reason").$type<SupportConversationHandoffReason>(),
+		handoffSummary: text("handoff_summary"),
 		lastActivityAt: timestamp("last_activity_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),
@@ -300,6 +303,14 @@ export const supportConversations = pgTable(
 		check(
 			"support_conversations_resolution_check",
 			sql`(${table.status} = 'resolved' and ${table.resolvedAt} is not null) or (${table.status} <> 'resolved' and ${table.resolvedAt} is null)`
+		),
+		check(
+			"support_conversations_handoff_reason_check",
+			sql`${table.handoffReason} is null or ${table.handoffReason} in ('human_requested', 'low_confidence', 'unsupported_policy', 'ai_failure', 'unsupported_content', 'operator_takeover')`
+		),
+		check(
+			"support_conversations_handoff_summary_check",
+			sql`${table.handoffSummary} is null or length(btrim(${table.handoffSummary})) > 0`
 		),
 	]
 );
