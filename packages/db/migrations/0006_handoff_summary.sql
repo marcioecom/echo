@@ -1,0 +1,4 @@
+ALTER TABLE "support_conversations" ADD COLUMN "handoff_reason" text;--> statement-breakpoint
+ALTER TABLE "support_conversations" ADD COLUMN "handoff_summary" text;--> statement-breakpoint
+ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_handoff_reason_check" CHECK ("support_conversations"."handoff_reason" is null or "support_conversations"."handoff_reason" in ('human_requested', 'low_confidence', 'unsupported_policy', 'ai_failure', 'unsupported_content', 'operator_takeover'));--> statement-breakpoint
+ALTER TABLE "support_conversations" ADD CONSTRAINT "support_conversations_handoff_summary_check" CHECK ("support_conversations"."handoff_summary" is null or length(btrim("support_conversations"."handoff_summary")) > 0);

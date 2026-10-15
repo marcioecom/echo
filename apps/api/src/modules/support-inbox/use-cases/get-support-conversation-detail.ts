@@ -17,5 +17,9 @@ export async function getSupportConversationDetail(input: {
       ...message,
       occurredAt: message.occurredAt.toISOString(),
     })),
+    events: detail.events.map((event) => ({
+      ...event,
+      occurredAt: event.occurredAt.toISOString(),
+    })),
   }
 }

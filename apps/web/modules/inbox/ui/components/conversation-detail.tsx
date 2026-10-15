@@ -7,13 +7,18 @@ import {
   CheckmarkCircle01Icon,
   Clock01Icon,
   Message01Icon,
+  Note01Icon,
   ReloadIcon,
   UserIcon,
   WhatsappIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "@tanstack/react-router"
-import type { MessageStatus } from "@workspace/domain"
+import type {
+  ActorType,
+  MessageStatus,
+  SupportConversationHandoffReason,
+} from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -24,6 +29,22 @@ import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
 import type { InboxConversationDetail } from "../../types"
 import { ConversationStatus } from "./conversation-status"
 import { ReplyComposer } from "./reply-composer"
+
+const handoffReasonKeys = {
+  human_requested: "inbox.handoff.reason.human_requested",
+  low_confidence: "inbox.handoff.reason.low_confidence",
+  unsupported_policy: "inbox.handoff.reason.unsupported_policy",
+  ai_failure: "inbox.handoff.reason.ai_failure",
+  unsupported_content: "inbox.handoff.reason.unsupported_content",
+  operator_takeover: "inbox.handoff.reason.operator_takeover",
+} as const satisfies Record<SupportConversationHandoffReason, MessageKey>
+
+const actorKeys = {
+  contact: "inbox.sender.contact",
+  ai: "inbox.sender.echo",
+  operator: "inbox.sender.operator",
+  system: "inbox.sender.system",
+} as const satisfies Record<ActorType, MessageKey>
 
 const deliveryKeys = {
   pending: "inbox.delivery.pending",
@@ -38,6 +59,26 @@ function formatTimestamp(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value))
+}
+
+function buildTimeline(detail: InboxConversationDetail) {
+  return [
+    ...detail.messages.map((message) => ({
+      kind: "message" as const,
+      id: message.id,
+      occurredAt: message.occurredAt,
+      message,
+    })),
+    ...detail.events.map((event) => ({
+      kind: "event" as const,
+      id: event.id,
+      occurredAt: event.occurredAt,
+      event,
+    })),
+  ].sort((left, right) => {
+    const byTime = left.occurredAt.localeCompare(right.occurredAt)
+    return byTime === 0 ? left.id.localeCompare(right.id) : byTime
+  })
 }
 
 function contactInitials(name: string) {
@@ -61,8 +102,11 @@ export function ConversationDetail({
   onRetry: () => void
 }) {
   const conversationId = detail?.conversation.id ?? null
-  const lastMessageId = detail?.messages.at(-1)?.id ?? null
-  const timelineRef = useTimelineAutoScroll(conversationId, lastMessageId)
+  const timeline = detail ? buildTimeline(detail) : []
+  const timelineRef = useTimelineAutoScroll(
+    conversationId,
+    timeline.at(-1)?.id ?? null
+  )
 
   if (isLoading) return <ConversationDetailSkeleton />
   if (error && !detail) {
@@ -153,13 +197,21 @@ export function ConversationDetail({
         </div>
       ) : null}
 
+      {detail.conversation.handoffReason ? (
+        <HandoffSummary
+          reason={detail.conversation.handoffReason}
+          summary={detail.conversation.handoffSummary}
+          active={needsYou}
+        />
+      ) : null}
+
       <div
         ref={timelineRef}
         className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-5 sm:px-6"
         role="log"
         aria-label={t("inbox.messagesLabel")}
       >
-        {detail.messages.length === 0 ? (
+        {timeline.length === 0 ? (
           <DetailState
             icon={Message01Icon}
             title={t("inbox.noMessagesTitle")}
@@ -167,7 +219,11 @@ export function ConversationDetail({
           />
         ) : (
           <div className="mx-auto flex max-w-3xl flex-col gap-3">
-            {detail.messages.map((message) => {
+            {timeline.map((item) => {
+              if (item.kind === "event") {
+                return <HandoffTimelineEvent key={item.id} event={item.event} />
+              }
+              const message = item.message
               const outbound = message.direction === "outbound"
               const isAi = message.senderType === "ai"
               const isSystem = message.senderType === "system"
@@ -195,7 +251,7 @@ export function ConversationDetail({
                         isAi
                           ? "bg-primary/10 text-primary"
                           : outbound
-                            ? "bg-foreground text-background"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-background text-muted-foreground ring-1 ring-border"
                       )}
                     >
@@ -242,7 +298,7 @@ export function ConversationDetail({
                         !isSystem &&
                           outbound &&
                           !isAi &&
-                          "bg-foreground text-background",
+                          "bg-primary text-primary-foreground",
                         !isSystem &&
                           !outbound &&
                           "bg-background text-foreground ring-1 ring-border"
@@ -280,6 +336,107 @@ export function ConversationDetail({
         disabled={detail.conversation.status === "resolved"}
       />
     </section>
+  )
+}
+
+function HandoffSummary({
+  reason,
+  summary,
+  active,
+}: {
+  reason: SupportConversationHandoffReason
+  summary: string | null
+  active: boolean
+}) {
+  return (
+    <aside className="border-b border-border bg-background px-4 py-3 sm:px-6">
+      <div
+        className={cn(
+          "mx-auto max-w-3xl rounded-lg px-3.5 py-3",
+          active
+            ? "bg-warning/15 ring-1 ring-warning/25"
+            : "bg-muted/50 ring-1 ring-border"
+        )}
+      >
+        <div className="flex items-start gap-2.5">
+          <div
+            className={cn(
+              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+              active
+                ? "bg-warning/25 text-warning-foreground"
+                : "bg-background text-muted-foreground ring-1 ring-border"
+            )}
+            aria-hidden
+          >
+            <HugeiconsIcon icon={Note01Icon} size={14} strokeWidth={1.8} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p
+                className={cn(
+                  "text-xs font-semibold tracking-tight",
+                  active ? "text-warning-foreground" : "text-foreground"
+                )}
+              >
+                {t("inbox.handoff.summaryTitle")}
+              </p>
+              <span
+                className={cn(
+                  "inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  active
+                    ? "bg-warning/30 text-warning-foreground"
+                    : "bg-background text-muted-foreground ring-1 ring-border"
+                )}
+              >
+                {t(handoffReasonKeys[reason])}
+              </span>
+            </div>
+            <p
+              className={cn(
+                "mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-wrap",
+                active ? "text-warning-foreground" : "text-foreground"
+              )}
+            >
+              {summary ?? t("inbox.handoff.summaryEmpty")}
+            </p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  )
+}
+
+function HandoffTimelineEvent({
+  event,
+}: {
+  event: InboxConversationDetail["events"][number]
+}) {
+  const fromAi = event.actorType === "ai"
+  return (
+    <article className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-border" aria-hidden />
+      <div className="flex max-w-[min(100%,20rem)] flex-col items-center gap-0.5 text-center">
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-foreground">
+          {fromAi ? (
+            <span className="text-primary">
+              <HugeiconsIcon icon={BotIcon} size={12} strokeWidth={1.8} />
+            </span>
+          ) : null}
+          <span className="font-medium text-foreground/80">
+            {t(actorKeys[event.actorType])}
+          </span>
+          <span aria-hidden>·</span>
+          <span>{t("inbox.handoff.event")}</span>
+        </p>
+        <time
+          dateTime={event.occurredAt}
+          className="text-[10px] text-muted-foreground tabular-nums"
+        >
+          {formatTimestamp(event.occurredAt)}
+        </time>
+      </div>
+      <div className="h-px flex-1 bg-border" aria-hidden />
+    </article>
   )
 }
 
