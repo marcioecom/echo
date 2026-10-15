@@ -51,7 +51,7 @@ const en = {
     echo: "Echo AI",
   },
   handoff: {
-    summaryTitle: "Summary for you",
+    summaryTitle: "Briefing",
     summaryEmpty: "Echo could not write a summary before passing this on.",
     event: "Passed to a person",
     reason: {
@@ -162,7 +162,7 @@ const ptBR = {
     echo: "Echo IA",
   },
   handoff: {
-    summaryTitle: "Resumo para você",
+    summaryTitle: "Briefing",
     summaryEmpty:
       "A Echo não conseguiu escrever um resumo antes de passar adiante.",
     event: "Passou para uma pessoa",

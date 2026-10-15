@@ -7,6 +7,7 @@ import {
   CheckmarkCircle01Icon,
   Clock01Icon,
   Message01Icon,
+  Note01Icon,
   ReloadIcon,
   UserIcon,
   WhatsappIcon,
@@ -250,7 +251,7 @@ export function ConversationDetail({
                         isAi
                           ? "bg-primary/10 text-primary"
                           : outbound
-                            ? "bg-foreground text-background"
+                            ? "bg-primary text-primary-foreground"
                             : "bg-background text-muted-foreground ring-1 ring-border"
                       )}
                     >
@@ -297,7 +298,7 @@ export function ConversationDetail({
                         !isSystem &&
                           outbound &&
                           !isAi &&
-                          "bg-foreground text-background",
+                          "bg-primary text-primary-foreground",
                         !isSystem &&
                           !outbound &&
                           "bg-background text-foreground ring-1 ring-border"
@@ -348,37 +349,58 @@ function HandoffSummary({
   active: boolean
 }) {
   return (
-    <aside
-      className={cn(
-        "border-b border-border px-4 py-3 sm:px-6",
-        active ? "bg-warning/20" : "bg-muted"
-      )}
-    >
-      <div className="mx-auto max-w-3xl">
-        <p
-          className={cn(
-            "text-xs font-medium",
-            active ? "text-warning-foreground" : "text-foreground"
-          )}
-        >
-          {t("inbox.handoff.summaryTitle")}
-        </p>
-        <p
-          className={cn(
-            "mt-0.5 text-xs",
-            active ? "text-warning-foreground" : "text-muted-foreground"
-          )}
-        >
-          {t(handoffReasonKeys[reason])}
-        </p>
-        <p
-          className={cn(
-            "mt-2 text-sm text-pretty whitespace-pre-wrap",
-            active ? "text-warning-foreground" : "text-foreground"
-          )}
-        >
-          {summary ?? t("inbox.handoff.summaryEmpty")}
-        </p>
+    <aside className="border-b border-border bg-background px-4 py-3 sm:px-6">
+      <div
+        className={cn(
+          "mx-auto max-w-3xl rounded-lg px-3.5 py-3",
+          active
+            ? "bg-warning/15 ring-1 ring-warning/25"
+            : "bg-muted/50 ring-1 ring-border"
+        )}
+      >
+        <div className="flex items-start gap-2.5">
+          <div
+            className={cn(
+              "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-md",
+              active
+                ? "bg-warning/25 text-warning-foreground"
+                : "bg-background text-muted-foreground ring-1 ring-border"
+            )}
+            aria-hidden
+          >
+            <HugeiconsIcon icon={Note01Icon} size={14} strokeWidth={1.8} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p
+                className={cn(
+                  "text-xs font-semibold tracking-tight",
+                  active ? "text-warning-foreground" : "text-foreground"
+                )}
+              >
+                {t("inbox.handoff.summaryTitle")}
+              </p>
+              <span
+                className={cn(
+                  "inline-flex max-w-full truncate rounded-full px-2 py-0.5 text-[10px] font-medium",
+                  active
+                    ? "bg-warning/30 text-warning-foreground"
+                    : "bg-background text-muted-foreground ring-1 ring-border"
+                )}
+              >
+                {t(handoffReasonKeys[reason])}
+              </span>
+            </div>
+            <p
+              className={cn(
+                "mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-wrap",
+                active ? "text-warning-foreground" : "text-foreground"
+              )}
+            >
+              {summary ?? t("inbox.handoff.summaryEmpty")}
+            </p>
+          </div>
+        </div>
       </div>
     </aside>
   )
@@ -391,30 +413,29 @@ function HandoffTimelineEvent({
 }) {
   const fromAi = event.actorType === "ai"
   return (
-    <article className="flex flex-col items-center gap-1">
-      <p
-        className={cn(
-          "flex max-w-md flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 rounded-md px-3 py-1.5 text-center text-xs",
-          fromAi
-            ? "bg-primary/10 text-foreground ring-1 ring-primary/20"
-            : "text-muted-foreground"
-        )}
-      >
-        {fromAi ? (
-          <HugeiconsIcon icon={BotIcon} size={13} strokeWidth={1.8} />
-        ) : null}
-        <span className="font-medium">{t(actorKeys[event.actorType])}</span>
-        <span aria-hidden>·</span>
-        <span>{t("inbox.handoff.event")}</span>
-        <span aria-hidden>·</span>
-        <span>{t(handoffReasonKeys[event.reason])}</span>
-      </p>
-      <time
-        dateTime={event.occurredAt}
-        className="text-[10px] text-muted-foreground tabular-nums"
-      >
-        {formatTimestamp(event.occurredAt)}
-      </time>
+    <article className="flex items-center gap-3 py-1">
+      <div className="h-px flex-1 bg-border" aria-hidden />
+      <div className="flex max-w-[min(100%,20rem)] flex-col items-center gap-0.5 text-center">
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5 text-[11px] text-muted-foreground">
+          {fromAi ? (
+            <span className="text-primary">
+              <HugeiconsIcon icon={BotIcon} size={12} strokeWidth={1.8} />
+            </span>
+          ) : null}
+          <span className="font-medium text-foreground/80">
+            {t(actorKeys[event.actorType])}
+          </span>
+          <span aria-hidden>·</span>
+          <span>{t("inbox.handoff.event")}</span>
+        </p>
+        <time
+          dateTime={event.occurredAt}
+          className="text-[10px] text-muted-foreground tabular-nums"
+        >
+          {formatTimestamp(event.occurredAt)}
+        </time>
+      </div>
+      <div className="h-px flex-1 bg-border" aria-hidden />
     </article>
   )
 }
