@@ -16,9 +16,9 @@ import { and, asc, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
-const { databaseRef, enqueue } = vi.hoisted(() => ({
+const { databaseRef, scheduleDebounced } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
-  enqueue: vi.fn(),
+  scheduleDebounced: vi.fn(),
 }))
 vi.mock("../../config/env", () => ({
   env: {
@@ -36,7 +36,7 @@ vi.mock("../../lib/db", () => ({
     ),
   },
 }))
-vi.mock("../../lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("../../lib/jobs-client", () => ({ jobs: { scheduleDebounced } }))
 
 import { InboundMessageRepository } from "./repositories/inbound-message-repository"
 import type { NormalizedInboundMessage } from "@workspace/domain"
@@ -317,7 +317,7 @@ describe("inbound Message persistence", () => {
       status: "active",
     })
     let enqueueAttempts = 0
-    enqueue.mockImplementation(async () => {
+    scheduleDebounced.mockImplementation(async () => {
       if (enqueueAttempts++ === 0) throw new Error("Redis unavailable")
       return { id: "process-inbound-message--retry" }
     })

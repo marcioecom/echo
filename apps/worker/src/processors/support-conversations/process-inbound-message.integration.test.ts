@@ -140,9 +140,36 @@ describe("process inbound Message", () => {
     return {
       organizationId,
       channelIdentityId,
+      channelConnectionId,
       supportConversationId,
       messageId,
     }
+  }
+
+  async function insertInbound(
+    state: {
+      organizationId: string
+      channelConnectionId: string
+      supportConversationId: string
+    },
+    body: string,
+    occurredAt: Date,
+    contentType: "text" | "unsupported" = "text"
+  ) {
+    const messageId = createId()
+    await database.db.insert(messages).values({
+      id: messageId,
+      organizationId: state.organizationId,
+      supportConversationId: state.supportConversationId,
+      channelConnectionId: state.channelConnectionId,
+      direction: "inbound",
+      senderType: "contact",
+      contentType,
+      body: contentType === "text" ? body : null,
+      status: "received",
+      occurredAt,
+    })
+    return messageId
   }
 
   async function processInboundMessage(
@@ -237,5 +264,142 @@ describe("process inbound Message", () => {
         organizationId: second.organizationId,
       })
     ).rejects.toThrow("do not identify one tenant state")
+  })
+
+  it("answers one burst from the latest inbound message", async () => {
+    supportAgentGraph.invoke.mockResolvedValue({
+      decision: { action: "reply", replyType: "answer", body: "Claro" },
+    })
+    const payload = await createState("worker-burst", "text")
+    const base = new Date("2026-08-01T12:00:00.000Z")
+    await database.db
+      .update(messages)
+      .set({ occurredAt: base, body: "quero um bolo" })
+      .where(eq(messages.id, payload.messageId))
+    await insertInbound(
+      payload,
+      "de chocolate",
+      new Date("2026-08-01T12:00:01.000Z")
+    )
+    const thirdId = await insertInbound(
+      payload,
+      "para amanhã",
+      new Date("2026-08-01T12:00:02.000Z")
+    )
+
+    await processInboundMessage({ ...payload, messageId: thirdId })
+
+    expect(supportAgentGraph.invoke).toHaveBeenCalledTimes(1)
+    expect(supportAgentGraph.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: "quero um bolo\nde chocolate\npara amanhã",
+        history: [
+          "contact: quero um bolo",
+          "contact: de chocolate",
+          "contact: para amanhã",
+        ],
+      }),
+      expect.objectContaining({
+        metadata: expect.objectContaining({ messageId: thirdId }),
+      })
+    )
+    const replies = await database.db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.supportConversationId, payload.supportConversationId),
+          eq(messages.senderType, "ai")
+        )
+      )
+    expect(replies).toHaveLength(1)
+    expect(replies[0]).toMatchObject({
+      body: "Claro",
+      replyToMessageId: thirdId,
+      status: "pending",
+    })
+  })
+
+  it("replies once when concurrent jobs race the same burst", async () => {
+    supportAgentGraph.invoke.mockResolvedValue({
+      decision: { action: "reply", replyType: "answer", body: "Claro" },
+    })
+    const payload = await createState("worker-burst-race", "text")
+    const base = new Date("2026-08-01T12:00:00.000Z")
+    await database.db
+      .update(messages)
+      .set({ occurredAt: base })
+      .where(eq(messages.id, payload.messageId))
+    const secondId = await insertInbound(
+      payload,
+      "e o prazo?",
+      new Date("2026-08-01T12:00:01.000Z")
+    )
+    const thirdId = await insertInbound(
+      payload,
+      "do pedido",
+      new Date("2026-08-01T12:00:02.000Z")
+    )
+
+    await Promise.all([
+      processInboundMessage(payload),
+      processInboundMessage({ ...payload, messageId: secondId }),
+      processInboundMessage({ ...payload, messageId: thirdId }),
+    ])
+
+    expect(supportAgentGraph.invoke).toHaveBeenCalledTimes(1)
+    expect(supportAgentGraph.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: "Help\ne o prazo?\ndo pedido",
+      }),
+      expect.any(Object)
+    )
+    const replies = await database.db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.supportConversationId, payload.supportConversationId),
+          eq(messages.senderType, "ai")
+        )
+      )
+    expect(replies).toHaveLength(1)
+    expect(replies[0]?.replyToMessageId).toBe(thirdId)
+  })
+
+  it("hands the burst to a human when an earlier message is unsupported", async () => {
+    const payload = await createState("worker-burst-audio", "unsupported")
+    const base = new Date("2026-08-01T12:00:00.000Z")
+    await database.db
+      .update(messages)
+      .set({ occurredAt: base })
+      .where(eq(messages.id, payload.messageId))
+    const textId = await insertInbound(
+      payload,
+      "consegue ver o áudio?",
+      new Date("2026-08-01T12:00:01.000Z")
+    )
+
+    await processInboundMessage({ ...payload, messageId: textId })
+
+    expect(supportAgentGraph.invoke).not.toHaveBeenCalled()
+    const [conversation] = await database.db
+      .select()
+      .from(supportConversations)
+      .where(eq(supportConversations.id, payload.supportConversationId))
+    const [event] = await database.db
+      .select()
+      .from(auditEvents)
+      .where(
+        and(
+          eq(auditEvents.organizationId, payload.organizationId),
+          eq(auditEvents.eventType, "support_conversation.human_required")
+        )
+      )
+    expect(conversation?.status).toBe("human_required")
+    expect(event?.data).toEqual({
+      messageId: payload.messageId,
+      reason: "unsupported_content",
+    })
   })
 })

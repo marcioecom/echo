@@ -11,7 +11,7 @@ import {
 } from "@workspace/jobs"
 import { createId } from "@workspace/domain"
 import type { Job } from "bullmq"
-import { and, desc, eq, isNull, ne } from "drizzle-orm"
+import { and, asc, desc, eq, gt, isNull, ne, or } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { database } from "../../lib/db"
@@ -24,14 +24,27 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
   if (!state)
     throw new Error("Inbound Message job IDs do not identify one tenant state")
 
+  if (state.status === "human_required" || state.status === "resolved") return
   if (state.contentType !== "text") {
     await handoff(payload, "unsupported_content", "system")
     return
   }
-  if (state.status === "human_required" || state.status === "resolved") return
 
   const activated = await activateIfCurrent(payload)
   if (!activated) return
+  const pending = await loadPendingInbound(payload)
+  const unsupported = pending.find((message) => message.contentType !== "text")
+  if (unsupported) {
+    await handoff(
+      { ...payload, messageId: unsupported.id },
+      "unsupported_content",
+      "system"
+    )
+    return
+  }
+  const query = pending.map((message) => message.body ?? "").join("\n")
+  if (!query) return
+
   const history = await database.db
     .select({
       direction: messages.direction,
@@ -52,7 +65,7 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
   const result = await supportAgentGraph.invoke(
     {
       organizationId: payload.organizationId,
-      query: state.body ?? "",
+      query,
       history: history
         .reverse()
         .map((message) => `${message.senderType}: ${message.body ?? ""}`),
@@ -199,6 +212,50 @@ async function loadInboundState(input: {
     )
     .limit(1)
   return state
+}
+
+async function loadPendingInbound(input: {
+  organizationId: string
+  supportConversationId: string
+}) {
+  const [latestOutbound] = await database.db
+    .select({ id: messages.id, occurredAt: messages.occurredAt })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.organizationId, input.organizationId),
+        eq(messages.supportConversationId, input.supportConversationId),
+        eq(messages.direction, "outbound")
+      )
+    )
+    .orderBy(desc(messages.occurredAt), desc(messages.id))
+    .limit(1)
+
+  return database.db
+    .select({
+      id: messages.id,
+      contentType: messages.contentType,
+      body: messages.body,
+    })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.organizationId, input.organizationId),
+        eq(messages.supportConversationId, input.supportConversationId),
+        eq(messages.direction, "inbound"),
+        eq(messages.senderType, "contact"),
+        latestOutbound
+          ? or(
+              gt(messages.occurredAt, latestOutbound.occurredAt),
+              and(
+                eq(messages.occurredAt, latestOutbound.occurredAt),
+                gt(messages.id, latestOutbound.id)
+              )
+            )
+          : undefined
+      )
+    )
+    .orderBy(asc(messages.occurredAt), asc(messages.id))
 }
 
 async function activateIfCurrent(input: {
