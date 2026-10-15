@@ -1,5 +1,6 @@
 import type { Database } from "@workspace/db"
 import {
+  auditEvents,
   channelConnections,
   channelIdentities,
   contacts,
@@ -7,10 +8,12 @@ import {
   supportConversations,
   users,
 } from "@workspace/db/schema"
-import type {
-  ActorType,
-  MessageContentType,
-  SupportConversationStatus,
+import {
+  supportConversationHandoffReasonSchema,
+  type ActorType,
+  type MessageContentType,
+  type SupportConversationHandoffReason,
+  type SupportConversationStatus,
 } from "@workspace/domain"
 import { createId } from "@workspace/domain"
 import { and, asc, desc, eq, lt, or, sql } from "drizzle-orm"
@@ -23,7 +26,7 @@ import type {
 } from "../types"
 
 export class SupportInboxRepository {
-  constructor(private readonly db: Database = database.db) { }
+  constructor(private readonly db: Database = database.db) {}
 
   async list(input: {
     organizationId: string
@@ -33,15 +36,15 @@ export class SupportInboxRepository {
   }): Promise<{ items: SupportInboxConversation[]; hasMore: boolean }> {
     const cursorCondition = input.cursor
       ? or(
-        lt(supportConversations.lastActivityAt, input.cursor.lastActivityAt),
-        and(
-          eq(
-            supportConversations.lastActivityAt,
-            input.cursor.lastActivityAt
-          ),
-          lt(supportConversations.id, input.cursor.id)
+          lt(supportConversations.lastActivityAt, input.cursor.lastActivityAt),
+          and(
+            eq(
+              supportConversations.lastActivityAt,
+              input.cursor.lastActivityAt
+            ),
+            lt(supportConversations.id, input.cursor.id)
+          )
         )
-      )
       : undefined
 
     const rows = await this.db
@@ -124,13 +127,13 @@ export class SupportInboxRepository {
         lastMessage:
           row.lastMessageSenderType && row.lastMessageContentType
             ? {
-              preview:
-                row.lastMessageContentType === "unsupported"
-                  ? "Unsupported attachment"
-                  : (row.lastMessageBody ?? ""),
-              senderType: row.lastMessageSenderType,
-              contentType: row.lastMessageContentType,
-            }
+                preview:
+                  row.lastMessageContentType === "unsupported"
+                    ? "Unsupported attachment"
+                    : (row.lastMessageBody ?? ""),
+                senderType: row.lastMessageSenderType,
+                contentType: row.lastMessageContentType,
+              }
             : null,
       })),
       hasMore,
@@ -153,6 +156,8 @@ export class SupportInboxRepository {
         channelConnectionAddress: channelConnections.address,
         lastActivityAt: supportConversations.lastActivityAt,
         resolvedAt: supportConversations.resolvedAt,
+        handoffReason: supportConversations.handoffReason,
+        handoffSummary: supportConversations.handoffSummary,
       })
       .from(supportConversations)
       .innerJoin(
@@ -213,6 +218,24 @@ export class SupportInboxRepository {
       )
       .orderBy(asc(messages.occurredAt), asc(messages.id))
 
+    const handoffEvents = await this.db
+      .select({
+        id: auditEvents.id,
+        actorType: auditEvents.actorType,
+        occurredAt: auditEvents.occurredAt,
+        data: auditEvents.data,
+      })
+      .from(auditEvents)
+      .where(
+        and(
+          eq(auditEvents.organizationId, input.organizationId),
+          eq(auditEvents.subjectType, "support_conversation"),
+          eq(auditEvents.subjectId, input.conversationId),
+          eq(auditEvents.eventType, "support_conversation.human_required")
+        )
+      )
+      .orderBy(asc(auditEvents.occurredAt), asc(auditEvents.id))
+
     return {
       conversation: {
         id: conversation.id,
@@ -229,7 +252,21 @@ export class SupportInboxRepository {
         },
         lastActivityAt: conversation.lastActivityAt,
         resolvedAt: conversation.resolvedAt,
+        handoffReason: conversation.handoffReason,
+        handoffSummary: conversation.handoffSummary,
       },
+      events: handoffEvents.flatMap((event) => {
+        const reason = readHandoffReason(event.data)
+        if (!reason) return []
+        return [
+          {
+            id: event.id,
+            actorType: event.actorType,
+            occurredAt: event.occurredAt,
+            reason,
+          },
+        ]
+      }),
       messages: timeline,
     }
   }
@@ -309,6 +346,13 @@ export class SupportInboxRepository {
       }
     })
   }
+}
+
+function readHandoffReason(
+  data: Record<string, unknown>
+): SupportConversationHandoffReason | null {
+  const parsed = supportConversationHandoffReasonSchema.safeParse(data.reason)
+  return parsed.success ? parsed.data : null
 }
 
 export const supportInboxRepository = new SupportInboxRepository()

@@ -43,6 +43,13 @@
       "when": 1791808286668,
       "tag": "0005_multi_provider_channels",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792064310487,
+      "tag": "0006_handoff_summary",
+      "breakpoints": true
     }
   ]
 }

@@ -6,136 +6,167 @@ import {
   supportConversations,
 } from "@workspace/db/schema"
 import {
+  createId,
+  type SupportConversationHandoffReason,
+} from "@workspace/domain"
+import {
   processInboundMessageJobSchema,
   supportConversationJobNames,
 } from "@workspace/jobs"
-import { createId } from "@workspace/domain"
 import type { Job } from "bullmq"
-import { and, desc, eq, isNull, ne } from "drizzle-orm"
+import { and, desc, eq, isNull, ne, sql } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { database } from "../../lib/db"
 import { supportConversationsQueue } from "../../queues/support-conversations"
-import { supportAgentGraph } from "./orchestration/support-agent-graph"
+import {
+  type AgentDecision,
+  draftUnsupportedHandoffCopy,
+  supportAgentGraph,
+} from "./orchestration/support-agent-graph"
+
+const handoffFallbackCustomerMessage =
+  "Vou chamar alguém da equipe pra continuar com você. I'll ask someone from the team to continue with you."
+
+type InboundState = NonNullable<Awaited<ReturnType<typeof loadInboundState>>>
 
 export async function handleProcessInboundMessage(job: Job): Promise<void> {
   const payload = processInboundMessageJobSchema.parse(job.data)
   const state = await loadInboundState(payload)
   if (!state)
     throw new Error("Inbound Message job IDs do not identify one tenant state")
+  if (state.status === "human_required" || state.status === "resolved") return
 
   if (state.contentType !== "text") {
-    await handoff(payload, "unsupported_content", "system")
+    await handoffUnsupported(job, payload, state)
     return
   }
-  if (state.status === "human_required" || state.status === "resolved") return
 
   const activated = await activateIfCurrent(payload)
   if (!activated) return
+  const history = await loadHistory(payload)
+  const channelProvider = state.channelProvider ?? "unknown"
+  let decision: AgentDecision
+  try {
+    const result = await supportAgentGraph.invoke(
+      {
+        organizationId: payload.organizationId,
+        query: state.body ?? "",
+        history,
+      },
+      {
+        runName: "support-agent",
+        tags: ["support-agent", "inbound-message", channelProvider],
+        metadata: {
+          organizationId: payload.organizationId,
+          conversationId: payload.supportConversationId,
+          messageId: payload.messageId,
+          channelProvider,
+          model: env.AI_CHAT_MODEL,
+        },
+      }
+    )
+    if (!result.decision) throw new Error("Support agent returned no decision")
+    decision = result.decision
+  } catch (error) {
+    if (isFinalAttempt(job)) {
+      await handoff(payload, state, "ai_failure", "ai", {
+        customerMessage: handoffFallbackCustomerMessage,
+        summary: null,
+      })
+    }
+    throw error
+  }
+
+  if (decision.action === "handoff") {
+    await handoff(payload, state, decision.reason, "ai", {
+      customerMessage: decision.customerMessage,
+      summary: decision.summary,
+    })
+    return
+  }
+
+  const created = await createAiReply(payload, state, decision.body)
+  if (!created) return
+  await enqueueOutboundMessage({
+    organizationId: payload.organizationId,
+    channelConnectionId: state.channelConnectionId,
+    supportConversationId: payload.supportConversationId,
+    messageId: created.id,
+  })
+}
+
+async function handoffUnsupported(
+  job: Job,
+  payload: {
+    organizationId: string
+    supportConversationId: string
+    messageId: string
+  },
+  state: InboundState
+): Promise<void> {
+  const history = await loadHistory(payload)
+  const mediaKind = await loadMediaKind(payload)
+  let notice: { customerMessage: string; summary: string | null }
+  try {
+    notice = await draftUnsupportedHandoffCopy({ history, mediaKind })
+  } catch (error) {
+    if (!isFinalAttempt(job)) throw error
+    notice = {
+      customerMessage: handoffFallbackCustomerMessage,
+      summary: null,
+    }
+  }
+  await handoff(payload, state, "unsupported_content", "system", notice)
+}
+
+function isFinalAttempt(job: Job): boolean {
+  return (job.attemptsMade ?? 0) + 1 >= (job.opts?.attempts ?? 1)
+}
+
+async function loadHistory(input: {
+  organizationId: string
+  supportConversationId: string
+}): Promise<string[]> {
   const history = await database.db
     .select({
-      direction: messages.direction,
       senderType: messages.senderType,
       body: messages.body,
     })
     .from(messages)
     .where(
       and(
-        eq(messages.organizationId, payload.organizationId),
-        eq(messages.supportConversationId, payload.supportConversationId)
+        eq(messages.organizationId, input.organizationId),
+        eq(messages.supportConversationId, input.supportConversationId)
       )
     )
     .orderBy(desc(messages.occurredAt), desc(messages.id))
     .limit(20)
+  return history
+    .reverse()
+    .map((message) => `${message.senderType}: ${message.body ?? ""}`)
+}
 
-  const channelProvider = state.channelProvider ?? "unknown"
-  const result = await supportAgentGraph.invoke(
-    {
-      organizationId: payload.organizationId,
-      query: state.body ?? "",
-      history: history
-        .reverse()
-        .map((message) => `${message.senderType}: ${message.body ?? ""}`),
-    },
-    {
-      runName: "support-agent",
-      tags: ["support-agent", "inbound-message", channelProvider],
-      metadata: {
-        organizationId: payload.organizationId,
-        conversationId: payload.supportConversationId,
-        messageId: payload.messageId,
-        channelProvider,
-        model: env.AI_CHAT_MODEL,
-      },
-    }
-  )
-  const decision = result.decision
-  if (!decision) throw new Error("Support agent returned no decision")
-
-  if (decision.action === "handoff") {
-    await handoff(payload, decision.reason, "ai")
-    return
-  }
-
-  const created = await database.db.transaction(async (transaction) => {
-    const [current] = await transaction
-      .select({ status: supportConversations.status })
-      .from(supportConversations)
-      .where(
-        and(
-          eq(supportConversations.organizationId, payload.organizationId),
-          eq(supportConversations.id, payload.supportConversationId)
-        )
+async function loadMediaKind(input: {
+  organizationId: string
+  messageId: string
+}): Promise<string> {
+  const [event] = await database.db
+    .select({ data: auditEvents.data })
+    .from(auditEvents)
+    .where(
+      and(
+        eq(auditEvents.organizationId, input.organizationId),
+        eq(auditEvents.subjectType, "message"),
+        eq(auditEvents.subjectId, input.messageId),
+        eq(auditEvents.eventType, "message.unsupported_content")
       )
-      .limit(1)
-      .for("update")
-    if (!current || current.status !== "ai_active") return null
-    const [latest] = await transaction
-      .select({ id: messages.id })
-      .from(messages)
-      .where(
-        and(
-          eq(messages.organizationId, payload.organizationId),
-          eq(messages.supportConversationId, payload.supportConversationId),
-          eq(messages.direction, "inbound"),
-          eq(messages.senderType, "contact")
-        )
-      )
-      .orderBy(desc(messages.occurredAt), desc(messages.id))
-      .limit(1)
-    if (latest?.id !== payload.messageId) return null
-    const [message] = await transaction
-      .insert(messages)
-      .values({
-        id: createId(),
-        organizationId: payload.organizationId,
-        supportConversationId: payload.supportConversationId,
-        channelConnectionId: state.channelConnectionId,
-        direction: "outbound",
-        senderType: "ai",
-        contentType: "text",
-        body: decision.body,
-        status: "pending",
-        replyToMessageId: payload.messageId,
-        occurredAt: new Date(),
-      })
-      .onConflictDoNothing()
-      .returning({ id: messages.id })
-    return message ?? null
-  })
-  if (!created) return
-  await supportConversationsQueue.add(
-    supportConversationJobNames.sendOutboundMessage,
-    {
-      organizationId: payload.organizationId,
-      channelConnectionId: state.channelConnectionId,
-      supportConversationId: payload.supportConversationId,
-      messageId: created.id,
-    },
-    {
-      jobId: `${supportConversationJobNames.sendOutboundMessage}--${created.id}`,
-    }
-  )
+    )
+    .limit(1)
+  const mediaKind = event?.data.mediaKind
+  return typeof mediaKind === "string" && mediaKind.length > 0
+    ? mediaKind
+    : "unknown"
 }
 
 async function loadInboundState(input: {
@@ -254,23 +285,84 @@ async function activateIfCurrent(input: {
   })
 }
 
+async function createAiReply(
+  input: {
+    organizationId: string
+    supportConversationId: string
+    messageId: string
+  },
+  state: InboundState,
+  body: string
+) {
+  return database.db.transaction(async (transaction) => {
+    const [current] = await transaction
+      .select({ status: supportConversations.status })
+      .from(supportConversations)
+      .where(
+        and(
+          eq(supportConversations.organizationId, input.organizationId),
+          eq(supportConversations.id, input.supportConversationId)
+        )
+      )
+      .limit(1)
+      .for("update")
+    if (!current || current.status !== "ai_active") return null
+    const [latest] = await transaction
+      .select({ id: messages.id })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.organizationId, input.organizationId),
+          eq(messages.supportConversationId, input.supportConversationId),
+          eq(messages.direction, "inbound"),
+          eq(messages.senderType, "contact")
+        )
+      )
+      .orderBy(desc(messages.occurredAt), desc(messages.id))
+      .limit(1)
+    if (latest?.id !== input.messageId) return null
+    const [message] = await transaction
+      .insert(messages)
+      .values({
+        id: createId(),
+        organizationId: input.organizationId,
+        supportConversationId: input.supportConversationId,
+        channelConnectionId: state.channelConnectionId,
+        direction: "outbound",
+        senderType: "ai",
+        contentType: "text",
+        body,
+        status: "pending",
+        replyToMessageId: input.messageId,
+        occurredAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning({ id: messages.id })
+    return message ?? null
+  })
+}
+
 async function handoff(
   input: {
     organizationId: string
     supportConversationId: string
     messageId: string
   },
-  reason:
-    | "human_requested"
-    | "low_confidence"
-    | "unsupported_policy"
-    | "unsupported_content",
-  actorType: "ai" | "system"
+  state: InboundState,
+  reason: SupportConversationHandoffReason,
+  actorType: "ai" | "system",
+  notice: { customerMessage: string; summary: string | null }
 ): Promise<void> {
-  await database.db.transaction(async (transaction) => {
+  const occurredAt = new Date()
+  const created = await database.db.transaction(async (transaction) => {
     const transitioned = await transaction
       .update(supportConversations)
-      .set({ status: "human_required" })
+      .set({
+        status: "human_required",
+        handoffReason: reason,
+        handoffSummary: notice.summary,
+        lastActivityAt: sql`greatest(${supportConversations.lastActivityAt}, ${occurredAt})`,
+      })
       .where(
         and(
           eq(supportConversations.organizationId, input.organizationId),
@@ -280,7 +372,7 @@ async function handoff(
         )
       )
       .returning({ id: supportConversations.id })
-    if (transitioned.length === 0) return
+    if (transitioned.length === 0) return null
     await transaction.insert(auditEvents).values({
       organizationId: input.organizationId,
       eventType: "support_conversation.human_required",
@@ -288,6 +380,46 @@ async function handoff(
       subjectType: "support_conversation",
       subjectId: input.supportConversationId,
       data: { messageId: input.messageId, reason },
+      occurredAt,
     })
+    const [message] = await transaction
+      .insert(messages)
+      .values({
+        id: createId(),
+        organizationId: input.organizationId,
+        supportConversationId: input.supportConversationId,
+        channelConnectionId: state.channelConnectionId,
+        direction: "outbound",
+        senderType: "ai",
+        contentType: "text",
+        body: notice.customerMessage,
+        status: "pending",
+        replyToMessageId: input.messageId,
+        occurredAt,
+      })
+      .returning({ id: messages.id })
+    return message ?? null
   })
+  if (!created) return
+  await enqueueOutboundMessage({
+    organizationId: input.organizationId,
+    channelConnectionId: state.channelConnectionId,
+    supportConversationId: input.supportConversationId,
+    messageId: created.id,
+  })
+}
+
+async function enqueueOutboundMessage(input: {
+  organizationId: string
+  channelConnectionId: string
+  supportConversationId: string
+  messageId: string
+}): Promise<void> {
+  await supportConversationsQueue.add(
+    supportConversationJobNames.sendOutboundMessage,
+    input,
+    {
+      jobId: `${supportConversationJobNames.sendOutboundMessage}--${input.messageId}`,
+    }
+  )
 }
