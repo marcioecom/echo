@@ -17,7 +17,10 @@ vi.mock("../../knowledge-base/retrieve-knowledge", () => ({
 }))
 
 import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
-import { createSupportAgentGraph } from "./support-agent-graph"
+import {
+  createSupportAgentGraph,
+  supportAgentSystemPrompt,
+} from "./support-agent-graph"
 
 const snippet = {
   chunkId: "01CHUNK000000000000000000",
@@ -31,6 +34,7 @@ describe("createSupportAgentGraph", () => {
   beforeEach(() => {
     vi.stubEnv("LANGSMITH_TRACING", "false")
     delete process.env.LANGSMITH_API_KEY
+    vi.mocked(retrieveKnowledge).mockReset()
   })
 
   it("retrieves knowledge before asking the model to decide", async () => {
@@ -62,10 +66,13 @@ describe("createSupportAgentGraph", () => {
       query: "vocês abrem domingo?",
       limit: 6,
     })
-    expect(vi.mocked(retrieveKnowledge).mock.invocationCallOrder[0]).toBeLessThan(
+    expect(
+      vi.mocked(retrieveKnowledge).mock.invocationCallOrder[0]
+    ).toBeLessThan(
       invoke.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     )
     const messages = invoke.mock.calls[0]?.[0]
+    expect(messages?.[0]).toEqual(["system", supportAgentSystemPrompt])
     expect(JSON.parse(messages?.[1]?.[1] ?? "{}")).toMatchObject({
       query: "vocês abrem domingo?",
       snippets: [snippet],
@@ -75,5 +82,34 @@ describe("createSupportAgentGraph", () => {
       replyType: "answer",
       body: "Abrimos domingo das 9h às 13h.",
     })
+  })
+
+  it("uses an injected retriever when the eval supplies one", async () => {
+    const retrieve = vi.fn().mockResolvedValue([snippet])
+    const invoke = vi.fn(async () => ({
+      action: "reply" as const,
+      replyType: "answer" as const,
+      body: "Abrimos domingo das 9h às 13h.",
+    }))
+    const model = {
+      withStructuredOutput: vi.fn(() => ({ invoke })),
+    }
+    const graph = createSupportAgentGraph(
+      model as unknown as Pick<BaseChatModel, "withStructuredOutput">,
+      retrieve
+    )
+
+    await graph.invoke({
+      organizationId: "01ORGANIZATION000000000000",
+      query: "vocês abrem domingo?",
+      history: ["contact: vocês abrem domingo?"],
+    })
+
+    expect(retrieve).toHaveBeenCalledWith({
+      organizationId: "01ORGANIZATION000000000000",
+      query: "vocês abrem domingo?",
+      limit: 6,
+    })
+    expect(retrieveKnowledge).not.toHaveBeenCalled()
   })
 })

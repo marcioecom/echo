@@ -56,6 +56,10 @@ To trace inbound support-agent runs, set `LANGSMITH_TRACING=true` and `LANGSMITH
 
 To verify locally, start the worker with `pnpm --filter @workspace/worker dev`, send a text message through a configured WhatsApp connection, and inspect the `support-agent` run in LangSmith.
 
+## Evaluate the support agent
+
+`pnpm --filter @workspace/worker eval` uploads golden set v1 and runs a LangSmith experiment against the current decide step. It needs `AI_GATEWAY_API_KEY` and `LANGSMITH_API_KEY` in `apps/worker/.env`. See [`apps/worker/src/evals/README.md`](apps/worker/src/evals/README.md) for the rubric and how to add a case.
+
 ## Verify connectivity
 
 Both server runtimes fail during startup if Postgres or Redis is unavailable. Once `pnpm dev` is running, verify their probes:
