@@ -19,12 +19,8 @@ const workerEnvSchema = serverEnvSchema.extend({
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),
   AI_GATEWAY_API_KEY: z.string().min(1),
-  AI_EMBEDDING_MODEL: z
-    .literal("openai/text-embedding-3-small")
-    .default("openai/text-embedding-3-small"),
-  AI_CHAT_MODEL: z
-    .literal("openai/gpt-5.6-luna")
-    .default("openai/gpt-5.6-luna"),
+  AI_EMBEDDING_MODEL: z.string().default("openai/text-embedding-3-small"),
+  AI_CHAT_MODEL: z.string().default("openai/gpt-5.6-luna"),
   LANGSMITH_TRACING: z.enum(["true", "false"]).optional(),
   LANGSMITH_API_KEY: z.string().min(1).optional(),
   LANGSMITH_PROJECT: z.string().min(1).optional(),
