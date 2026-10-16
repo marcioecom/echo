@@ -8,27 +8,42 @@ import {
 import {
   createId,
   type SupportConversationHandoffReason,
+  type SupportConversationStatus,
 } from "@workspace/domain"
 import {
   processInboundMessageJobSchema,
   supportConversationJobNames,
 } from "@workspace/jobs"
+import { createSupportAgent } from "@workspace/agent"
 import type { Job } from "bullmq"
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm"
 
 import { env } from "../../config/env"
 import { database } from "../../lib/db"
 import { supportConversationsQueue } from "../../queues/support-conversations"
-import {
-  type AgentDecision,
-  draftUnsupportedHandoffCopy,
-  supportAgentGraph,
-} from "./orchestration/support-agent-graph"
 
 const handoffFallbackCustomerMessage =
   "Vou chamar alguém da equipe pra continuar com você. I'll ask someone from the team to continue with you."
 
-type InboundState = NonNullable<Awaited<ReturnType<typeof loadInboundState>>>
+const { graph: supportAgentGraph, draftUnsupportedHandoffCopy } =
+  createSupportAgent({
+    database: database.db,
+    apiKey: env.AI_GATEWAY_API_KEY,
+    chatModel: env.AI_CHAT_MODEL,
+    embeddingModel: env.AI_EMBEDDING_MODEL,
+  })
+
+type AgentDecision = NonNullable<
+  Awaited<ReturnType<typeof supportAgentGraph.invoke>>["decision"]
+>
+
+type InboundMessageState = {
+  contentType: "text" | "unsupported"
+  body: string | null
+  channelConnectionId: string
+  status: SupportConversationStatus
+  channelProvider: string | null
+}
 
 export async function handleProcessInboundMessage(job: Job): Promise<void> {
   const payload = processInboundMessageJobSchema.parse(job.data)
@@ -103,7 +118,7 @@ async function handoffUnsupported(
     supportConversationId: string
     messageId: string
   },
-  state: InboundState
+  state: InboundMessageState
 ): Promise<void> {
   const history = await loadHistory(payload)
   const mediaKind = await loadMediaKind(payload)
@@ -174,7 +189,7 @@ async function loadInboundState(input: {
   channelIdentityId: string
   supportConversationId: string
   messageId: string
-}) {
+}): Promise<InboundMessageState | undefined> {
   const [state] = await database.db
     .select({
       contentType: messages.contentType,
@@ -291,7 +306,7 @@ async function createAiReply(
     supportConversationId: string
     messageId: string
   },
-  state: InboundState,
+  state: InboundMessageState,
   body: string
 ) {
   return database.db.transaction(async (transaction) => {
@@ -348,7 +363,7 @@ async function handoff(
     supportConversationId: string
     messageId: string
   },
-  state: InboundState,
+  state: InboundMessageState,
   reason: SupportConversationHandoffReason,
   actorType: "ai" | "system",
   notice: { customerMessage: string; summary: string | null }

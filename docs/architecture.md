@@ -35,6 +35,10 @@ flowchart LR
 - Owns outbound delivery back to Twilio and knowledge-document indexing side effects.
 - Exposes its own `/health/live` and `/health/ready`.
 
+### `packages/agent`
+
+- Owns the Support Agent graph, tenant-scoped knowledge retrieval, and the golden-set Eval. The worker invokes its `createSupportAgent` interface after loading the inbound conversation; the worker retains message persistence, handoff, and outbound-job ownership.
+
 ### `apps/web`
 
 - TanStack Start operator interface on Cloudflare Workers: authentication flows, the `/inbox` and `/inbox/$conversationId` support views, and `/settings` (members, knowledge base). Dashboard data is loaded on the client through React Query and a WebSocket to `apps/api`.

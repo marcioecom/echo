@@ -1,22 +1,6 @@
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-vi.mock("../../../config/env", () => ({
-  env: {
-    AI_GATEWAY_API_KEY: "test-key",
-    AI_CHAT_MODEL: "openai/gpt-5.6-luna",
-    AI_EMBEDDING_MODEL: "openai/text-embedding-3-small",
-  },
-}))
-vi.mock("../../../lib/db", () => ({
-  database: { db: {} },
-}))
-
-vi.mock("../../knowledge-base/retrieve-knowledge", () => ({
-  retrieveKnowledge: vi.fn(),
-}))
-
-import { retrieveKnowledge } from "../../knowledge-base/retrieve-knowledge"
 import {
   agentDecisionSchema,
   createSupportAgentGraph,
@@ -39,7 +23,7 @@ describe("createSupportAgentGraph", () => {
   })
 
   it("retrieves knowledge before asking the model to decide", async () => {
-    vi.mocked(retrieveKnowledge).mockResolvedValue([snippet])
+    const retrieve = vi.fn().mockResolvedValue([snippet])
     const invoke = vi.fn<
       (
         messages: Array<[string, string]>
@@ -53,7 +37,8 @@ describe("createSupportAgentGraph", () => {
       withStructuredOutput: vi.fn(() => ({ invoke })),
     }
     const graph = createSupportAgentGraph(
-      model as unknown as Pick<BaseChatModel, "withStructuredOutput">
+      model as unknown as Pick<BaseChatModel, "withStructuredOutput">,
+      retrieve
     )
 
     const result = await graph.invoke({
@@ -62,14 +47,12 @@ describe("createSupportAgentGraph", () => {
       history: ["contact: vocês abrem domingo?"],
     })
 
-    expect(retrieveKnowledge).toHaveBeenCalledWith({
+    expect(retrieve).toHaveBeenCalledWith({
       organizationId: "01ORGANIZATION000000000000",
       query: "vocês abrem domingo?",
       limit: 6,
     })
-    expect(
-      vi.mocked(retrieveKnowledge).mock.invocationCallOrder[0]
-    ).toBeLessThan(
+    expect(retrieve.mock.invocationCallOrder[0]).toBeLessThan(
       invoke.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
     )
     const messages = invoke.mock.calls[0]?.[0]
@@ -85,6 +68,34 @@ describe("createSupportAgentGraph", () => {
       action: "reply",
       replyType: "answer",
       body: "Abrimos domingo das 9h às 13h.",
+    })
+  })
+
+  it("uses an injected retriever when the eval supplies one", async () => {
+    const retrieve = vi.fn().mockResolvedValue([snippet])
+    const invoke = vi.fn(async () => ({
+      action: "reply" as const,
+      replyType: "answer" as const,
+      body: "Abrimos domingo das 9h às 13h.",
+    }))
+    const model = {
+      withStructuredOutput: vi.fn(() => ({ invoke })),
+    }
+    const graph = createSupportAgentGraph(
+      model as unknown as Pick<BaseChatModel, "withStructuredOutput">,
+      retrieve
+    )
+
+    await graph.invoke({
+      organizationId: "01ORGANIZATION000000000000",
+      query: "vocês abrem domingo?",
+      history: ["contact: vocês abrem domingo?"],
+    })
+
+    expect(retrieve).toHaveBeenCalledWith({
+      organizationId: "01ORGANIZATION000000000000",
+      query: "vocês abrem domingo?",
+      limit: 6,
     })
   })
 
