@@ -84,9 +84,6 @@ export interface KnowledgeTestResult {
   hits: readonly KnowledgeTestHit[]
 }
 
-// Null until a cutoff exists. The response does not mark a hit as passing.
-const knowledgeRetrievalThreshold = null
-
 export async function testKnowledgeQuery(
   retrieve: RetrieveKnowledge,
   input: { organizationId: string; question: string }
@@ -97,7 +94,7 @@ export async function testKnowledgeQuery(
     limit: supportAgentRetrievedChunkLimit,
   })
   return {
-    threshold: knowledgeRetrievalThreshold,
+    threshold: null,
     hits: snippets.map((snippet) => ({
       documentId: snippet.documentId,
       title: snippet.documentTitle,
