@@ -1,6 +1,7 @@
+import { OpenAIEmbeddings } from "@langchain/openai"
 import type { Database } from "@workspace/db"
+import { createRetrieveKnowledge } from "@workspace/knowledge"
 
-import { createRetrieveKnowledge } from "./retrieve-knowledge"
 import {
   createSupportAgentGraph,
   createSupportAgentModel,
@@ -17,10 +18,14 @@ export function createSupportAgent(options: {
     apiKey: options.apiKey,
     modelName: options.chatModel,
   })
+  const embeddings = new OpenAIEmbeddings({
+    apiKey: options.apiKey,
+    model: options.embeddingModel,
+    configuration: { baseURL: "https://ai-gateway.vercel.sh/v1" },
+  })
   const retrieve = createRetrieveKnowledge({
     database: options.database,
-    apiKey: options.apiKey,
-    embeddingModel: options.embeddingModel,
+    embedQuery: (query) => embeddings.embedQuery(query),
   })
   return {
     graph: createSupportAgentGraph(model, retrieve),

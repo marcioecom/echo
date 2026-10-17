@@ -1,6 +1,7 @@
 import type {
   KnowledgeDocument,
   KnowledgeDocumentDetail,
+  KnowledgeTestResponse,
   KnowledgeUpload,
 } from "../types"
 
@@ -20,7 +21,7 @@ export class KnowledgeBaseApiError extends Error {
 
 async function request<T>(
   path: string,
-  options?: { method?: "POST"; body?: unknown }
+  options?: { method?: "POST" | "PATCH" | "PUT" | "DELETE"; body?: unknown }
 ): Promise<T> {
   const response = await fetch(new URL(path, apiUrl), {
     method: options?.method,
@@ -39,6 +40,7 @@ async function request<T>(
       typeof body?.error === "string" ? body.error : undefined
     )
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
@@ -97,6 +99,41 @@ export function completeKnowledgeUpload(input: {
       body: input,
     }
   )
+}
+
+export function deleteKnowledgeDocument(documentId: string): Promise<void> {
+  return request<void>(`/v1/knowledge-documents/${documentId}`, {
+    method: "DELETE",
+  })
+}
+
+export function patchKnowledgeDocument(
+  documentId: string,
+  input: { title?: string; content?: string }
+): Promise<{ document: KnowledgeDocument }> {
+  return request(`/v1/knowledge-documents/${documentId}`, {
+    method: "PATCH",
+    body: input,
+  })
+}
+
+export function replaceKnowledgeDocumentFile(
+  documentId: string,
+  input: { uploadToken: string }
+): Promise<{ document: KnowledgeDocument }> {
+  return request(`/v1/knowledge-documents/${documentId}/file`, {
+    method: "PUT",
+    body: input,
+  })
+}
+
+export function testKnowledgeQuery(input: {
+  question: string
+}): Promise<KnowledgeTestResponse> {
+  return request("/v1/knowledge-base/test-query", {
+    method: "POST",
+    body: input,
+  })
 }
 
 export function reindexKnowledgeDocument(documentId: string) {

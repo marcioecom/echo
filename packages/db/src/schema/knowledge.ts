@@ -61,6 +61,7 @@ export const knowledgeDocuments = pgTable(
     failureReason:
       text("failure_reason").$type<KnowledgeDocumentFailureReason>(),
     revision: integer("revision").default(1).notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
@@ -73,6 +74,9 @@ export const knowledgeDocuments = pgTable(
       table.status,
       table.updatedAt
     ),
+    index("knowledge_documents_active_organization_updated_at_idx")
+      .on(table.organizationId, table.updatedAt)
+      .where(sql`${table.deletedAt} is null`),
     check(
       "knowledge_documents_source_check",
       sql`(${table.sourceType} = 'text' and ${table.content} is not null and ${table.sourceName} is null and ${table.mimeType} is null and ${table.sourceObjectKey} is null and ${table.sourceObjectEtag} is null and ${table.sourceSizeBytes} is null) or (${table.sourceType} = 'file' and ${table.sourceName} is not null and ${table.mimeType} is not null and ${table.sourceObjectKey} is not null and ${table.sourceObjectEtag} is not null and ${table.sourceSizeBytes} is not null)`
@@ -118,5 +122,35 @@ export const knowledgeDocumentChunks = pgTable(
       "hnsw",
       table.embedding.op("vector_cosine_ops")
     ),
+  ]
+)
+
+export const knowledgeStorageDeletions = pgTable(
+  "knowledge_storage_deletions",
+  {
+    id: text("id").primaryKey().$defaultFn(createId),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "restrict" }),
+    knowledgeDocumentId: text("knowledge_document_id").notNull(),
+    objectKey: text("object_key").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    unique("knowledge_storage_deletions_object_key_unique").on(table.objectKey),
+    foreignKey({
+      name: "knowledge_storage_deletions_document_fk",
+      columns: [table.organizationId, table.knowledgeDocumentId],
+      foreignColumns: [
+        knowledgeDocuments.organizationId,
+        knowledgeDocuments.id,
+      ],
+    }).onDelete("restrict"),
+    index("knowledge_storage_deletions_pending_idx")
+      .on(table.createdAt)
+      .where(sql`${table.completedAt} is null`),
   ]
 )

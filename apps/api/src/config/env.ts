@@ -24,6 +24,11 @@ const apiEnvSchema = serverEnvSchema.extend({
     (value) => Buffer.byteLength(value) >= 32,
     "must be at least 32 bytes"
   ),
+  AI_GATEWAY_API_KEY: z.string().min(1).optional(),
+  AI_EMBEDDING_MODEL: z
+    .string()
+    .min(1)
+    .default("openai/text-embedding-3-small"),
 })
 
 export type ApiEnv = z.output<typeof apiEnvSchema>

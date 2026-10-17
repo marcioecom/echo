@@ -1,14 +1,14 @@
-import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
+import { getKnowledgeDocument } from "@workspace/knowledge"
+
+import { database } from "@/lib/db"
 
 export async function getKnowledgeDocumentDetail(input: {
   organizationId: string
   documentId: string
 }) {
-  const document = await knowledgeDocumentsRepository.find(
-    input.organizationId,
-    input.documentId
-  )
-  if (!document) return null
+  const detail = await getKnowledgeDocument(database.db, input)
+  if (!detail) return null
+  const document = detail.document
 
   return {
     document: {
@@ -25,5 +25,6 @@ export async function getKnowledgeDocumentDetail(input: {
       createdAt: document.createdAt.toISOString(),
       updatedAt: document.updatedAt.toISOString(),
     },
+    previousVersionActive: detail.previousVersionActive,
   }
 }

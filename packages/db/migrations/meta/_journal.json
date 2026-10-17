@@ -57,6 +57,13 @@
       "when": 1792152248099,
       "tag": "0007_dashing_morph",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792213339151,
+      "tag": "0008_knowledge_document_lifecycle",
+      "breakpoints": true
     }
   ]
 }

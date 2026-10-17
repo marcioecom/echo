@@ -34,4 +34,17 @@ export interface KnowledgeDocumentDetail {
   document: KnowledgeDocument & {
     content: string | null
   }
+  previousVersionActive: boolean
+}
+
+export interface KnowledgeTestHit {
+  documentId: string
+  title: string
+  excerpt: string
+  score: number
+}
+
+export interface KnowledgeTestResponse {
+  threshold: number | null
+  hits: KnowledgeTestHit[]
 }

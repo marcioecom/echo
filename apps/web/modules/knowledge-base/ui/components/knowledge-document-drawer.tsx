@@ -1,5 +1,14 @@
 "use client"
 
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
 import {
   Sheet,
@@ -9,14 +18,18 @@ import {
   SheetTitle,
 } from "@workspace/ui/components/sheet"
 import { toast } from "sonner"
+import { useRef, useState } from "react"
 
-import { t } from "@/lib/i18n"
+import { t, translateMessage } from "@/lib/i18n"
 
+import { useDeleteKnowledgeDocument } from "../../hooks/use-delete-knowledge-document"
 import { useKnowledgeDocumentDetail } from "../../hooks/use-knowledge-document-detail"
 import { useKnowledgeDocuments } from "../../hooks/use-knowledge-documents"
+import { useReplaceKnowledgeDocumentFile } from "../../hooks/use-replace-knowledge-document-file"
 import { knowledgeFailureMessage, knowledgeSourceLabel } from "../../labels"
 import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
 import { KnowledgeDocumentStatusBadge } from "./knowledge-document-status"
+import { KnowledgeDocumentTextForm } from "./knowledge-document-text-form"
 
 export function KnowledgeDocumentDrawer({
   document,
@@ -37,7 +50,11 @@ export function KnowledgeDocumentDrawer({
         id="knowledge-document-detail"
       >
         {document ? (
-          <KnowledgeDocumentDetailBody key={document.id} document={document} />
+          <KnowledgeDocumentDetailBody
+            document={document}
+            key={document.id}
+            onClose={onClose}
+          />
         ) : null}
       </SheetContent>
     </Sheet>
@@ -46,11 +63,20 @@ export function KnowledgeDocumentDrawer({
 
 function KnowledgeDocumentDetailBody({
   document,
+  onClose,
 }: {
   document: KnowledgeDocument
+  onClose: () => void
 }) {
   const { query } = useKnowledgeDocumentDetail(document.id)
   const { reindexMutation } = useKnowledgeDocuments()
+  const { deleteMutation } = useDeleteKnowledgeDocument({ onSuccess: onClose })
+  const { replaceMutation } = useReplaceKnowledgeDocumentFile({
+    documentId: document.id,
+  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const detail = query.data
   const shown = detail?.document ?? document
   const failure = knowledgeFailureMessage(shown.failureReason)
@@ -67,6 +93,14 @@ function KnowledgeDocumentDetailBody({
           <KnowledgeDocumentStatusBadge status={shown.status} />
         </div>
         <SheetDescription>{knowledgeSourceLabel(shown)}</SheetDescription>
+        {detail?.previousVersionActive ? (
+          <p
+            className="mt-3 rounded-md bg-muted px-3 py-3 text-sm text-pretty"
+            role="status"
+          >
+            {t("knowledge.detail.previousStillActive")}
+          </p>
+        ) : null}
         {failure ? (
           <div className="mt-3 space-y-3 rounded-md bg-destructive/5 px-3 py-3">
             <p className="text-sm text-destructive" role="alert">
@@ -88,6 +122,65 @@ function KnowledgeDocumentDetailBody({
           </div>
         ) : null}
       </SheetHeader>
+      <div className="flex flex-wrap gap-2 px-6 py-3">
+        {shown.sourceType === "text" ? (
+          <Button
+            onClick={() => setEditing((current) => !current)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {t("knowledge.edit")}
+          </Button>
+        ) : (
+          <Button
+            disabled={replaceMutation.isPending}
+            onClick={() => fileInputRef.current?.click()}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            {replaceMutation.isPending
+              ? t("knowledge.replacing")
+              : t("knowledge.replace")}
+          </Button>
+        )}
+        <Button
+          onClick={() => setConfirmingDelete(true)}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          {t("knowledge.delete")}
+        </Button>
+        {shown.sourceType === "file" ? (
+          <input
+            accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
+            className="sr-only"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              event.target.value = ""
+              if (file) replaceMutation.mutate(file)
+            }}
+            ref={fileInputRef}
+            type="file"
+          />
+        ) : null}
+      </div>
+      {replaceMutation.isError ? (
+        <p className="px-6 text-sm text-destructive" role="alert">
+          {translateMessage(replaceMutation.error.message)}
+        </p>
+      ) : null}
+      {editing && shown.sourceType === "text" ? (
+        <KnowledgeDocumentTextForm
+          content={detail?.document.content ?? ""}
+          documentId={document.id}
+          onCancel={() => setEditing(false)}
+          onDone={() => setEditing(false)}
+          title={shown.title}
+        />
+      ) : null}
       {detail ? (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <DocumentContent
@@ -107,6 +200,29 @@ function KnowledgeDocumentDetailBody({
       ) : (
         <DetailSkeleton />
       )}
+      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("knowledge.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("knowledge.deleteBody")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              {t("knowledge.cancel")}
+            </AlertDialogCancel>
+            <Button
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate(document.id)}
+              type="button"
+              variant="destructive"
+            >
+              {t("knowledge.deleteConfirm")}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }
