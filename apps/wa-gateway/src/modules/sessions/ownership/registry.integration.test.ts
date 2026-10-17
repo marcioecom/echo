@@ -110,6 +110,8 @@ it("routes two connections only to their owners and recovers one without disturb
   registries.push(first, second)
   await Promise.all([first.connect(a), first.connect(a), second.connect(a), first.connect(b), second.connect(b)])
   await vi.waitFor(() => expect(simulated.sockets).toHaveLength(2))
+  expect(simulated.sockets.filter(record => record.socket.user!.id.startsWith(addressA.slice(1)))).toHaveLength(1)
+  expect(simulated.sockets.filter(record => record.socket.user!.id.startsWith(addressB.slice(1)))).toHaveLength(1)
   const socketA = simulated.sockets.find(record => record.socket.user!.id.startsWith(addressA.slice(1)))!
   const socketB = simulated.sockets.find(record => record.socket.user!.id.startsWith(addressB.slice(1)))!
   const queueA = new Queue(waConnectionQueueName(a.channelConnectionId), { connection: redisConnection })

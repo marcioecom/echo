@@ -25,11 +25,14 @@ src/
     use-cases/                    # session composition and job dispatch
     workers/                      # shared connect/logout worker
     auth-state.ts                 # encrypted credential write-behind
-    session.ts                    # live socket lifecycle and effects
-    recent-messages.ts           # Redis-backed message lookup for Baileys retries
+    lifecycle.ts                  # pure private session-state transitions
+    session.ts                    # Baileys runtime and lifecycle effect interpreter
+    recent-messages.ts            # Redis-backed message lookup for Baileys retries
 ```
 
-`ownership/registry.ts` owns one Baileys socket per `channelConnectionId` in each process. Redis leases prevent duplicate owners; `owner_token` fences Postgres writes. Only the owner consumes that connection's pairing/send queue. The shared queue carries connect/logout intents.
+`ownership/registry.ts` owns distributed connection lifecycle. It acquires Redis leases, claims fenced Postgres ownership, admits sessions, starts per-connection workers, reconciles ownership, and shuts sessions down. `lifecycle.ts` defines the private connection phases and pure transitions. `session.ts` interprets those transitions around Baileys callbacks, timers, persistence, and queues. `adapters/` translates the provider contract without changing queue or event payloads.
+
+Redis leases prevent duplicate owners; `owner_token` fences Postgres writes. Only the owner consumes that connection's pairing/send queue. The shared queue carries connect/logout intents.
 
 ## Local development
 
@@ -38,12 +41,14 @@ cp apps/wa-gateway/.env.example apps/wa-gateway/.env
 pnpm --filter @workspace/wa-gateway dev
 ```
 
-| Script           | What it does                 |
-| ---------------- | ---------------------------- |
-| `pnpm dev`       | `tsx watch` on `src/main.ts` |
-| `pnpm test`      | Vitest                       |
-| `pnpm typecheck` | `tsc --noEmit`               |
-| `pnpm lint`      | ESLint                       |
-| `pnpm build`     | `tsup` → `dist/main.js`      |
+| Check        | Command                                         |
+| ------------ | ----------------------------------------------- |
+| Unit tests    | `pnpm --filter @workspace/wa-gateway test`      |
+| Typecheck    | `pnpm --filter @workspace/wa-gateway typecheck` |
+| Lint         | `pnpm --filter @workspace/wa-gateway lint`      |
+| Build        | `pnpm --filter @workspace/wa-gateway build`     |
+| Integration  | `pnpm --filter @workspace/wa-gateway test:integration` |
+
+The integration command reads `apps/wa-gateway/.env`. Point it only at disposable Postgres and Redis services. The session-directory integration test deletes organizations with the `wa-gw-session-dir-` slug prefix.
 
 Logs never include message bodies, QR strings, or pairing codes. The Baileys logger stays at `warn` and redacts those fields.

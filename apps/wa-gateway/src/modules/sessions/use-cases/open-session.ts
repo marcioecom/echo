@@ -17,7 +17,11 @@ import {
 } from "../events/publish-channel-event"
 import { PostgresAuthKeysRepository } from "../repositories/postgres-auth-keys-repository"
 import type { SessionDirectory } from "../repositories/session-directory"
-import { acquireSendSlot, claimInboundMessage } from "../traffic/rate-limit"
+import {
+  acquireSendSlot,
+  claimInboundMessage,
+  hasSeenInboundMessage,
+} from "../traffic/rate-limit"
 import { recallRecentMessage, rememberRecentMessage } from "../recent-messages"
 import { BaileysSession } from "../session"
 import type { ConnectionRef } from "../types"
@@ -74,6 +78,11 @@ export async function openSession(
     publishPairingCode: (pairingCode) =>
       publishPairingCode({ ...connection, pairingCode }),
     publishStatus: () => publishChannelStatus(connection),
+    hasSeenInbound: (externalMessageId) =>
+      hasSeenInboundMessage(redisConnection, {
+        channelConnectionId: connection.channelConnectionId,
+        externalMessageId,
+      }),
     claimInbound: (externalMessageId) =>
       claimInboundMessage(redisConnection, {
         channelConnectionId: connection.channelConnectionId,
