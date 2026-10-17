@@ -134,7 +134,6 @@ const en = {
   },
   errors: {
     routingConflict: "This number is already in use by another organization.",
-    sessionExists: "This organization already has a QR session open.",
     pairingRequired: "Pair this number again before turning it on.",
     queueUnavailable: "Echo could not reach the connection service. Try again.",
     invalid: "Review the fields and try again.",
@@ -283,7 +282,6 @@ const ptBR = {
   },
   errors: {
     routingConflict: "Esse número já está em uso em outra organização.",
-    sessionExists: "Esta organização já tem uma sessão de QR aberta.",
     pairingRequired: "Pareie este número de novo antes de ativá-lo.",
     queueUnavailable:
       "Não foi possível falar com o serviço de conexão. Tente de novo.",

@@ -10,7 +10,6 @@ import {
 } from "../channel-connection-view"
 import { publishChannelStatusChanged } from "../events/publish-channel-status-changed"
 import {
-  BaileysSessionExistsError,
   ChannelRoutingConflictError,
   channelConnectionsRepository,
   OrganizationNotActiveError,
@@ -18,7 +17,6 @@ import {
 
 export type CreateBaileysChannelError =
   | { type: "organization_unavailable" }
-  | { type: "session_exists" }
   | { type: "routing_conflict" }
   | { type: "queue_unavailable" }
 
@@ -45,9 +43,6 @@ export async function createBaileysChannelConnection(input: {
   } catch (error) {
     if (error instanceof OrganizationNotActiveError) {
       return err({ type: "organization_unavailable" })
-    }
-    if (error instanceof BaileysSessionExistsError) {
-      return err({ type: "session_exists" })
     }
     if (error instanceof ChannelRoutingConflictError) {
       return err({ type: "routing_conflict" })

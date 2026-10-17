@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest"
 
-import { nextReconnect } from "./reconnect"
+import { nextReconnect, reconnectDelayMs } from "./reconnect"
+
+describe("reconnectDelayMs", () => {
+  it("backs off and caps at five minutes plus jitter", () => {
+    expect(reconnectDelayMs(1, () => 0)).toBe(1_000)
+    expect(reconnectDelayMs(3, () => 0)).toBe(4_000)
+    expect(reconnectDelayMs(20, () => 0)).toBe(5 * 60 * 1_000)
+    expect(reconnectDelayMs(1, () => 0.5)).toBe(1_125)
+  })
+})
 
 describe("nextReconnect", () => {
   it("retries immediately after pairing and after a drop that followed open", () => {

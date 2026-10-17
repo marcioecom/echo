@@ -76,6 +76,65 @@ describe("createJobClient", () => {
     expect(add).toHaveBeenCalledWith("send-password-reset-email", payload, {})
   })
 
+  it("enqueues pairing code on the connection queue", async () => {
+    add.mockResolvedValue({ id: "pairing-1" })
+    const connection = {} as never
+    const client = createJobClient(connection)
+    const payload = {
+      organizationId: "01JFXN7G8C2V1D7A0B3E4F5G6H",
+      channelConnectionId: "01JFXN7G8C2V1D7A0B3E4F5G6J",
+      phoneNumber: "+5511999999999",
+    }
+
+    await expect(client.enqueue("wa-pairing-code", payload)).resolves.toEqual({
+      id: "pairing-1",
+    })
+
+    expect(constructQueue).toHaveBeenCalledWith(
+      `wa-gateway-${payload.channelConnectionId}`,
+      {
+        connection,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { type: "exponential", delay: 2_000 },
+          removeOnComplete: { age: 86_400, count: 1_000 },
+          removeOnFail: { age: 604_800 },
+        },
+      }
+    )
+    expect(add).toHaveBeenCalledWith("wa-pairing-code", payload, {})
+  })
+
+  it("reuses each connection queue and closes it with the ordinary queues", async () => {
+    add.mockResolvedValue({ id: "queued" })
+    close.mockResolvedValue(undefined)
+    const client = createJobClient({} as never)
+    const payload = {
+      organizationId: "01JFXN7G8C2V1D7A0B3E4F5G6H",
+      channelConnectionId: "01JFXN7G8C2V1D7A0B3E4F5G6J",
+      phoneNumber: "+5511999999999",
+    }
+    await client.enqueue("wa-pairing-code", payload)
+    await client.enqueue("wa-pairing-code", payload)
+    await client.enqueue("send-invitation-email", validInvitation)
+    expect(constructQueue).toHaveBeenCalledTimes(2)
+    await client.close()
+    expect(close).toHaveBeenCalledTimes(2)
+  })
+
+  it("rejects invalid pairing payloads before creating a queue job", async () => {
+    const client = createJobClient({} as never)
+
+    await expect(
+      client.enqueue("wa-pairing-code", {
+        organizationId: "invalid",
+        channelConnectionId: "01JFXN7G8C2V1D7A0B3E4F5G6J",
+        phoneNumber: "+5511999999999",
+      })
+    ).rejects.toThrow()
+    expect(add).not.toHaveBeenCalled()
+  })
+
   it("applies queue defaults and a deterministic job ID", async () => {
     add.mockResolvedValue({
       id: "process-inbound-message--01JFXN7G8C2V1D7A0B3E4F5G6H",

@@ -1,5 +1,5 @@
 import { ChannelCredentialsCipher } from "@workspace/messaging"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import { rotateBaileysAuthKeys, useEchoAuthState } from "./auth-state"
 import { MemoryAuthKeyRepository } from "./repositories/auth-keys-repository"
@@ -8,6 +8,7 @@ const encryptionKey = Buffer.alloc(32, 7).toString("base64")
 const scope = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
   channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
+  ownerToken: "01OWNER_TOKEN_FOR_TESTS000000",
 }
 
 describe("useEchoAuthState", () => {
@@ -74,6 +75,61 @@ describe("useEchoAuthState", () => {
     await auth.clear()
 
     await expect(repository.list(scope)).resolves.toEqual([])
+  })
+
+  it("waits for in-flight credential persistence before clearing and rejects late writes", async () => {
+    const repository = new MemoryAuthKeyRepository()
+    const persist = repository.write.bind(repository)
+    let release!: () => void
+    const held = new Promise<void>((resolve) => { release = resolve })
+    const write = vi.spyOn(repository, "write").mockImplementation(async (input) => {
+      await held
+      await persist(input)
+    })
+    const auth = await useEchoAuthState({
+      ...scope,
+      repository,
+      cipher: new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" }),
+    })
+    const saving = auth.saveCreds()
+    await vi.waitFor(() => expect(write).toHaveBeenCalledOnce())
+    const clearing = auth.clear()
+    await auth.saveCreds()
+    release()
+    await Promise.all([saving, clearing])
+    await auth.saveCreds()
+    expect(await repository.list(scope)).toEqual([])
+  })
+
+  it("discard drops pending writes without flushing them", async () => {
+    const repository = new MemoryAuthKeyRepository()
+    const write = vi.spyOn(repository, "write")
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
+    const auth = await useEchoAuthState({
+      ...scope,
+      cipher,
+      repository,
+      flushDelayMs: 60_000,
+      batchSize: 100,
+    })
+    const pendingWrite = auth.state.keys.set({
+      "pre-key": {
+        "9": {
+          public: Buffer.from("late"),
+          private: Buffer.from("late"),
+        },
+      },
+    })
+    await auth.discard()
+    await pendingWrite
+
+    expect(write).not.toHaveBeenCalled()
+    await expect(
+      repository.read({ ...scope, keyType: "pre-key", keyId: "9" })
+    ).resolves.toBeNull()
   })
 
   it("rotates keyVersion and refuses the previous cipher", async () => {

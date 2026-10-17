@@ -23,7 +23,9 @@ vi.mock("./config/env", () => ({
   },
 }))
 vi.mock("./lib/db", () => ({ database: { check: postgres, db: {} } }))
-vi.mock("./lib/jobs-client", () => ({ jobs: { enqueue: vi.fn() } }))
+vi.mock("./lib/jobs-client", () => ({
+  jobs: { enqueue: vi.fn() },
+}))
 vi.mock("./lib/redis", () => ({ pingRedis: redis }))
 vi.mock("./modules/auth/auth", () => ({ auth: {} }))
 vi.mock(

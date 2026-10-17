@@ -36,7 +36,9 @@ vi.mock("../../lib/db", () => ({
     ),
   },
 }))
-vi.mock("../../lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("../../lib/jobs-client", () => ({
+  jobs: { enqueue },
+}))
 
 import { InboundMessageRepository } from "./repositories/inbound-message-repository"
 import type { NormalizedInboundMessage } from "@workspace/domain"

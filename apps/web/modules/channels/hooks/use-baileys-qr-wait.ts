@@ -27,10 +27,9 @@ export function useBaileysQrWait(input: {
   const channels = useChannels(input.organizationId)
   const [timedOut, setTimedOut] = useState(false)
 
-  const qr =
-    input.channelId && live.qr?.channelConnectionId === input.channelId
-      ? live.qr.qr
-      : null
+  const qr = input.channelId
+    ? live.qrByChannelId[input.channelId] ?? null
+    : null
 
   const channel = findChannel(channels.data?.items, input.channelId)
   const sessionFailed = isSessionFailed(channel)

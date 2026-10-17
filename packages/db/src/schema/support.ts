@@ -134,6 +134,7 @@ export const channelSessionStates = pgTable(
 		lastConnectedAt: timestamp("last_connected_at", { withTimezone: true }),
 		lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
 		ownerPod: text("owner_pod"),
+		ownerToken: text("owner_token"),
 		reconnectAttempts: integer("reconnect_attempts").default(0).notNull(),
 		...timestamps,
 	},

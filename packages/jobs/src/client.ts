@@ -2,7 +2,7 @@ import type { JobsOptions } from "bullmq"
 import { Queue } from "bullmq"
 import type { Redis } from "ioredis"
 import type { z } from "zod"
-import { queueDefinitions, type QueueName } from "./queue-definitions"
+import { queueDefinitions, waGatewayQueueDefinition } from "./queue-definitions"
 import { jobDefinitions, type JobName } from "./schemas"
 
 export interface EnqueuedJob {
@@ -19,14 +19,14 @@ export interface JobClient {
 }
 
 export function createJobClient(connection: Redis): JobClient {
-  const queues = new Map<QueueName, Queue>()
+  const queues = new Map<string, Queue>()
 
-  function getQueue(queueName: QueueName): Queue {
+  function getQueue(queueName: string, defaultJobOptions: JobsOptions): Queue {
     let queue = queues.get(queueName)
     if (!queue) {
       queue = new Queue(queueName, {
         connection,
-        defaultJobOptions: queueDefinitions[queueName].defaultJobOptions,
+        defaultJobOptions,
       })
       queues.set(queueName, queue)
     }
@@ -43,7 +43,15 @@ export function createJobClient(connection: Redis): JobClient {
         jobOptions.jobId = definition.jobId(parsedPayload as never)
       }
 
-      const job = await getQueue(definition.queueName).add(
+      const queueName =
+        typeof definition.queueName === "function"
+          ? definition.queueName(parsedPayload as never)
+          : definition.queueName
+      const defaultJobOptions =
+        typeof definition.queueName === "function"
+          ? waGatewayQueueDefinition.defaultJobOptions
+          : queueDefinitions[definition.queueName].defaultJobOptions
+      const job = await getQueue(queueName, defaultJobOptions).add(
         jobName,
         parsedPayload,
         jobOptions

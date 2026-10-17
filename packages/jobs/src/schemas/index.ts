@@ -20,15 +20,16 @@ import {
 } from "./support-conversations"
 import {
   waConnectJobSchema,
+  waConnectionQueueName,
   waGatewayJobNames,
   waGatewayQueueName,
   waInboundJobSchema,
   waIngressJobNames,
   waIngressQueueName,
   waLogoutJobSchema,
-  waPairingCodeJobSchema,
-  waSendJobSchema,
   waStatusJobSchema,
+  waPairingCodeJobSchema,
+  type WaPairingCodeJob,
 } from "./wa-gateway"
 
 export * from "./email"
@@ -68,12 +69,9 @@ export const jobDefinitions = {
     schema: waConnectJobSchema,
   },
   [waGatewayJobNames.pairingCode]: {
-    queueName: waGatewayQueueName,
+    queueName: (payload: WaPairingCodeJob) =>
+      waConnectionQueueName(payload.channelConnectionId),
     schema: waPairingCodeJobSchema,
-  },
-  [waGatewayJobNames.send]: {
-    queueName: waGatewayQueueName,
-    schema: waSendJobSchema,
   },
   [waGatewayJobNames.logout]: {
     queueName: waGatewayQueueName,

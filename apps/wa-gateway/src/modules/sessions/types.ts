@@ -1,4 +1,4 @@
-import type { RawInboundMessage } from "./inbound-filter"
+import type { RawInboundMessage } from "./adapters/inbound-filter"
 
 export interface ConnectionRef {
   organizationId: string

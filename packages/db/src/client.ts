@@ -23,4 +23,5 @@ export function createDatabase(databaseUrl: string, dependencyTimeoutMs: number)
   }
 }
 
-export type Database = ReturnType<typeof createDatabase>["db"]
+export type DatabaseClient = ReturnType<typeof createDatabase>
+export type Database = DatabaseClient["db"]

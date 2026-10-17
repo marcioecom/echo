@@ -8,6 +8,7 @@ import type { SessionEvents, SessionSocket } from "./types"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"
+const ownerToken = "01OWNER_TOKEN_FOR_TESTS000000"
 
 function fakeSocket() {
   let handler: ((events: SessionEvents) => Promise<void> | void) | null = null
@@ -38,9 +39,12 @@ function harness(options?: {
 }) {
   const opened: ReturnType<typeof fakeSocket>[] = []
   const directory: SessionDirectory = {
-    setState: vi.fn(async () => undefined),
-    markConnected: vi.fn(async () => undefined),
-    findResumable: vi.fn(async () => null),
+    claim: vi.fn(async () => true),
+    isOwner: vi.fn(async () => true),
+    release: vi.fn(async () => true),
+    setState: vi.fn(async () => true),
+    markConnected: vi.fn(async () => true),
+    findResumable: vi.fn(async () => []),
   }
   const publishQr = vi.fn(async () => undefined)
   const publishPairingCode = vi.fn(async () => undefined)
@@ -48,6 +52,7 @@ function harness(options?: {
   const enqueueStatus = vi.fn(async () => undefined)
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
   const clear = vi.fn(async () => undefined)
+  const discard = vi.fn(async () => undefined)
   const auth = {
     state: {
       creds: {
@@ -57,6 +62,7 @@ function harness(options?: {
     },
     saveCreds: vi.fn(async () => undefined),
     flush: vi.fn(async () => undefined),
+    discard,
     clear,
   } as EchoAuthState
   const session = new BaileysSession({
@@ -81,6 +87,7 @@ function harness(options?: {
     delay: async () => undefined,
     pairingTimeoutMs: options?.pairingTimeoutMs ?? 60_000,
     ownerPod: "pod-a",
+    ownerToken,
     logger,
   })
   return {
@@ -240,7 +247,7 @@ describe("BaileysSession", () => {
       cause: Object.assign(new Error("fk"), { code: "23503" }),
     })
     vi.mocked(setup.directory.setState)
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(true)
       .mockRejectedValue(missing)
 
     const running = setup.session.run()

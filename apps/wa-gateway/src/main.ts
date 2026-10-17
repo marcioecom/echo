@@ -1,3 +1,5 @@
+import { hostname } from "node:os"
+
 import { createLoggerWithContext } from "@workspace/logger"
 
 import { createApp } from "./app"
@@ -5,17 +7,29 @@ import { env } from "./config/env"
 import { database } from "./lib/db"
 import { jobs } from "./lib/jobs"
 import { pingRedis, redisConnection } from "./lib/redis"
-import { createSessionRegistry } from "./modules/sessions/use-cases/open-session"
+import { SessionRegistry } from "./modules/sessions/ownership/registry"
+import { PostgresAuthKeysRepository } from "./modules/sessions/repositories/postgres-auth-keys-repository"
+import { PostgresSessionDirectory } from "./modules/sessions/repositories/session-directory"
+import { openSession } from "./modules/sessions/use-cases/open-session"
 import { startGatewayWorker } from "./modules/sessions/workers/gateway-worker"
 
 const logger = createLoggerWithContext("wa-gateway:main")
 
 async function main(): Promise<void> {
-  const registry = createSessionRegistry()
-  const worker = startGatewayWorker(registry)
-  const app = createApp()
+  const directory = new PostgresSessionDirectory()
+  const authKeys = new PostgresAuthKeysRepository()
+  const ownerPod = env.POD_NAME ?? hostname()
+  const registry = new SessionRegistry({
+    redis: redisConnection,
+    directory,
+    ownerPod,
+    openSession: (connection, lease) =>
+      openSession(connection, lease, { authKeys, directory, ownerPod }),
+  })
 
+  const app = createApp()
   let shutdownPromise: Promise<void> | undefined
+  let closeWorker: () => Promise<void> = async () => undefined
 
   function shutdown(signal?: NodeJS.Signals): Promise<void> {
     shutdownPromise ??= performShutdown(signal)
@@ -27,7 +41,7 @@ async function main(): Promise<void> {
 
     const steps: ReadonlyArray<readonly [string, () => Promise<unknown>]> = [
       ["gateway.stop", () => registry.stop()],
-      ["worker.close", () => worker.close()],
+      ["worker.close", () => closeWorker()],
       ["app.close", () => app.close()],
       ["jobs.close", () => jobs.close()],
       ["redis.quit", () => redisConnection.quit()],
@@ -60,6 +74,8 @@ async function main(): Promise<void> {
   await database.check()
   await pingRedis()
   await registry.start()
+  const worker = startGatewayWorker(registry)
+  closeWorker = () => worker.close()
   await app.listen({ host: env.WA_GATEWAY_HOST, port: env.WA_GATEWAY_PORT })
   logger.info("wa-gateway listening", { port: env.WA_GATEWAY_PORT })
 }

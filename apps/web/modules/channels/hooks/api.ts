@@ -27,7 +27,6 @@ export class ChannelsApiError extends Error {
 }
 
 const errorMessages = {
-  baileys_session_exists: "channels.errors.sessionExists",
   channel_routing_conflict: "channels.errors.routingConflict",
   invalid_request: "channels.errors.invalid",
   pairing_required: "channels.errors.pairingRequired",

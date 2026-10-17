@@ -1,0 +1,1 @@
+ALTER TABLE "channel_session_states" ADD COLUMN "owner_token" text;

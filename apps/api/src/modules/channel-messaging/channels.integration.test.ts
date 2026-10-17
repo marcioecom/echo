@@ -5,10 +5,11 @@ import type { createDatabase } from "@workspace/db"
 import {
   channelConnectionProviderBindings,
   channelConnections,
+  channelSessionStates,
 } from "@workspace/db/schema"
 import { inboxEventChannel, parseInboxEvent } from "@workspace/jobs"
 import { ChannelCredentialsCipher } from "@workspace/messaging"
-import { eq, sql } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
@@ -149,6 +150,61 @@ describe("channel connection API", () => {
     })
     expect(response.statusCode).toBe(200)
     return response.json() as { id: string }
+  }
+
+  async function pairBaileysConnection(
+    organizationId: string,
+    channelConnectionId: string,
+    address: string
+  ): Promise<void> {
+    const userJid = `${address.replace("+", "")}@s.whatsapp.net`
+    await database.db.transaction(async (transaction) => {
+      await transaction
+        .update(channelConnections)
+        .set({ address, status: "active" })
+        .where(
+          and(
+            eq(channelConnections.organizationId, organizationId),
+            eq(channelConnections.id, channelConnectionId)
+          )
+        )
+      await transaction
+        .update(channelConnectionProviderBindings)
+        .set({
+          routingAddress: address,
+          externalAccountId: address,
+          externalSenderId: userJid,
+        })
+        .where(
+          and(
+            eq(channelConnectionProviderBindings.organizationId, organizationId),
+            eq(
+              channelConnectionProviderBindings.channelConnectionId,
+              channelConnectionId
+            )
+          )
+        )
+      await transaction
+        .update(channelSessionStates)
+        .set({
+          state: "connected",
+          lastError: null,
+          lastConnectedAt: new Date(),
+          lastSeenAt: new Date(),
+        })
+        .where(
+          and(
+            eq(channelSessionStates.organizationId, organizationId),
+            eq(channelSessionStates.channelConnectionId, channelConnectionId)
+          )
+        )
+    })
+  }
+
+  function isUniqueViolation(error: unknown): boolean {
+    if (!error || typeof error !== "object") return false
+    if ("code" in error && error.code === "23505") return true
+    return "cause" in error && isUniqueViolation(error.cause)
   }
 
   function channelPayload(suffix: string, inboxId?: string) {
@@ -389,6 +445,128 @@ describe("channel connection API", () => {
       headers: { cookie: operatorCookies },
     })
     expect(forbidden.statusCode).toBe(403)
+  })
+
+  it("allows multiple Baileys connections, independent reactivation, and rejects duplicate numbers", async () => {
+    const ownerCookies = await signUp("baileys-multi@acme.test", "Owner")
+    const organization = await createOrganization(
+      ownerCookies,
+      "Baileys Multi",
+      "baileys-multi"
+    )
+
+    const createFirst = await app.inject({
+      method: "POST",
+      url: "/v1/channels",
+      headers: { cookie: ownerCookies },
+      payload: { provider: "baileys", displayName: "Linha A" },
+    })
+    const createSecond = await app.inject({
+      method: "POST",
+      url: "/v1/channels",
+      headers: { cookie: ownerCookies },
+      payload: { provider: "baileys", displayName: "Linha B" },
+    })
+    expect(createFirst.statusCode).toBe(201)
+    expect(createSecond.statusCode).toBe(201)
+
+    const firstId = (createFirst.json() as { channel: { id: string } }).channel
+      .id
+    const secondId = (createSecond.json() as { channel: { id: string } }).channel
+      .id
+    expect(firstId).not.toBe(secondId)
+
+    const listed = await app.inject({
+      method: "GET",
+      url: "/v1/channels",
+      headers: { cookie: ownerCookies },
+    })
+    expect(listed.statusCode).toBe(200)
+    const baileysItems = (
+      listed.json() as {
+        items: Array<{ id: string; provider: string; status: string }>
+      }
+    ).items.filter((item) => item.provider === "baileys")
+    expect(baileysItems).toHaveLength(2)
+    expect(baileysItems.every((item) => item.status === "pending")).toBe(true)
+
+    const addressA = "+5511988811111"
+    const addressB = "+5511988822222"
+    await pairBaileysConnection(organization.id, firstId, addressA)
+    await pairBaileysConnection(organization.id, secondId, addressB)
+
+    const bindings = await database.db
+      .select({
+        channelConnectionId:
+          channelConnectionProviderBindings.channelConnectionId,
+        routingAddress: channelConnectionProviderBindings.routingAddress,
+      })
+      .from(channelConnectionProviderBindings)
+      .where(
+        eq(channelConnectionProviderBindings.organizationId, organization.id)
+      )
+    expect(bindings).toEqual(
+      expect.arrayContaining([
+        { channelConnectionId: firstId, routingAddress: addressA },
+        { channelConnectionId: secondId, routingAddress: addressB },
+      ])
+    )
+
+    await expect(
+      pairBaileysConnection(organization.id, secondId, addressA)
+    ).rejects.toSatisfy(isUniqueViolation)
+
+    const disabled = await app.inject({
+      method: "PATCH",
+      url: `/v1/channels/${firstId}`,
+      headers: { cookie: ownerCookies },
+      payload: { status: "disabled" },
+    })
+    expect(disabled.statusCode).toBe(200)
+
+    const afterDisable = await app.inject({
+      method: "GET",
+      url: "/v1/channels",
+      headers: { cookie: ownerCookies },
+    })
+    const byId = new Map(
+      (
+        afterDisable.json() as {
+          items: Array<{ id: string; status: string; address: string | null }>
+        }
+      ).items.map((item) => [item.id, item])
+    )
+    expect(byId.get(firstId)).toMatchObject({ status: "disabled" })
+    expect(byId.get(secondId)).toMatchObject({
+      status: "active",
+      address: addressB,
+    })
+
+    const reactivated = await app.inject({
+      method: "PATCH",
+      url: `/v1/channels/${firstId}`,
+      headers: { cookie: ownerCookies },
+      payload: { status: "active" },
+    })
+    expect(reactivated.statusCode).toBe(200)
+    expect(reactivated.json()).toMatchObject({
+      channel: { id: firstId, status: "pending" },
+    })
+
+    const afterReactivate = await app.inject({
+      method: "GET",
+      url: "/v1/channels",
+      headers: { cookie: ownerCookies },
+    })
+    const secondAfter = (
+      afterReactivate.json() as {
+        items: Array<{ id: string; status: string; address: string | null }>
+      }
+    ).items.find((item) => item.id === secondId)
+    expect(secondAfter).toMatchObject({
+      status: "active",
+      address: addressB,
+    })
   })
 
   it("refuses invalid Twilio credentials before saving", async () => {

@@ -10,6 +10,7 @@ export interface StoredAuthKey {
 export interface AuthKeyScope {
   organizationId: string
   channelConnectionId: string
+  ownerToken: string
 }
 
 export interface AuthKeysRepository {

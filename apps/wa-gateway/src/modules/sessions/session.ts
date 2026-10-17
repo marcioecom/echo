@@ -2,15 +2,15 @@ import type { SendResult, StatusUpdate } from "@workspace/messaging"
 import type { ChannelSessionState } from "@workspace/domain"
 
 import type { EchoAuthState } from "./auth-state"
-import { statusUpdatesFromBaileys } from "./delivery-status"
-import { classifyDisconnect, disconnectStatusCode } from "./disconnect"
+import { statusUpdatesFromBaileys } from "./adapters/delivery-status"
+import { classifyDisconnect, disconnectStatusCode } from "./policies/disconnect"
 import { PairingUnavailableError, RoutingConflictError } from "./errors"
 import {
   filterInboundUpsert,
   phoneFromJid,
   type FilteredInbound,
-} from "./inbound-filter"
-import { nextReconnect, type CloseOutcome } from "./reconnect"
+} from "./adapters/inbound-filter"
+import { nextReconnect, type CloseOutcome } from "./policies/reconnect"
 import type { SessionDirectory } from "./repositories/session-directory"
 import type { SessionEvents, SessionLogger, SessionSocket } from "./types"
 
@@ -49,6 +49,7 @@ export class BaileysSession {
       delay: (ms: number) => Promise<void>
       pairingTimeoutMs: number
       ownerPod: string | null
+      ownerToken: string
       logger: SessionLogger
     }
   ) {}
@@ -77,11 +78,15 @@ export class BaileysSession {
     await this.deps.auth.flush()
   }
 
-  async stop(): Promise<void> {
+  async stop(options?: { ownershipLost?: boolean }): Promise<void> {
     this.stopped = true
     this.clearPairingTimer()
     if (this.socket) await this.socket.end(undefined)
     this.finish("stopped")
+    if (options?.ownershipLost) {
+      await this.deps.auth.discard()
+      return
+    }
     await this.deps.auth.flush()
   }
 
@@ -120,14 +125,17 @@ export class BaileysSession {
     }
     const jid = `${input.to.slice(1)}@s.whatsapp.net`
     await this.socket.sendPresenceUpdate("composing", jid)
-    await this.deps.delay(this.deps.composeDelayMs(input.body))
-    const sent = await this.socket.sendMessage(jid, { text: input.body })
-    await this.socket.sendPresenceUpdate("paused", jid)
-    const externalMessageId = sent?.key?.id
-    if (!externalMessageId) {
-      return { ok: false, retryable: true, code: "missing_provider_id" }
+    try {
+      await this.deps.delay(this.deps.composeDelayMs(input.body))
+      const sent = await this.socket.sendMessage(jid, { text: input.body })
+      const externalMessageId = sent?.key?.id
+      if (!externalMessageId) {
+        return { ok: false, retryable: true, code: "missing_provider_id" }
+      }
+      return { ok: true, externalMessageId }
+    } finally {
+      await this.socket.sendPresenceUpdate("paused", jid).catch(() => undefined)
     }
-    return { ok: true, externalMessageId }
   }
 
   private async connectOnce(): Promise<CloseOutcome> {
@@ -193,13 +201,20 @@ export class BaileysSession {
       return
     }
     try {
-      await this.deps.directory.markConnected({
+      const connected = await this.deps.directory.markConnected({
         organizationId: this.deps.organizationId,
         channelConnectionId: this.deps.channelConnectionId,
+        ownerToken: this.deps.ownerToken,
         address,
         userJid: this.socket.user.id,
         ownerPod: this.deps.ownerPod,
       })
+      if (!connected) {
+        await this.deps.auth.discard()
+        this.stopped = true
+        await this.socket.end(undefined)
+        return
+      }
     } catch (error) {
       if (error instanceof RoutingConflictError) {
         await this.recordState("disconnected", "routing_conflict")
@@ -296,18 +311,26 @@ export class BaileysSession {
     reconnectAttempts?: number
   ): Promise<boolean> {
     try {
-      await this.deps.directory.setState({
+      const tracked = await this.deps.directory.setState({
         organizationId: this.deps.organizationId,
         channelConnectionId: this.deps.channelConnectionId,
+        ownerToken: this.deps.ownerToken,
         state,
         lastError,
         reconnectAttempts,
         ownerPod: this.deps.ownerPod,
         connected: state === "connected",
       })
+      if (!tracked) {
+        await this.deps.auth.discard()
+        this.stopped = true
+        this.deps.logger.warn("Skipping state write; ownership lost", {
+          state,
+          lastError,
+        })
+        return false
+      }
     } catch (error) {
-      // Delete removes the connection before logout finishes. Never crash the
-      // session loop on that race — it leaves the registry slot stuck busy.
       if (!isMissingConnection(error)) throw error
       this.deps.logger.warn("Skipping state write; connection gone", {
         state,
