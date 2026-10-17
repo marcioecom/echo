@@ -174,4 +174,46 @@ describe("createJobClient", () => {
       }
     )
   })
+
+  it("keeps the index job on the queue backoff and identifies it by document revision", async () => {
+    add.mockResolvedValue({ id: "index" })
+    const connection = {} as never
+    const client = createJobClient(connection)
+    const payload = {
+      organizationId: "01K1EDN69NFBWCG42B2H99V2C4",
+      documentId: "01K1EDN69NFBWCG42B2H99V2C5",
+      revision: 5,
+    }
+
+    await client.enqueue("index-knowledge-document", payload)
+
+    expect(constructQueue).toHaveBeenCalledWith("knowledge-base", {
+      connection,
+      defaultJobOptions: {
+        attempts: 4,
+        backoff: { type: "exponential", delay: 300_000 },
+        removeOnComplete: { age: 86_400, count: 1_000 },
+        removeOnFail: { age: 604_800 },
+      },
+    })
+    expect(add).toHaveBeenCalledWith("index-knowledge-document", payload, {
+      jobId: "index-knowledge-document--01K1EDN69NFBWCG42B2H99V2C5--5",
+    })
+  })
+
+  it("retries a knowledge object deletion quickly and keeps one job id", async () => {
+    add.mockResolvedValue({
+      id: "delete-knowledge-object--01K1EDN69NFBWCG42B2H99V2C4",
+    })
+    const client = createJobClient({} as never)
+    const payload = { deletionId: "01K1EDN69NFBWCG42B2H99V2C4" }
+
+    await client.enqueue("delete-knowledge-object", payload)
+
+    expect(add).toHaveBeenCalledWith("delete-knowledge-object", payload, {
+      attempts: 8,
+      backoff: { type: "exponential", delay: 2_000 },
+      jobId: "delete-knowledge-object--01K1EDN69NFBWCG42B2H99V2C4",
+    })
+  })
 })

@@ -1,8 +1,8 @@
+import { markIndexDispatchFailed } from "@workspace/knowledge"
 import { knowledgeBaseJobNames } from "@workspace/jobs"
 
+import { database } from "@/lib/db"
 import { jobs } from "@/lib/jobs-client"
-
-import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
 
 export async function dispatchKnowledgeIndexing(input: {
   organizationId: string
@@ -17,11 +17,7 @@ export async function dispatchKnowledgeIndexing(input: {
     })
     return true
   } catch {
-    await knowledgeDocumentsRepository.markDispatchFailed(
-      input.organizationId,
-      input.documentId,
-      input.revision
-    )
+    await markIndexDispatchFailed(database.db, input)
     return false
   }
 }

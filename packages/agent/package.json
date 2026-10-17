@@ -22,7 +22,7 @@
     "@langchain/langgraph": "^1.4.13",
     "@langchain/openai": "^1.5.10",
     "@workspace/db": "workspace:*",
-    "drizzle-orm": "^0.45.2",
+    "@workspace/knowledge": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

@@ -10,6 +10,7 @@ import { PageHeader } from "@/modules/shell/ui/page-header"
 
 import { KnowledgeDocumentForm } from "../components/knowledge-document-form"
 import { KnowledgeDocumentList } from "../components/knowledge-document-list"
+import { KnowledgeTestPanel } from "../components/knowledge-test-panel"
 
 export function KnowledgeBaseView() {
   const [composing, setComposing] = useState(false)
@@ -39,6 +40,7 @@ export function KnowledgeBaseView() {
         />
       ) : null}
       <KnowledgeDocumentList onAdd={() => setComposing(true)} />
+      <KnowledgeTestPanel />
     </div>
   )
 }
