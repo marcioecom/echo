@@ -46,6 +46,7 @@ export class SessionRegistry {
 
   async start(): Promise<void> {
     const resumable = await this.deps.directory.findResumable()
+    if (this.stopping) return
     for (const connection of resumable) {
       try {
         await this.connect(connection)
@@ -56,6 +57,7 @@ export class SessionRegistry {
         })
       }
     }
+    if (this.stopping) return
     this.reconcileTimer = setInterval(() => {
       void this.reconcile()
     }, reconcileMs)
@@ -64,7 +66,7 @@ export class SessionRegistry {
 
   async connect(connection: ConnectionRef): Promise<void> {
     const id = connection.channelConnectionId
-    if (this.entries.has(id)) return
+    if (this.stopping || this.entries.has(id)) return
 
     const inflight = this.starting.get(id)
     if (inflight) {
@@ -116,32 +118,35 @@ export class SessionRegistry {
       clearInterval(this.reconcileTimer)
       this.reconcileTimer = null
     }
+    await Promise.allSettled([...this.starting.values()])
     const ids = [...this.entries.keys()]
     await Promise.all(ids.map((id) => this.shutdownEntry(id)))
-    await Promise.all([...this.starting.values()])
   }
 
   private async connectOwned(connection: ConnectionRef): Promise<void> {
     const id = connection.channelConnectionId
     if (this.entries.has(id) || this.stopping) return
 
-    const lease = await SessionLease.acquire(this.deps.redis, id)
-    if (!lease) return
-
-    const claimed = await this.deps.directory.claim({
-      ...connection,
-      ownerToken: lease.token,
-      ownerPod: this.deps.ownerPod,
-    })
-    if (!claimed) {
-      await lease.release()
-      return
-    }
-
-    let session: BaileysSession
-    let commandWorker: Worker
+    let lease: SessionLease | null = null
+    let claimed = false
+    let session: BaileysSession | null = null
+    let commandWorker: Worker | null = null
+    let registered = false
     try {
+      lease = await SessionLease.acquire(this.deps.redis, id)
+      if (!lease) return
+      if (this.stopping) return
+
+      claimed = await this.deps.directory.claim({
+        ...connection,
+        ownerToken: lease.token,
+        ownerPod: this.deps.ownerPod,
+      })
+      if (!claimed || this.stopping) return
+
       session = await this.deps.openSession(connection, lease)
+      if (this.stopping) return
+
       commandWorker = new Worker(
         waConnectionQueueName(id),
         (job) => handleWaConnectionJob(this, job),
@@ -155,33 +160,69 @@ export class SessionRegistry {
           channelConnectionId: id,
         })
       })
-    } catch (error) {
-      await this.deps.directory.release({
-        ...connection,
-        ownerToken: lease.token,
+      if (this.stopping) return
+
+      const entry: Entry = {
+        connection,
+        session,
+        lease,
+        commandWorker,
+        ownershipLost: false,
+        run: Promise.resolve(),
+      }
+      this.entries.set(id, entry)
+      registered = true
+
+      const offLost = lease.onLost(() => {
+        void this.onLeaseLost(id)
       })
-      await lease.release()
-      throw error
+      entry.run = session
+        .run()
+        .catch(async (error) => {
+          logger.error("session task failed", {
+            error: error instanceof Error ? error.message : String(error),
+            channelConnectionId: id,
+          })
+          try {
+            await entry.session.stop()
+          } catch (stopError) {
+            logger.warn("session stop after task failure failed", {
+              error:
+                stopError instanceof Error ? stopError.message : String(stopError),
+              channelConnectionId: id,
+            })
+          }
+        })
+        .finally(async () => {
+          offLost()
+          await this.onSessionEnded(id)
+        })
+        .catch((error) => {
+          logger.error("session cleanup failed", {
+            error: error instanceof Error ? error.message : String(error),
+            channelConnectionId: id,
+          })
+        })
+    } finally {
+      if (!registered) {
+        if (commandWorker) await commandWorker.close().catch(() => undefined)
+        if (session) await session.stop().catch(() => undefined)
+        if (claimed && lease) {
+          try {
+            await this.deps.directory.release({
+              ...connection,
+              ownerToken: lease.token,
+            })
+          } catch (error) {
+            logger.warn("release owner token failed", {
+              error: error instanceof Error ? error.message : String(error),
+              ...connection,
+            })
+          }
+        }
+        if (lease) await lease.release().catch(() => undefined)
+      }
     }
-
-    const entry: Entry = {
-      connection,
-      session,
-      lease,
-      commandWorker,
-      ownershipLost: false,
-      run: Promise.resolve(),
-    }
-    this.entries.set(id, entry)
-
-    const offLost = lease.onLost(() => {
-      void this.onLeaseLost(id)
-    })
-
-    entry.run = session.run().finally(async () => {
-      offLost()
-      await this.onSessionEnded(id)
-    })
   }
 
   private async reconcile(): Promise<void> {
@@ -249,7 +290,14 @@ export class SessionRegistry {
     if (!entry) return
 
     this.entries.delete(channelConnectionId)
-    await entry.commandWorker.close()
+    try {
+      await entry.commandWorker.close()
+    } catch (error) {
+      logger.warn("connection worker close failed", {
+        error: error instanceof Error ? error.message : String(error),
+        channelConnectionId,
+      })
+    }
 
     if (!entry.ownershipLost) {
       try {
@@ -263,15 +311,25 @@ export class SessionRegistry {
           ...entry.connection,
         })
       }
-      await entry.lease.release()
+      try {
+        await entry.lease.release()
+      } catch (error) {
+        logger.warn("release lease failed", {
+          error: error instanceof Error ? error.message : String(error),
+          ...entry.connection,
+        })
+      }
     }
-  }
 
+  }
   private async shutdownEntry(channelConnectionId: string): Promise<void> {
     const entry = this.entries.get(channelConnectionId)
     if (!entry) return
-    await entry.session.stop()
-    await entry.run.catch(() => undefined)
+    try {
+      await entry.session.stop()
+    } finally {
+      await entry.run.catch(() => undefined)
+    }
   }
 
   private entryFor(ref: ConnectionRef): Entry | undefined {

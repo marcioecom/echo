@@ -1,3 +1,5 @@
+import type { CloseOutcome } from "../lifecycle"
+
 export const MAX_RECONNECT_ATTEMPTS = 8
 
 export function reconnectDelayMs(
@@ -7,16 +9,6 @@ export function reconnectDelayMs(
   const base = Math.min(1_000 * 2 ** Math.max(0, attempt - 1), 5 * 60 * 1_000)
   return base + Math.floor(random() * 250)
 }
-
-export type CloseOutcome =
-  | "restart"
-  | "logged_out"
-  | "replaced"
-  | "banned"
-  | "retry"
-  | "retry_after_open"
-  | "pairing_timeout"
-  | "stopped"
 
 export type ReconnectStep =
   | { type: "stop" }

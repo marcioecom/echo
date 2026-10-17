@@ -35,7 +35,9 @@ function fakeSocket() {
 function harness(options?: {
   pairingTimeoutMs?: number
   registered?: boolean
+  hasSeenInbound?: (id: string) => Promise<boolean>
   claim?: (id: string) => Promise<boolean>
+  openSocket?: () => Promise<SessionSocket>
 }) {
   const opened: ReturnType<typeof fakeSocket>[] = []
   const directory: SessionDirectory = {
@@ -69,11 +71,13 @@ function harness(options?: {
     organizationId,
     channelConnectionId,
     auth,
-    openSocket: async () => {
-      const socket = fakeSocket()
-      opened.push(socket)
-      return socket.socket
-    },
+    openSocket:
+      options?.openSocket ??
+      (async () => {
+        const socket = fakeSocket()
+        opened.push(socket)
+        return socket.socket
+      }),
     directory,
     publishQr,
     publishPairingCode,
@@ -81,6 +85,7 @@ function harness(options?: {
     enqueueInbound,
     rememberMessage: vi.fn(async () => undefined),
     enqueueStatus,
+    hasSeenInbound: options?.hasSeenInbound ?? (async () => false),
     claimInbound: options?.claim ?? (async () => true),
     acquireSendSlot: async () => "ok",
     composeDelayMs: () => 0,
@@ -151,11 +156,50 @@ describe("BaileysSession", () => {
     await running
   })
 
+  it("closes an opened socket without a usable phone identity", async () => {
+    const setup = harness({ registered: true })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    await setup.opened[0]?.emit({ "connection.update": { connection: "open" } })
+
+    expect(setup.opened[0]?.socket.end).toHaveBeenCalledWith(undefined)
+    expect(setup.directory.setState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: "disconnected",
+        lastError: "missing_phone",
+      })
+    )
+    await expect(running).resolves.toBeUndefined()
+  })
+
+  it("closes a socket that opens after shutdown begins", async () => {
+    let resolveSocket!: (socket: SessionSocket) => void
+    const opening = new Promise<SessionSocket>((resolve) => {
+      resolveSocket = resolve
+    })
+    const lateSocket = fakeSocket()
+    let openStarted = false
+    const setup = harness({
+      registered: true,
+      openSocket: () => {
+        openStarted = true
+        return opening
+      },
+    })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(openStarted).toBe(true))
+    const stopping = setup.session.stop()
+    resolveSocket(lateSocket.socket)
+
+    await Promise.all([running, stopping])
+    expect(lateSocket.socket.end).toHaveBeenCalledWith(undefined)
+  })
+
   it("ingests a direct message once and maps a delivery receipt", async () => {
     const seen = new Set<string>()
     const setup = harness({
+      hasSeenInbound: async (id) => seen.has(id),
       claim: async (id) => {
-        if (seen.has(id)) return false
         seen.add(id)
         return true
       },
@@ -191,6 +235,116 @@ describe("BaileysSession", () => {
         status: "delivered",
       })
     )
+    await setup.session.stop()
+    await running
+  })
+  it("retries an inbound event after enqueue fails in a prior session", async () => {
+    const seen = new Set<string>()
+    const hasSeenInbound = async (id: string) => seen.has(id)
+    const claim = async (id: string) => {
+      seen.add(id)
+      return true
+    }
+    const upsert = {
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "wamid.retry",
+            fromMe: false,
+            remoteJid: "5511888888888@s.whatsapp.net",
+          },
+          pushName: "Ana",
+          message: { conversation: "Oi" },
+        },
+      ],
+    }
+
+    const first = harness({ hasSeenInbound, claim })
+    first.enqueueInbound.mockRejectedValueOnce(new Error("queue unavailable"))
+    const firstRun = first.session.run()
+    await vi.waitFor(() => expect(first.opened[0]?.ready()).toBe(true))
+    await first.opened[0]?.emit({ "messages.upsert": upsert })
+    await firstRun
+
+    const second = harness({ hasSeenInbound, claim })
+    const secondRun = second.session.run()
+    await vi.waitFor(() => expect(second.opened[0]?.ready()).toBe(true))
+    await second.opened[0]?.emit({ "messages.upsert": upsert })
+
+    expect(second.enqueueInbound).toHaveBeenCalledTimes(1)
+    await second.session.stop()
+    await secondRun
+  })
+
+  it("suppresses an accepted inbound event after a session restart", async () => {
+    const seen = new Set<string>()
+    const hasSeenInbound = async (id: string) => seen.has(id)
+    const claim = async (id: string) => {
+      seen.add(id)
+      return true
+    }
+    const upsert = {
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "wamid.restart",
+            fromMe: false,
+            remoteJid: "5511888888888@s.whatsapp.net",
+          },
+          message: { conversation: "Oi" },
+        },
+      ],
+    }
+    const first = harness({ hasSeenInbound, claim })
+    const firstRun = first.session.run()
+    await vi.waitFor(() => expect(first.opened[0]?.ready()).toBe(true))
+    await first.opened[0]?.emit({ "messages.upsert": upsert })
+    await first.session.stop()
+    await firstRun
+
+    const restarted = harness({ hasSeenInbound, claim })
+    const restartedRun = restarted.session.run()
+    await vi.waitFor(() => expect(restarted.opened[0]?.ready()).toBe(true))
+    await restarted.opened[0]?.emit({ "messages.upsert": upsert })
+
+    expect(restarted.enqueueInbound).not.toHaveBeenCalled()
+    await restarted.session.stop()
+    await restartedRun
+  })
+
+  it("enqueues a concurrent duplicate callback only once", async () => {
+    const seen = new Set<string>()
+    const setup = harness({
+      hasSeenInbound: async (id) => seen.has(id),
+      claim: async (id) => {
+        seen.add(id)
+        return true
+      },
+    })
+    const upsert = {
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "wamid.concurrent",
+            fromMe: false,
+            remoteJid: "5511888888888@s.whatsapp.net",
+          },
+          message: { conversation: "Oi" },
+        },
+      ],
+    }
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+
+    await Promise.all([
+      setup.opened[0]?.emit({ "messages.upsert": upsert }),
+      setup.opened[0]?.emit({ "messages.upsert": upsert }),
+    ])
+
+    expect(setup.enqueueInbound).toHaveBeenCalledTimes(1)
     await setup.session.stop()
     await running
   })
