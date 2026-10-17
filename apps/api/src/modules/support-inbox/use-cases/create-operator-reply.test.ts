@@ -6,7 +6,9 @@ const { enqueue, publish, repositoryCreate } = vi.hoisted(() => ({
   repositoryCreate: vi.fn(),
 }))
 
-vi.mock("@/lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("@/lib/jobs-client", () => ({
+  jobs: { enqueue },
+}))
 vi.mock("@workspace/logger", () => ({
   createLoggerWithContext: () => ({ warn: vi.fn() }),
 }))

@@ -5,6 +5,7 @@ import { and, eq, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
 
+import { lockConnectionForAuthWrite } from "./auth-fence"
 import type {
   AuthKeyScope,
   AuthKeysRepository,
@@ -48,6 +49,8 @@ export class PostgresAuthKeysRepository implements AuthKeysRepository {
     if (input.upserts.length === 0 && input.deletes.length === 0) return
 
     await this.db.transaction(async (transaction) => {
+      if (!(await lockConnectionForAuthWrite(transaction, input))) return
+
       for (const key of input.deletes) {
         await transaction
           .delete(baileysAuthKeys)
@@ -119,13 +122,17 @@ export class PostgresAuthKeysRepository implements AuthKeysRepository {
   }
 
   async deleteAll(input: AuthKeyScope): Promise<void> {
-    await this.db
-      .delete(baileysAuthKeys)
-      .where(
-        and(
-          eq(baileysAuthKeys.organizationId, input.organizationId),
-          eq(baileysAuthKeys.channelConnectionId, input.channelConnectionId)
+    await this.db.transaction(async (transaction) => {
+      if (!(await lockConnectionForAuthWrite(transaction, input))) return
+
+      await transaction
+        .delete(baileysAuthKeys)
+        .where(
+          and(
+            eq(baileysAuthKeys.organizationId, input.organizationId),
+            eq(baileysAuthKeys.channelConnectionId, input.channelConnectionId)
+          )
         )
-      )
+    })
   }
 }

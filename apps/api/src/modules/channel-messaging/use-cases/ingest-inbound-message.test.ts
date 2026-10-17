@@ -13,7 +13,9 @@ const { enqueue, logError, logInfo, publish, repositoryIngest } = vi.hoisted(
 vi.mock("@workspace/logger", () => ({
   createLoggerWithContext: () => ({ error: logError, info: logInfo }),
 }))
-vi.mock("../../../lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("../../../lib/jobs-client", () => ({
+  jobs: { enqueue },
+}))
 vi.mock("../repositories/inbound-message-repository", () => ({
   inboundMessageRepository: { ingest: repositoryIngest },
 }))
@@ -97,18 +99,19 @@ describe("ingestInboundMessage", () => {
     expect(publish).toHaveBeenCalledOnce()
   })
 
-  it("publishes a duplicate without enqueueing another agent job", async () => {
+  it("publishes a duplicate and re-enqueues with an idempotent job id for webhook retry", async () => {
     repositoryIngest.mockResolvedValue({ ...ingested, duplicate: true })
+    enqueue.mockResolvedValue({ id: `process-inbound-message--${ingested.messageId}` })
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: true,
       value: {
         ...ingested,
         duplicate: true,
-        jobId: `duplicate:${ingested.messageId}`,
+        jobId: `process-inbound-message--${ingested.messageId}`,
       },
     })
     expect(publish).toHaveBeenCalledOnce()
-    expect(enqueue).not.toHaveBeenCalled()
+    expect(enqueue).toHaveBeenCalledOnce()
   })
 })

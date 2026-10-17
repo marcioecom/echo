@@ -36,10 +36,7 @@ export function BaileysPairingSession({
   const live = useChannelLive()
   const { form, mutation } = usePairingCodeForm(channelId, phoneNumber)
   const wait = useBaileysQrWait({ organizationId, channelId })
-  const pairingCode =
-    live.pairingCode?.channelConnectionId === channelId
-      ? live.pairingCode.pairingCode
-      : null
+  const pairingCode = live.pairingCodeByChannelId[channelId] ?? null
 
   const retryMutation = useMutation({
     mutationFn: () => updateChannel(channelId, { status: "active" }),

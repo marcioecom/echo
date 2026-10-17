@@ -21,13 +21,6 @@ import { and, desc, eq, ne, sql } from "drizzle-orm"
 import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
 import { database } from "@/lib/db"
 
-export class BaileysSessionExistsError extends Error {
-  constructor() {
-    super("A Baileys session is already open for this Organization")
-    this.name = "BaileysSessionExistsError"
-  }
-}
-
 export class ChannelRoutingConflictError extends Error {
   constructor() {
     super("Channel routing key is already in use")
@@ -410,9 +403,6 @@ export class ChannelConnectionsRepository {
   }): Promise<{ channelConnectionId: string }> {
     try {
       return await this.db.transaction(async (transaction) => {
-        await transaction.execute(
-          sql`select pg_advisory_xact_lock(hashtextextended(${`channel-connection-provision:${input.organizationId}:baileys`}, 0))`
-        )
         const [organization] = await transaction
           .select({ status: organizations.status })
           .from(organizations)
@@ -422,32 +412,6 @@ export class ChannelConnectionsRepository {
         if (organization?.status !== "active") {
           throw new OrganizationNotActiveError()
         }
-
-        const [existing] = await transaction
-          .select({ id: channelConnections.id })
-          .from(channelConnections)
-          .innerJoin(
-            channelConnectionProviderBindings,
-            and(
-              eq(
-                channelConnectionProviderBindings.organizationId,
-                channelConnections.organizationId
-              ),
-              eq(
-                channelConnectionProviderBindings.channelConnectionId,
-                channelConnections.id
-              )
-            )
-          )
-          .where(
-            and(
-              eq(channelConnections.organizationId, input.organizationId),
-              eq(channelConnectionProviderBindings.provider, "baileys"),
-              ne(channelConnections.status, "disabled")
-            )
-          )
-          .limit(1)
-        if (existing) throw new BaileysSessionExistsError()
 
         const channelConnectionId = createId()
         const pendingAddress = `pending:${channelConnectionId}`
@@ -494,12 +458,7 @@ export class ChannelConnectionsRepository {
         return { channelConnectionId }
       })
     } catch (error) {
-      if (
-        error instanceof OrganizationNotActiveError ||
-        error instanceof BaileysSessionExistsError
-      ) {
-        throw error
-      }
+      if (error instanceof OrganizationNotActiveError) throw error
       if (postgresErrorCode(error) === "23505") {
         throw new ChannelRoutingConflictError()
       }
@@ -519,7 +478,6 @@ export class ChannelConnectionsRepository {
     | "not_found"
     | "missing_address"
     | "pairing_started"
-    | "session_exists"
     | "organization_unavailable"
   > {
     if (!(await this.isOrganizationActive(input.organizationId))) {
@@ -550,12 +508,6 @@ export class ChannelConnectionsRepository {
           input.channelConnectionId
         ))
       ) {
-        const blocked = await this.otherOpenBaileysSession(
-          transaction,
-          input.organizationId,
-          input.channelConnectionId
-        )
-        if (blocked) return "session_exists"
         await this.reopenBaileysPairing(
           transaction,
           input.organizationId,
@@ -917,39 +869,6 @@ export class ChannelConnectionsRepository {
     )
   }
 
-  private async otherOpenBaileysSession(
-    transaction: DbTransaction,
-    organizationId: string,
-    channelConnectionId: string
-  ): Promise<boolean> {
-    const [other] = await transaction
-      .select({ id: channelConnections.id })
-      .from(channelConnections)
-      .innerJoin(
-        channelConnectionProviderBindings,
-        and(
-          eq(
-            channelConnectionProviderBindings.organizationId,
-            channelConnections.organizationId
-          ),
-          eq(
-            channelConnectionProviderBindings.channelConnectionId,
-            channelConnections.id
-          )
-        )
-      )
-      .where(
-        and(
-          eq(channelConnections.organizationId, organizationId),
-          eq(channelConnectionProviderBindings.provider, "baileys"),
-          ne(channelConnections.status, "disabled"),
-          ne(channelConnections.id, channelConnectionId)
-        )
-      )
-      .limit(1)
-    return Boolean(other)
-  }
-
   private async reopenBaileysPairing(
     transaction: DbTransaction,
     organizationId: string,
@@ -1096,21 +1015,34 @@ export class ChannelConnectionsRepository {
     organizationId: string,
     channelConnectionId: string
   ): Promise<void> {
+    const [connection] = await transaction
+      .select({ id: channelConnections.id })
+      .from(channelConnections)
+      .where(
+        and(
+          eq(channelConnections.organizationId, organizationId),
+          eq(channelConnections.id, channelConnectionId)
+        )
+      )
+      .limit(1)
+      .for("update")
+    if (!connection) return
+
+    await transaction
+      .update(channelSessionStates)
+      .set({ ownerToken: null, state: "logged_out" })
+      .where(
+        and(
+          eq(channelSessionStates.organizationId, organizationId),
+          eq(channelSessionStates.channelConnectionId, channelConnectionId)
+        )
+      )
     await transaction
       .delete(baileysAuthKeys)
       .where(
         and(
           eq(baileysAuthKeys.organizationId, organizationId),
           eq(baileysAuthKeys.channelConnectionId, channelConnectionId)
-        )
-      )
-    await transaction
-      .update(channelSessionStates)
-      .set({ state: "logged_out" })
-      .where(
-        and(
-          eq(channelSessionStates.organizationId, organizationId),
-          eq(channelSessionStates.channelConnectionId, channelConnectionId)
         )
       )
   }

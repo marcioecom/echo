@@ -1,10 +1,3 @@
-export class SessionBusyError extends Error {
-  constructor() {
-    super("session_busy")
-    this.name = "SessionBusyError"
-  }
-}
-
 export class SessionUnavailableError extends Error {
   constructor() {
     super("session_unavailable")

@@ -2,7 +2,7 @@ import type { JobsOptions } from "bullmq"
 import { Queue } from "bullmq"
 import type { Redis } from "ioredis"
 import type { z } from "zod"
-import { queueDefinitions, type QueueName } from "./queue-definitions"
+import { queueDefinitions } from "./queue-definitions"
 import { jobDefinitions, type JobName } from "./schemas"
 
 export interface EnqueuedJob {
@@ -18,15 +18,34 @@ export interface JobClient {
   close: () => Promise<void>
 }
 
-export function createJobClient(connection: Redis): JobClient {
-  const queues = new Map<QueueName, Queue>()
+function resolveQueueTarget(
+  definition: (typeof jobDefinitions)[JobName],
+  payload: unknown
+): { queueName: string; defaultJobOptions: JobsOptions } {
+  if (typeof definition.queueName === "function") {
+    return {
+      queueName: definition.queueName(payload as never),
+      defaultJobOptions:
+        queueDefinitions[definition.optionsQueue].defaultJobOptions,
+    }
+  }
 
-  function getQueue(queueName: QueueName): Queue {
+  return {
+    queueName: definition.queueName,
+    defaultJobOptions:
+      queueDefinitions[definition.queueName].defaultJobOptions,
+  }
+}
+
+export function createJobClient(connection: Redis): JobClient {
+  const queues = new Map<string, Queue>()
+
+  function getQueue(queueName: string, defaultJobOptions: JobsOptions): Queue {
     let queue = queues.get(queueName)
     if (!queue) {
       queue = new Queue(queueName, {
         connection,
-        defaultJobOptions: queueDefinitions[queueName].defaultJobOptions,
+        defaultJobOptions,
       })
       queues.set(queueName, queue)
     }
@@ -43,7 +62,12 @@ export function createJobClient(connection: Redis): JobClient {
         jobOptions.jobId = definition.jobId(parsedPayload as never)
       }
 
-      const job = await getQueue(definition.queueName).add(
+      const { queueName, defaultJobOptions } = resolveQueueTarget(
+        definition,
+        parsedPayload
+      )
+
+      const job = await getQueue(queueName, defaultJobOptions).add(
         jobName,
         parsedPayload,
         jobOptions

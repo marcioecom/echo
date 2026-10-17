@@ -1,5 +1,4 @@
 import { waGatewayJobNames } from "@workspace/jobs"
-
 import { err, ok, type Result } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
 

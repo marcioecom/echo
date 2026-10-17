@@ -1,4 +1,8 @@
-import { waGatewayJobNames, waGatewayQueueName } from "@workspace/jobs"
+import {
+  waConnectionQueueName,
+  waGatewayJobNames,
+  waSendJobSchema,
+} from "@workspace/jobs"
 import type { BaileysSendTransport, SendResult } from "@workspace/messaging"
 import { Queue, QueueEvents } from "bullmq"
 import type { Redis } from "ioredis"
@@ -6,16 +10,15 @@ import type { Redis } from "ioredis"
 const waitTimeoutMs = 30_000
 
 export function createBaileysSendTransport(redis: Redis): BaileysSendTransport {
-  let queue: Queue | undefined
-  let events: QueueEvents | undefined
-
   return {
     async send(command) {
-      queue ??= new Queue(waGatewayQueueName, { connection: redis })
-      events ??= new QueueEvents(waGatewayQueueName, { connection: redis })
+      const payload = waSendJobSchema.parse(command)
+      const queueName = waConnectionQueueName(payload.channelConnectionId)
+      const queue = new Queue(queueName, { connection: redis })
+      const events = new QueueEvents(queueName, { connection: redis })
       try {
-        const job = await queue.add(waGatewayJobNames.send, command, {
-          jobId: `wa-send--${command.outboundMessageId}--${Date.now()}`,
+        const job = await queue.add(waGatewayJobNames.send, payload, {
+          jobId: `wa-send--${payload.outboundMessageId}--${Date.now()}`,
           attempts: 1,
           removeOnComplete: true,
           removeOnFail: true,
@@ -27,6 +30,8 @@ export function createBaileysSendTransport(redis: Redis): BaileysSendTransport {
         return result
       } catch {
         return { ok: false, retryable: true, code: "gateway_unavailable" }
+      } finally {
+        await Promise.all([events.close(), queue.close()])
       }
     },
   }

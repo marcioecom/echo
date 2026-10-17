@@ -43,9 +43,7 @@ export function BaileysPairingForm({
   const channelId = mutation.data?.channel.id ?? null
   const wait = useBaileysQrWait({ organizationId, channelId })
   const pairingCode =
-    channelId && live.pairingCode?.channelConnectionId === channelId
-      ? live.pairingCode.pairingCode
-      : null
+    channelId ? live.pairingCodeByChannelId[channelId] ?? null : null
 
   const retryMutation = useMutation({
     mutationFn: async () => {

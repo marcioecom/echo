@@ -2,28 +2,31 @@ import type { SendResult, StatusUpdate } from "@workspace/messaging"
 import type { ChannelSessionState } from "@workspace/domain"
 
 import type { EchoAuthState } from "./auth-state"
-import { statusUpdatesFromBaileys } from "./delivery-status"
-import { classifyDisconnect, disconnectStatusCode } from "./disconnect"
+import { statusUpdatesFromBaileys } from "./adapters/delivery-status"
+import { classifyDisconnect, disconnectStatusCode } from "./policies/disconnect"
 import { PairingUnavailableError, RoutingConflictError } from "./errors"
 import {
   filterInboundUpsert,
   phoneFromJid,
   type FilteredInbound,
-} from "./inbound-filter"
-import { nextReconnect, type CloseOutcome } from "./reconnect"
+} from "./adapters/inbound-filter"
+import { nextReconnect } from "./policies/reconnect"
 import type { SessionDirectory } from "./repositories/session-directory"
 import type { SessionEvents, SessionLogger, SessionSocket } from "./types"
+import {
+  transitionLifecycle,
+  type CloseOutcome,
+  type LifecycleEvent,
+  type LifecycleState,
+} from "./lifecycle"
 
 export class BaileysSession {
+  private lifecycle: LifecycleState = { phase: "unowned" }
   private socket: SessionSocket | null = null
-  private stopped = false
-  private open = false
-  private sawOpen = false
-  private qrSeen = false
   private qrWaiters: Array<(ready: boolean) => void> = []
   private pairingTimer: ReturnType<typeof setTimeout> | null = null
   private resolveClose: ((outcome: CloseOutcome) => void) | null = null
-  private closed = false
+  private readonly inboundInFlight = new Set<string>()
 
   constructor(
     private readonly deps: {
@@ -43,50 +46,64 @@ export class BaileysSession {
         message: unknown
       ) => Promise<void>
       enqueueStatus: (update: StatusUpdate) => Promise<void>
+      hasSeenInbound: (externalMessageId: string) => Promise<boolean>
       claimInbound: (externalMessageId: string) => Promise<boolean>
       acquireSendSlot: (to: string) => Promise<"ok" | "connection" | "contact">
       composeDelayMs: (body: string) => number
       delay: (ms: number) => Promise<void>
       pairingTimeoutMs: number
       ownerPod: string | null
+      ownerToken: string
       logger: SessionLogger
     }
   ) {}
 
   async run(): Promise<void> {
     let attempt = 0
-    while (!this.stopped) {
+    while (!this.isStopping()) {
       const outcome = await this.connectOnce()
       const step = nextReconnect({
         outcome,
         attempt,
-        stopped: this.stopped,
+        stopped: this.isStopping(),
       })
-      if (step.type === "stop") break
+      if (step.type === "stop") {
+        this.transition({ type: "stopped" })
+        break
+      }
       if (step.type === "exhausted") {
-        await this.recordState(
-          "disconnected",
-          "reconnect_exhausted",
-          step.attempt
-        )
+        await this.recordState("disconnected", "reconnect_exhausted", step.attempt)
+        this.transition({ type: "stopped" })
         break
       }
       attempt = step.attempt
-      if (step.type === "backoff") await this.deps.delay(step.delayMs)
+      if (step.type === "backoff") {
+        this.transition({ type: "backoff", attempt: step.attempt, delayMs: step.delayMs })
+        await this.deps.delay(step.delayMs)
+      }
     }
     await this.deps.auth.flush()
   }
 
-  async stop(): Promise<void> {
-    this.stopped = true
+  async stop(options?: { ownershipLost?: boolean }): Promise<void> {
+    this.transition({ type: "stop" })
     this.clearPairingTimer()
-    if (this.socket) await this.socket.end(undefined)
+    await this.socket?.end(undefined).catch((error: unknown) => {
+      this.deps.logger.warn("Socket close failed during stop", {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    })
     this.finish("stopped")
+    this.transition({ type: "stopped" })
+    if (options?.ownershipLost) {
+      await this.deps.auth.discard()
+      return
+    }
     await this.deps.auth.flush()
   }
 
   async logout(): Promise<void> {
-    this.stopped = true
+    this.transition({ type: "stop" })
     this.clearPairingTimer()
     if (this.socket) {
       try {
@@ -98,6 +115,7 @@ export class BaileysSession {
     await this.deps.auth.clear()
     await this.recordState("logged_out", null)
     this.finish("logged_out")
+    this.transition({ type: "stopped" })
   }
 
   async requestPairingCode(phoneE164: string): Promise<void> {
@@ -111,7 +129,7 @@ export class BaileysSession {
   }
 
   async sendText(input: { to: string; body: string }): Promise<SendResult> {
-    if (!this.socket || !this.open) {
+    if (!this.socket || this.lifecycle.phase !== "connected") {
       return { ok: false, retryable: true, code: "session_unavailable" }
     }
     const slot = await this.deps.acquireSendSlot(input.to)
@@ -120,30 +138,41 @@ export class BaileysSession {
     }
     const jid = `${input.to.slice(1)}@s.whatsapp.net`
     await this.socket.sendPresenceUpdate("composing", jid)
-    await this.deps.delay(this.deps.composeDelayMs(input.body))
-    const sent = await this.socket.sendMessage(jid, { text: input.body })
-    await this.socket.sendPresenceUpdate("paused", jid)
-    const externalMessageId = sent?.key?.id
-    if (!externalMessageId) {
-      return { ok: false, retryable: true, code: "missing_provider_id" }
+    try {
+      await this.deps.delay(this.deps.composeDelayMs(input.body))
+      const sent = await this.socket.sendMessage(jid, { text: input.body })
+      const externalMessageId = sent?.key?.id
+      if (!externalMessageId) {
+        return { ok: false, retryable: true, code: "missing_provider_id" }
+      }
+      return { ok: true, externalMessageId }
+    } finally {
+      await this.socket.sendPresenceUpdate("paused", jid).catch(() => undefined)
     }
-    return { ok: true, externalMessageId }
   }
 
   private async connectOnce(): Promise<CloseOutcome> {
-    this.open = false
-    this.sawOpen = false
-    this.qrSeen = false
-    this.closed = false
+    this.transition({ type: "connect" })
     const done = new Promise<CloseOutcome>((resolve) => {
       this.resolveClose = resolve
     })
     const tracked = await this.recordState("connecting", null)
     if (!tracked) {
-      this.stopped = true
+      this.transition({ type: "stop" })
+      this.finish("stopped")
       return "stopped"
     }
-    this.socket = await this.deps.openSocket()
+    if (this.isStopping()) {
+      this.finish("stopped")
+      return "stopped"
+    }
+    const socket = await this.deps.openSocket()
+    if (this.isStopping()) {
+      await socket.end(undefined)
+      this.finish("stopped")
+      return "stopped"
+    }
+    this.socket = socket
     this.socket.ev.process(async (events) => {
       try {
         await this.onEvents(events)
@@ -151,7 +180,7 @@ export class BaileysSession {
         this.deps.logger.error("Session event handler failed", {
           error: error instanceof Error ? error.message : String(error),
         })
-        this.stopped = true
+        this.transition({ type: "stop" })
         this.finish("stopped")
         if (this.socket) await this.socket.end(undefined)
       }
@@ -164,7 +193,7 @@ export class BaileysSession {
     if (events["creds.update"]) await this.deps.auth.saveCreds()
     const update = events["connection.update"]
     if (update?.qr) {
-      this.qrSeen = true
+      this.transition({ type: "qr" })
       await this.recordState("qr_pending", null)
       await this.deps.publishQr(update.qr)
       this.releaseQrWaiters(true)
@@ -184,27 +213,39 @@ export class BaileysSession {
   }
 
   private async onOpen(): Promise<void> {
-    this.open = true
-    this.sawOpen = true
+    this.transition({ type: "open" })
     this.clearPairingTimer()
-    const address = phoneFromJid(this.socket?.user?.id)
-    if (!address || !this.socket?.user?.id) {
+    const userJid = this.socket?.user?.id
+    const address = phoneFromJid(userJid)
+    if (!address || !userJid) {
       await this.recordState("disconnected", "missing_phone")
+      this.transition({ type: "stop" })
+      await this.socket?.end(undefined)
+      this.finish("stopped")
       return
     }
     try {
-      await this.deps.directory.markConnected({
+      const connected = await this.deps.directory.markConnected({
         organizationId: this.deps.organizationId,
         channelConnectionId: this.deps.channelConnectionId,
+        ownerToken: this.deps.ownerToken,
         address,
-        userJid: this.socket.user.id,
+        userJid,
         ownerPod: this.deps.ownerPod,
       })
+      if (!connected) {
+        await this.deps.auth.discard()
+        this.transition({ type: "stop" })
+        await this.socket?.end(undefined)
+        this.finish("stopped")
+        return
+      }
     } catch (error) {
       if (error instanceof RoutingConflictError) {
         await this.recordState("disconnected", "routing_conflict")
-        this.stopped = true
-        await this.socket.end(undefined)
+        this.transition({ type: "stop" })
+        await this.socket?.end(undefined)
+        this.finish("stopped")
         return
       }
       throw error
@@ -213,33 +254,33 @@ export class BaileysSession {
   }
 
   private async onClose(statusCode: number | undefined): Promise<void> {
-    this.open = false
+    const sawOpen = this.lifecycle.phase === "connected"
     this.clearPairingTimer()
     const action = classifyDisconnect(statusCode)
     if (action === "logged_out") {
-      this.stopped = true
+      this.transition({ type: "stop" })
       await this.deps.auth.clear()
       await this.recordState("logged_out", null)
       this.finish("logged_out")
+      this.transition({ type: "stopped" })
       return
     }
     if (action === "banned") {
-      this.stopped = true
+      this.transition({ type: "stop" })
       await this.recordState("banned_suspected", "forbidden")
       this.finish("banned")
       return
     }
     if (action === "replaced") {
-      this.stopped = true
+      this.transition({ type: "stop" })
       await this.recordState("disconnected", "connection_replaced")
       this.finish("replaced")
       return
     }
-    if (action === "restart") {
-      this.finish("restart")
-      return
-    }
-    this.finish(this.sawOpen ? "retry_after_open" : "retry")
+    const outcome =
+      action === "restart" ? "restart" : sawOpen ? "retry_after_open" : "retry"
+    this.transition({ type: "close", outcome })
+    this.finish(outcome)
   }
 
   private async onUpsert(
@@ -247,15 +288,18 @@ export class BaileysSession {
   ) {
     for (const message of filterInboundUpsert(upsert)) {
       if (message.action !== "accept") continue
-      const claimed = await this.deps.claimInbound(message.externalMessageId)
-      if (!claimed) continue
-      const raw = upsert.messages.find(
-        (entry) => entry.key.id === message.externalMessageId
-      )
-      if (raw?.message) {
-        await this.deps.rememberMessage(message.externalMessageId, raw.message)
+      const id = message.externalMessageId
+      if (this.inboundInFlight.has(id)) continue
+      this.inboundInFlight.add(id)
+      try {
+        if (await this.deps.hasSeenInbound(id)) continue
+        const raw = upsert.messages.find((entry) => entry.key.id === id)
+        if (raw?.message) await this.deps.rememberMessage(id, raw.message)
+        await this.deps.enqueueInbound(message)
+        await this.deps.claimInbound(id)
+      } finally {
+        this.inboundInFlight.delete(id)
       }
-      await this.deps.enqueueInbound(message)
     }
   }
 
@@ -281,10 +325,10 @@ export class BaileysSession {
   }
 
   private async onPairingTimeout(): Promise<void> {
-    if (this.deps.auth.state.creds.registered || this.sawOpen || this.stopped) {
+    if (this.deps.auth.state.creds.registered || this.hasOpened() || this.isStopping()) {
       return
     }
-    this.stopped = true
+    this.transition({ type: "stop" })
     await this.recordState("disconnected", "pairing_timeout")
     if (this.socket) await this.socket.end(undefined)
     this.finish("pairing_timeout")
@@ -296,24 +340,32 @@ export class BaileysSession {
     reconnectAttempts?: number
   ): Promise<boolean> {
     try {
-      await this.deps.directory.setState({
+      const tracked = await this.deps.directory.setState({
         organizationId: this.deps.organizationId,
         channelConnectionId: this.deps.channelConnectionId,
+        ownerToken: this.deps.ownerToken,
         state,
         lastError,
         reconnectAttempts,
         ownerPod: this.deps.ownerPod,
         connected: state === "connected",
       })
+      if (!tracked) {
+        await this.deps.auth.discard()
+        this.transition({ type: "stop" })
+        this.deps.logger.warn("Skipping state write; ownership lost", {
+          state,
+          lastError,
+        })
+        return false
+      }
     } catch (error) {
-      // Delete removes the connection before logout finishes. Never crash the
-      // session loop on that race — it leaves the registry slot stuck busy.
       if (!isMissingConnection(error)) throw error
       this.deps.logger.warn("Skipping state write; connection gone", {
         state,
         lastError,
       })
-      this.stopped = true
+      this.transition({ type: "stop" })
       return false
     }
     await this.deps.publishStatus()
@@ -322,7 +374,7 @@ export class BaileysSession {
 
   private waitForQr(): Promise<boolean> {
     if (this.deps.auth.state.creds.registered) return Promise.resolve(false)
-    if (this.qrSeen) return Promise.resolve(true)
+    if (this.hasSeenQr()) return Promise.resolve(true)
     return new Promise((resolve) => {
       const timer = setTimeout(() => resolve(false), 20_000)
       this.qrWaiters.push((ready) => {
@@ -343,14 +395,35 @@ export class BaileysSession {
     this.pairingTimer = null
   }
 
-  private finish(outcome: CloseOutcome): void {
-    if (this.closed) return
-    this.closed = true
-    this.releaseQrWaiters(false)
-    this.resolveClose?.(outcome)
+  private transition(event: LifecycleEvent): void {
+    this.lifecycle = transitionLifecycle(this.lifecycle, event)
   }
-}
 
+  private isStopping(): boolean {
+    return this.lifecycle.phase === "stopping" || this.lifecycle.phase === "stopped"
+  }
+
+  private hasOpened(): boolean {
+    return (
+      this.lifecycle.phase === "connected" ||
+      (this.lifecycle.phase === "backoff" &&
+        this.lifecycle.outcome === "retry_after_open")
+    )
+  }
+
+  private hasSeenQr(): boolean {
+    return this.lifecycle.phase === "pairing" && this.lifecycle.qrSeen
+  }
+
+  private finish(outcome: CloseOutcome): void {
+    const resolve = this.resolveClose
+    if (!resolve) return
+    this.resolveClose = null
+    this.releaseQrWaiters(false)
+    resolve(outcome)
+  }
+
+}
 function isMissingConnection(error: unknown): boolean {
   if (!error || typeof error !== "object") return false
   if ("code" in error && error.code === "23503") return true

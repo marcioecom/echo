@@ -27,10 +27,6 @@ export async function ingestInboundMessage(
     conversationId: ingested.supportConversationId,
   })
 
-  if (ingested.duplicate) {
-    return ok({ ...ingested, jobId: `duplicate:${ingested.messageId}` })
-  }
-
   try {
     const job = await jobs.enqueue("process-inbound-message", {
       organizationId: ingested.organizationId,

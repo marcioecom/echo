@@ -15,7 +15,6 @@ export type UpdateChannelConnectionError =
   | { type: "organization_unavailable" }
   | { type: "not_found" }
   | { type: "missing_address" }
-  | { type: "session_exists" }
   | { type: "queue_unavailable" }
 
 export async function updateChannelConnection(input: {

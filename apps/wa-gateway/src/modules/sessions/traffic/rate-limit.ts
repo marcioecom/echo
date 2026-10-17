@@ -1,4 +1,5 @@
 export interface RateLimitRedis {
+  get(key: string): Promise<string | null>
   set(
     key: string,
     value: string,
@@ -58,4 +59,15 @@ export async function claimInboundMessage(
     "NX"
   )
   return result === "OK"
+}
+
+export async function hasSeenInboundMessage(
+  redis: RateLimitRedis,
+  input: { channelConnectionId: string; externalMessageId: string }
+): Promise<boolean> {
+  return (
+    (await redis.get(
+      seenMessageKey(input.channelConnectionId, input.externalMessageId)
+    )) !== null
+  )
 }

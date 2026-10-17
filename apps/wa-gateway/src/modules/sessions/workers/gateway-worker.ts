@@ -4,7 +4,7 @@ import { Worker } from "bullmq"
 
 import { redisConnection } from "@/lib/redis"
 
-import type { SessionRegistry } from "../registry"
+import type { SessionRegistry } from "../ownership/registry"
 import { handleWaGatewayJob } from "../use-cases/handle-gateway-job"
 
 const logger = createLoggerWithContext("wa-gateway:worker")

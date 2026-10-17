@@ -25,12 +25,14 @@ export interface EchoAuthState {
   state: AuthenticationState
   saveCreds: () => Promise<void>
   flush: () => Promise<void>
+  discard: () => Promise<void>
   clear: () => Promise<void>
 }
 
 export async function useEchoAuthState(input: {
   organizationId: string
   channelConnectionId: string
+  ownerToken: string
   cipher: IChannelCredentialsCipher
   repository: AuthKeysRepository
   flushDelayMs?: number
@@ -39,6 +41,7 @@ export async function useEchoAuthState(input: {
   const scope: AuthKeyScope = {
     organizationId: input.organizationId,
     channelConnectionId: input.channelConnectionId,
+    ownerToken: input.ownerToken,
   }
   const flushDelayMs = input.flushDelayMs ?? 1_000
   const batchSize = input.batchSize ?? 25
@@ -50,6 +53,11 @@ export async function useEchoAuthState(input: {
     flushDelayMs,
     batchSize,
   })
+  let savingCreds = Promise.resolve()
+
+  async function discard(): Promise<void> {
+    await Promise.all([buffer.discard(), savingCreds])
+  }
 
   return {
     state: {
@@ -62,11 +70,21 @@ export async function useEchoAuthState(input: {
         },
       },
     },
-    saveCreds: () => writeCreds(input.cipher, input.repository, scope, creds),
-    flush: () => buffer.flush(),
+    saveCreds: () => {
+      if (buffer.isDiscarded()) return Promise.resolve()
+      savingCreds = savingCreds.catch(() => undefined).then(async () => {
+        if (!buffer.isDiscarded()) {
+          await writeCreds(input.cipher, input.repository, scope, creds)
+        }
+      })
+      return savingCreds
+    },
+    flush: async () => {
+      await Promise.all([buffer.flush(), savingCreds])
+    },
+    discard,
     clear: async () => {
-      await buffer.flush()
-      buffer.dropPending()
+      await discard()
       await input.repository.deleteAll(scope)
     },
   }
@@ -75,6 +93,7 @@ export async function useEchoAuthState(input: {
 export async function rotateBaileysAuthKeys(input: {
   organizationId: string
   channelConnectionId: string
+  ownerToken: string
   repository: AuthKeysRepository
   from: IChannelCredentialsCipher
   to: IChannelCredentialsCipher
@@ -82,6 +101,7 @@ export async function rotateBaileysAuthKeys(input: {
   const scope: AuthKeyScope = {
     organizationId: input.organizationId,
     channelConnectionId: input.channelConnectionId,
+    ownerToken: input.ownerToken,
   }
   const rows = await input.repository.list(scope)
   const upserts = rows.map((row) => {
@@ -107,6 +127,7 @@ class KeyWriteBuffer {
   }> = []
   private timer: ReturnType<typeof setTimeout> | null = null
   private flushing: Promise<void> | null = null
+  private discarded = false
 
   constructor(
     private readonly options: {
@@ -118,7 +139,12 @@ class KeyWriteBuffer {
     }
   ) {}
 
+  isDiscarded(): boolean {
+    return this.discarded
+  }
+
   enqueue(data: SignalDataSet): void {
+    if (this.discarded) return
     for (const [keyType, entries] of Object.entries(data)) {
       if (!entries) continue
       for (const [keyId, value] of Object.entries(entries)) {
@@ -165,6 +191,7 @@ class KeyWriteBuffer {
   }
 
   async flushReady(): Promise<void> {
+    if (this.discarded) return
     if (this.pending.size >= this.options.batchSize) {
       await this.flush()
       return
@@ -178,9 +205,10 @@ class KeyWriteBuffer {
   }
 
   async flush(): Promise<void> {
+    if (this.discarded) return
     if (this.flushing) {
       await this.flushing
-      if (this.pending.size === 0) return
+      if (this.pending.size === 0 || this.discarded) return
     }
     if (this.pending.size === 0 && this.waiters.length === 0) return
 
@@ -189,17 +217,30 @@ class KeyWriteBuffer {
     })
     this.flushing = run
     await run
-    if (this.pending.size > 0) await this.flush()
+    if (!this.discarded && this.pending.size > 0) await this.flush()
   }
 
-  dropPending(): void {
+  async discard(): Promise<void> {
+    this.discarded = true
+    if (this.timer) {
+      clearTimeout(this.timer)
+      this.timer = null
+    }
     this.pending.clear()
+    const waiting = this.waiters.splice(0)
+    for (const waiter of waiting) waiter.resolve()
+    if (this.flushing) await this.flushing
   }
 
   private async persist(): Promise<void> {
     if (this.timer) {
       clearTimeout(this.timer)
       this.timer = null
+    }
+    if (this.discarded) {
+      const waiting = this.waiters.splice(0)
+      for (const waiter of waiting) waiter.resolve()
+      return
     }
     const batch = new Map(this.pending)
     const waiting = this.waiters.splice(0)
@@ -227,15 +268,19 @@ class KeyWriteBuffer {
     }
 
     try {
-      await this.options.repository.write({
-        ...this.options.scope,
-        upserts,
-        deletes,
-      })
+      if (!this.discarded) {
+        await this.options.repository.write({
+          ...this.options.scope,
+          upserts,
+          deletes,
+        })
+      }
       for (const waiter of waiting) waiter.resolve()
     } catch (error) {
-      for (const [key, value] of batch) {
-        if (!this.pending.has(key)) this.pending.set(key, value)
+      if (!this.discarded) {
+        for (const [key, value] of batch) {
+          if (!this.pending.has(key)) this.pending.set(key, value)
+        }
       }
       for (const waiter of waiting) waiter.reject(error)
       throw error

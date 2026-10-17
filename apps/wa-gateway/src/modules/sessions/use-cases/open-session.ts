@@ -1,5 +1,3 @@
-import { hostname } from "node:os"
-
 import { waIngressJobNames } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 
@@ -10,20 +8,21 @@ import { redisConnection } from "@/lib/redis"
 import { openBaileysSocket } from "../adapters/baileys-socket"
 import { credentialsCipher } from "../adapters/credentials-cipher"
 import { useEchoAuthState } from "../auth-state"
+import type { SessionLease } from "../ownership/lease"
+import { humanSendDelayMs } from "../traffic/pacing"
 import {
   publishChannelQr,
   publishChannelStatus,
   publishPairingCode,
 } from "../events/publish-channel-event"
-import { humanSendDelayMs } from "../pacing"
 import { PostgresAuthKeysRepository } from "../repositories/postgres-auth-keys-repository"
+import type { SessionDirectory } from "../repositories/session-directory"
 import {
-  PostgresSessionDirectory,
-  type SessionDirectory,
-} from "../repositories/session-directory"
-import { acquireSendSlot, claimInboundMessage } from "../rate-limit"
+  acquireSendSlot,
+  claimInboundMessage,
+  hasSeenInboundMessage,
+} from "../traffic/rate-limit"
 import { recallRecentMessage, rememberRecentMessage } from "../recent-messages"
-import { SessionRegistry } from "../registry"
 import { BaileysSession } from "../session"
 import type { ConnectionRef } from "../types"
 
@@ -31,6 +30,7 @@ const logger = createLoggerWithContext("wa-gateway:session")
 
 export async function openSession(
   connection: ConnectionRef,
+  lease: SessionLease,
   deps: {
     authKeys: PostgresAuthKeysRepository
     directory: SessionDirectory
@@ -39,19 +39,16 @@ export async function openSession(
 ): Promise<BaileysSession> {
   const auth = await useEchoAuthState({
     ...connection,
+    ownerToken: lease.token,
     cipher: credentialsCipher,
     repository: deps.authKeys,
     flushDelayMs: env.WA_AUTH_FLUSH_MS,
     batchSize: env.WA_AUTH_BATCH_SIZE,
   })
-  const sessionLogger = {
-    info: (message: string, data?: Record<string, unknown>) =>
-      logger.info(message, { ...data, ...connection }),
-    warn: (message: string, data?: Record<string, unknown>) =>
-      logger.warn(message, { ...data, ...connection }),
-    error: (message: string, data?: Record<string, unknown>) =>
-      logger.error(message, { ...data, ...connection }),
-  }
+  const sessionLogger = logger.child({
+    organizationId: connection.organizationId,
+    channelConnectionId: connection.channelConnectionId,
+  })
   const pacing = {
     msPerChar: env.WA_COMPOSE_MS_PER_CHAR,
     minMs: env.WA_COMPOSE_MIN_MS,
@@ -62,6 +59,7 @@ export async function openSession(
     ...connection,
     auth,
     ownerPod: deps.ownerPod,
+    ownerToken: lease.token,
     pairingTimeoutMs: env.WA_PAIRING_TIMEOUT_MS,
     directory: deps.directory,
     logger: sessionLogger,
@@ -80,6 +78,11 @@ export async function openSession(
     publishPairingCode: (pairingCode) =>
       publishPairingCode({ ...connection, pairingCode }),
     publishStatus: () => publishChannelStatus(connection),
+    hasSeenInbound: (externalMessageId) =>
+      hasSeenInboundMessage(redisConnection, {
+        channelConnectionId: connection.channelConnectionId,
+        externalMessageId,
+      }),
     claimInbound: (externalMessageId) =>
       claimInboundMessage(redisConnection, {
         channelConnectionId: connection.channelConnectionId,
@@ -116,13 +119,3 @@ export async function openSession(
   })
 }
 
-export function createSessionRegistry(): SessionRegistry {
-  const directory = new PostgresSessionDirectory()
-  const authKeys = new PostgresAuthKeysRepository()
-  const ownerPod = env.POD_NAME ?? hostname()
-  return new SessionRegistry({
-    findResumable: () => directory.findResumable(),
-    createSession: (connection) =>
-      openSession(connection, { authKeys, directory, ownerPod }),
-  })
-}

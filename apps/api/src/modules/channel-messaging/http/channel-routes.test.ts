@@ -94,7 +94,10 @@ vi.mock("../../../lib/db", () => ({
   database: { db: {}, close: async () => undefined },
 }))
 vi.mock("../../../lib/jobs-client", () => ({
-  jobs: { enqueue: async () => ({ id: "job" }), close: async () => undefined },
+  jobs: {
+    enqueue: async () => ({ id: "job" }),
+    close: async () => undefined,
+  },
 }))
 vi.mock("../../../lib/redis", () => ({
   redisConnection: { publish: async () => 0, quit: async () => undefined },

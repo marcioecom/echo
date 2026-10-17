@@ -22,21 +22,27 @@ const maximumReconnectDelay = 30_000
 
 export interface ChannelLiveEvents {
   connected: boolean
-  qr: { channelConnectionId: string; qr: string } | null
-  pairingCode: {
-    channelConnectionId: string
-    pairingCode: string
-  } | null
+  qrByChannelId: Record<string, string>
+  pairingCodeByChannelId: Record<string, string>
 }
 
 export function useChannelEvents(organizationId: string): ChannelLiveEvents {
   const queryClient = useQueryClient()
   const [connected, setConnected] = useState(false)
-  const [qr, setQr] = useState<ChannelLiveEvents["qr"]>(null)
-  const [pairingCode, setPairingCode] =
-    useState<ChannelLiveEvents["pairingCode"]>(null)
+  const [eventsOrganizationId, setEventsOrganizationId] = useState(organizationId)
+  const [qrByChannelId, setQrByChannelId] = useState<
+    ChannelLiveEvents["qrByChannelId"]
+  >({})
+  const [pairingCodeByChannelId, setPairingCodeByChannelId] = useState<
+    ChannelLiveEvents["pairingCodeByChannelId"]
+  >({})
 
   useEffect(() => {
+    setEventsOrganizationId(organizationId)
+    setConnected(false)
+    setQrByChannelId({})
+    setPairingCodeByChannelId({})
+
     let socket: WebSocket | null = null
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let reconnectAttempt = 0
@@ -47,6 +53,7 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
 
       socket = new WebSocket(getChannelEventsUrl())
       socket.addEventListener("open", () => {
+        if (stopped) return
         const shouldRefresh = reconnectAttempt > 0
         reconnectAttempt = 0
         setConnected(true)
@@ -56,6 +63,7 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
         })
       })
       socket.addEventListener("message", (message) => {
+        if (stopped) return
         let event: unknown
         try {
           event = JSON.parse(String(message.data))
@@ -64,16 +72,9 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
         }
         const status = channelStatusChangedEventSchema.safeParse(event)
         if (status.success) {
-          setQr((current) =>
-            current?.channelConnectionId === status.data.channelConnectionId
-              ? null
-              : current
-          )
-          setPairingCode((current) =>
-            current?.channelConnectionId === status.data.channelConnectionId
-              ? null
-              : current
-          )
+          const id = status.data.channelConnectionId
+          setQrByChannelId((current) => dropChannelEntry(current, id))
+          setPairingCodeByChannelId((current) => dropChannelEntry(current, id))
           queryClient.invalidateQueries({
             queryKey: channelQueryKeys.list(organizationId),
           })
@@ -81,21 +82,24 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
         }
         const qrEvent = channelQrEventSchema.safeParse(event)
         if (qrEvent.success) {
-          setQr({
-            channelConnectionId: qrEvent.data.channelConnectionId,
-            qr: qrEvent.data.qr,
-          })
+          const id = qrEvent.data.channelConnectionId
+          setQrByChannelId((current) => ({
+            ...current,
+            [id]: qrEvent.data.qr,
+          }))
           return
         }
         const codeEvent = channelPairingCodeEventSchema.safeParse(event)
         if (codeEvent.success) {
-          setPairingCode({
-            channelConnectionId: codeEvent.data.channelConnectionId,
-            pairingCode: codeEvent.data.pairingCode,
-          })
+          const id = codeEvent.data.channelConnectionId
+          setPairingCodeByChannelId((current) => ({
+            ...current,
+            [id]: codeEvent.data.pairingCode,
+          }))
         }
       })
       socket.addEventListener("close", () => {
+        if (stopped) return
         socket = null
         setConnected(false)
         if (stopped || document.visibilityState === "hidden") return
@@ -132,7 +136,19 @@ export function useChannelEvents(organizationId: string): ChannelLiveEvents {
     }
   }, [organizationId, queryClient])
 
-  return { connected, qr, pairingCode }
+  return eventsOrganizationId === organizationId
+    ? { connected, qrByChannelId, pairingCodeByChannelId }
+    : { connected: false, qrByChannelId: {}, pairingCodeByChannelId: {} }
+}
+
+function dropChannelEntry(
+  map: Record<string, string>,
+  channelConnectionId: string
+): Record<string, string> {
+  if (!(channelConnectionId in map)) return map
+  const next = { ...map }
+  delete next[channelConnectionId]
+  return next
 }
 
 const ChannelLiveContext = createContext<ChannelLiveEvents | null>(null)

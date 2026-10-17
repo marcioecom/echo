@@ -4,6 +4,10 @@ import { z } from "zod"
 export const waGatewayQueueName = "wa-gateway"
 export const waIngressQueueName = "wa-ingress"
 
+export function waConnectionQueueName(channelConnectionId: string): string {
+  return `wa-gateway-${ulidSchema.parse(channelConnectionId)}`
+}
+
 export const waGatewayJobNames = {
   connect: "wa-connect",
   pairingCode: "wa-pairing-code",

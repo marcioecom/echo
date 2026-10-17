@@ -1,12 +1,12 @@
 # Echo wa-gateway
 
-Stateful Baileys process for one WhatsApp session per pod. It pairs a number (QR or pairing code), keeps encrypted auth keys in Postgres, and talks to the rest of Echo through BullMQ and inbox events.
+Stateful Baileys gateway for multiple WhatsApp Channel Connections across instances. Each connection has its own Redis lease, fenced Postgres credentials, and command queue; the gateway resumes eligible sessions after a restart.
 
-The API and the worker never open a socket. They enqueue `wa-connect`, `wa-pairing-code`, `wa-logout`, and `wa-send`. This process publishes inbound messages and delivery receipts on `wa-ingress`, and publishes `channel.qr`, `channel.pairing_code`, and `channel.status_changed` on the org inbox channel.
+The API and worker enqueue `wa-connect` and `wa-logout` on the shared `wa-gateway` queue. Pairing and send commands use `wa-gateway-<channelConnectionId>` because BullMQ queue names cannot contain `:`. Inbound messages and delivery receipts go to `wa-ingress`; QR, pairing code, and status events are published to the Organization inbox channel.
 
 ## Layout
 
-Same shape as `apps/api`: a thin entrypoint, app-wide `lib` and `plugins`, and one module split into adapters, repositories, use-cases, and a worker.
+The `sessions` module groups ownership, provider adapters, persistence, policies, and traffic controls. These WhatsApp-specific controls stay app-local until another runtime needs the same behavior.
 
 ```text
 src/
@@ -16,26 +16,23 @@ src/
   lib/                            # postgres, redis, job client
   plugins/health.ts               # /healthz and /readyz
   modules/sessions/
-    adapters/                     # Baileys socket, logger, credential cipher
-    events/                       # inbox publishes (QR, pairing code, status)
-    repositories/                 # encrypted auth keys, session directory
-    use-cases/                    # open a session, handle a gateway job
-    workers/gateway-worker.ts     # wa-gateway queue, concurrency 1
-    auth-state.ts                 # useEchoAuthState write-behind
-    session.ts                    # live socket
-    registry.ts                   # which socket this process owns
-    disconnect.ts                 # DisconnectReason → action
-    reconnect.ts                  # attempt cap and backoff
-    inbound-filter.ts
-    delivery-status.ts
-    pacing.ts
-    rate-limit.ts
-    recent-messages.ts
+    adapters/                     # Baileys socket/logger and inbound/status translation
+    events/                       # Organization inbox events
+    ownership/                    # Redis lease, registry, recovery and per-connection workers
+    policies/                     # disconnect and reconnect decisions
+    repositories/                 # fenced credentials and session state
+    traffic/                      # per-connection rate limits and composition pacing
+    use-cases/                    # session composition and job dispatch
+    workers/                      # shared connect/logout worker
+    auth-state.ts                 # encrypted credential write-behind
+    lifecycle.ts                  # pure private session-state transitions
+    session.ts                    # Baileys runtime and lifecycle effect interpreter
+    recent-messages.ts            # Redis-backed message lookup for Baileys retries
 ```
 
-`registry.ts` holds a single slot. [LEA-82](https://linear.app/leapstark/issue/LEA-82) replaces that slot with Redis leases and a `connectionId → session` map. Job handlers keep calling `connect`, `send`, `requestPairingCode`, and `logout`.
+`ownership/registry.ts` owns distributed connection lifecycle. It acquires Redis leases, claims fenced Postgres ownership, admits sessions, starts per-connection workers, reconciles ownership, and shuts sessions down. `lifecycle.ts` defines the private connection phases and pure transitions. `session.ts` interprets those transitions around Baileys callbacks, timers, persistence, and queues. `adapters/` translates the provider contract without changing queue or event payloads.
 
-`disconnect.ts` and `reconnect.ts` are the F2 policy: restart immediately, back off on a drop, stop on logout, replacement, ban, and pairing timeout. [LEA-83](https://linear.app/leapstark/issue/LEA-83) replaces `nextReconnect` with per-reason backoff and alerts.
+Redis leases prevent duplicate owners; `owner_token` fences Postgres writes. Only the owner consumes that connection's pairing/send queue. The shared queue carries connect/logout intents.
 
 ## Local development
 
@@ -44,12 +41,14 @@ cp apps/wa-gateway/.env.example apps/wa-gateway/.env
 pnpm --filter @workspace/wa-gateway dev
 ```
 
-| Script           | What it does                 |
-| ---------------- | ---------------------------- |
-| `pnpm dev`       | `tsx watch` on `src/main.ts` |
-| `pnpm test`      | Vitest                       |
-| `pnpm typecheck` | `tsc --noEmit`               |
-| `pnpm lint`      | ESLint                       |
-| `pnpm build`     | `tsup` → `dist/main.js`      |
+| Check        | Command                                         |
+| ------------ | ----------------------------------------------- |
+| Unit tests    | `pnpm --filter @workspace/wa-gateway test`      |
+| Typecheck    | `pnpm --filter @workspace/wa-gateway typecheck` |
+| Lint         | `pnpm --filter @workspace/wa-gateway lint`      |
+| Build        | `pnpm --filter @workspace/wa-gateway build`     |
+| Integration  | `pnpm --filter @workspace/wa-gateway test:integration` |
+
+The integration command reads `apps/wa-gateway/.env`. Point it only at disposable Postgres and Redis services. The session-directory integration test deletes organizations with the `wa-gw-session-dir-` slug prefix.
 
 Logs never include message bodies, QR strings, or pairing codes. The Baileys logger stays at `warn` and redacts those fields.

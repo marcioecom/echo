@@ -76,7 +76,9 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     removeChannelConnection: vi.fn(),
   },
 }))
-const { enqueue } = vi.hoisted(() => ({ enqueue: vi.fn() }))
+const { enqueue } = vi.hoisted(() => ({
+  enqueue: vi.fn(),
+}))
 
 vi.mock("@/lib/jobs-client", () => ({ jobs: { enqueue } }))
 vi.mock("../twilio-inbound-webhook-url", () => ({

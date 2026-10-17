@@ -1,18 +1,26 @@
 import { describe, expect, it } from "vitest"
 
-import { acquireSendSlot, claimInboundMessage } from "./rate-limit"
+import {
+  acquireSendSlot,
+  claimInboundMessage,
+  hasSeenInboundMessage,
+} from "./rate-limit"
 import type { RateLimitRedis } from "./rate-limit"
 
 function memoryRedis(): RateLimitRedis & { keys: Set<string> } {
   const keys = new Set<string>()
   return {
     keys,
+    async get(key) {
+      return keys.has(key) ? "1" : null
+    },
     async set(key, _value, _mode, _ttl, existence) {
       if (existence === "NX" && keys.has(key)) return null
       keys.add(key)
       return "OK"
     },
   }
+
 }
 
 describe("acquireSendSlot", () => {
@@ -53,5 +61,17 @@ describe("claimInboundMessage", () => {
     }
     await expect(claimInboundMessage(redis, input)).resolves.toBe(true)
     await expect(claimInboundMessage(redis, input)).resolves.toBe(false)
+  })
+
+  it("reads the Redis seen key before an inbound enqueue", async () => {
+    const redis = memoryRedis()
+    const input = {
+      channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
+      externalMessageId: "wamid.1",
+    }
+
+    await expect(hasSeenInboundMessage(redis, input)).resolves.toBe(false)
+    await claimInboundMessage(redis, input)
+    await expect(hasSeenInboundMessage(redis, input)).resolves.toBe(true)
   })
 })

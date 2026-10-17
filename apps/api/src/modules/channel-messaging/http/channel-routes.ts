@@ -50,8 +50,6 @@ export function registerChannelRoutes(app: FastifyInstance): void {
             matchTag(error, {
               organization_unavailable: () =>
                 reply.code(404).send({ error: "organization_not_found" }),
-              session_exists: () =>
-                reply.code(409).send({ error: "baileys_session_exists" }),
               routing_conflict: () =>
                 reply.code(409).send({ error: "channel_routing_conflict" }),
               queue_unavailable: () =>
@@ -150,8 +148,6 @@ export function registerChannelRoutes(app: FastifyInstance): void {
                 reply.code(409).send({
                   error: "channel_connection_missing_address",
                 }),
-              session_exists: () =>
-                reply.code(409).send({ error: "baileys_session_exists" }),
               queue_unavailable: () =>
                 reply.code(503).send({ error: "queue_unavailable" }),
             }),
