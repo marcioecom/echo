@@ -2,7 +2,7 @@ import type { JobsOptions } from "bullmq"
 import { Queue } from "bullmq"
 import type { Redis } from "ioredis"
 import type { z } from "zod"
-import { queueDefinitions, waGatewayQueueDefinition } from "./queue-definitions"
+import { queueDefinitions } from "./queue-definitions"
 import { jobDefinitions, type JobName } from "./schemas"
 
 export interface EnqueuedJob {
@@ -16,6 +16,25 @@ export interface JobClient {
     options?: JobsOptions
   ) => Promise<EnqueuedJob>
   close: () => Promise<void>
+}
+
+function resolveQueueTarget(
+  definition: (typeof jobDefinitions)[JobName],
+  payload: unknown
+): { queueName: string; defaultJobOptions: JobsOptions } {
+  if (typeof definition.queueName === "function") {
+    return {
+      queueName: definition.queueName(payload as never),
+      defaultJobOptions:
+        queueDefinitions[definition.optionsQueue].defaultJobOptions,
+    }
+  }
+
+  return {
+    queueName: definition.queueName,
+    defaultJobOptions:
+      queueDefinitions[definition.queueName].defaultJobOptions,
+  }
 }
 
 export function createJobClient(connection: Redis): JobClient {
@@ -43,14 +62,11 @@ export function createJobClient(connection: Redis): JobClient {
         jobOptions.jobId = definition.jobId(parsedPayload as never)
       }
 
-      const queueName =
-        typeof definition.queueName === "function"
-          ? definition.queueName(parsedPayload as never)
-          : definition.queueName
-      const defaultJobOptions =
-        typeof definition.queueName === "function"
-          ? waGatewayQueueDefinition.defaultJobOptions
-          : queueDefinitions[definition.queueName].defaultJobOptions
+      const { queueName, defaultJobOptions } = resolveQueueTarget(
+        definition,
+        parsedPayload
+      )
+
       const job = await getQueue(queueName, defaultJobOptions).add(
         jobName,
         parsedPayload,

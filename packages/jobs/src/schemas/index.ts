@@ -71,6 +71,7 @@ export const jobDefinitions = {
   [waGatewayJobNames.pairingCode]: {
     queueName: (payload: WaPairingCodeJob) =>
       waConnectionQueueName(payload.channelConnectionId),
+    optionsQueue: waGatewayQueueName,
     schema: waPairingCodeJobSchema,
   },
   [waGatewayJobNames.logout]: {
