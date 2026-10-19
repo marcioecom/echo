@@ -75,7 +75,12 @@ vi.mock("@workspace/agent", async (importOriginal) => {
 
 vi.mock("./embedder", () => ({
   retrieveKnowledge: null,
-  getRetrieveKnowledge: () => testDoubles.retrieve,
+  getRetrieveKnowledge: () => (input: Parameters<RetrieveKnowledge>[0]) => {
+    if (!testDoubles.retrieve) {
+      throw new Error("Test retrieve knowledge is not configured")
+    }
+    return testDoubles.retrieve(input)
+  },
 }))
 
 function extractCookies(
@@ -444,7 +449,8 @@ describe("knowledge document detail API", () => {
     expect(operator.json()).toEqual({ error: "insufficient_role" })
     expect(operator.body).not.toContain("Texto restrito ao dono.")
     expect(missing.statusCode).toBe(404)
-    expect(invalidId.statusCode).toBe(404)
+    expect(invalidId.statusCode).toBe(400)
+    expect(invalidId.json()).toEqual({ error: "invalid_request" })
   })
 
   it("retrieves a pending document with chunks and hides a deleted document", async () => {
@@ -752,7 +758,7 @@ describe("knowledge document detail API", () => {
       fileName: "nota.txt",
       contentType: "text/plain",
       sizeBytes: 4,
-      objectKey: `knowledge/uploads/${owner.organizationId}/nota.txt`,
+      objectKey: `knowledge/documents/${owner.organizationId}/${createId()}/nota.txt`,
       expiresAt: Date.now() + 60_000,
     })
     const textFileReplace = await app.inject({
@@ -875,7 +881,7 @@ describe("knowledge document detail API", () => {
       fileName: "horario.txt",
       contentType: "text/plain",
       sizeBytes: 12,
-      objectKey: `knowledge/uploads/${owner.organizationId}/${uploadId}.txt`,
+      objectKey: `knowledge/documents/${owner.organizationId}/${uploadId}/horario.txt`,
       expiresAt: Date.now() + 60_000,
     })
     testDoubles.objectStore.head.mockResolvedValue({
@@ -932,7 +938,7 @@ describe("knowledge document detail API", () => {
     })
     expect(stored?.revision).toBe(4)
     expect(stored?.sourceObjectKey).toBe(
-      `knowledge/documents/${owner.organizationId}/${file.id}/${uploadId}/horario.txt`
+      `knowledge/documents/${owner.organizationId}/${uploadId}/horario.txt`
     )
     expect(testDoubles.enqueue).toHaveBeenCalledWith(
       "delete-knowledge-object",
@@ -940,7 +946,7 @@ describe("knowledge document detail API", () => {
         deletionId: expect.stringMatching(/^[0-9A-HJKMNP-TV-Z]{26}$/),
       })
     )
-    expect(testDoubles.objectStore.copy).toHaveBeenCalledTimes(1)
+    expect(testDoubles.objectStore.copy).not.toHaveBeenCalled()
   })
 
   it("does not bump revision when a failed file replace is replayed", async () => {
@@ -971,7 +977,7 @@ describe("knowledge document detail API", () => {
       fileName: "horario.txt",
       contentType: "text/plain",
       sizeBytes: 12,
-      objectKey: `knowledge/uploads/${owner.organizationId}/${uploadId}.txt`,
+      objectKey: permanentKey,
       expiresAt: Date.now() + 60_000,
     })
     testDoubles.objectStore.copy.mockClear()
@@ -997,6 +1003,90 @@ describe("knowledge document detail API", () => {
     expect(testDoubles.enqueue).not.toHaveBeenCalledWith(
       "index-knowledge-document",
       expect.anything()
+    )
+  })
+
+  it("presigns the permanent object key at upload creation and confirms without copying", async () => {
+    const owner = await ownerContext("kb-upload")
+    testDoubles.objectStore.presignPut.mockResolvedValue({
+      url: "https://r2.echo.test/upload",
+      headers: { "Content-Type": "text/plain" },
+    })
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/v1/knowledge-document-uploads",
+      headers: { cookie: owner.cookies },
+      payload: { fileName: "horario.txt", contentType: "text/plain", sizeBytes: 12 },
+    })
+    const upload = created.json() as {
+      uploadUrl: string
+      uploadToken: string
+      expiresAt: string
+      headers: { "Content-Type": string }
+    }
+    const presigned = testDoubles.objectStore.presignPut.mock.calls.at(-1)?.[0]
+    const objectKeyPattern = new RegExp(
+      `^knowledge/documents/${owner.organizationId}/[0-9A-HJKMNP-TV-Z]{26}/horario\\.txt$`
+    )
+
+    expect(created.statusCode, created.body).toBe(201)
+    expect(upload.uploadUrl).toBe("https://r2.echo.test/upload")
+    expect(upload.headers).toEqual({ "Content-Type": "text/plain" })
+    expect(new Date(upload.expiresAt).getTime()).toBeGreaterThan(Date.now())
+    expect(presigned).toMatchObject({
+      contentType: "text/plain",
+      expiresIn: 900,
+    })
+    expect(presigned?.key).toMatch(objectKeyPattern)
+    expect(presigned?.key).not.toContain("knowledge/uploads/")
+
+    const { verifyKnowledgeUploadToken } = await import("./upload-token")
+    const payload = verifyKnowledgeUploadToken(upload.uploadToken)
+    expect(payload?.objectKey).toBe(presigned?.key)
+    expect(payload?.organizationId).toBe(owner.organizationId)
+    expect(payload?.createdByUserId).toBe(owner.userId)
+
+    testDoubles.objectStore.head.mockResolvedValue({
+      contentType: "text/plain",
+      contentLength: 12,
+      etag: "etag-upload",
+    })
+    testDoubles.objectStore.copy.mockClear()
+    testDoubles.enqueue.mockClear()
+
+    const confirmed = await app.inject({
+      method: "POST",
+      url: "/v1/knowledge-documents/file",
+      headers: { cookie: owner.cookies },
+      payload: { title: "Horário", uploadToken: upload.uploadToken },
+    })
+    const [stored] = await database.db
+      .select({
+        sourceObjectKey: knowledgeDocuments.sourceObjectKey,
+        sourceObjectEtag: knowledgeDocuments.sourceObjectEtag,
+      })
+      .from(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.id, payload?.uploadId ?? ""))
+
+    expect(confirmed.statusCode, confirmed.body).toBe(201)
+    expect(confirmed.json()).toMatchObject({
+      document: {
+        id: payload?.uploadId,
+        title: "Horário",
+        sourceType: "file",
+        sourceName: "horario.txt",
+        mimeType: "text/plain",
+        sourceSizeBytes: 12,
+        status: "pending",
+      },
+    })
+    expect(stored?.sourceObjectKey).toBe(presigned?.key)
+    expect(stored?.sourceObjectEtag).toBe("etag-upload")
+    expect(testDoubles.objectStore.copy).not.toHaveBeenCalled()
+    expect(testDoubles.enqueue).toHaveBeenCalledWith(
+      "index-knowledge-document",
+      expect.objectContaining({ documentId: payload?.uploadId })
     )
   })
 
@@ -1076,22 +1166,5 @@ describe("knowledge document detail API", () => {
     })
     expect(invalid.statusCode).toBe(400)
     expect(invalid.json()).toEqual({ error: "invalid_request" })
-  })
-  it("returns an actionable unavailable response when the AI gateway key is absent", async () => {
-    const owner = await ownerContext("kb-preview-no-key")
-    // Import after the integration env is initialized so app and test share its module instance.
-    const apiEnv = await import("../../config/env")
-    const previousKey = apiEnv.env.AI_GATEWAY_API_KEY
-    apiEnv.env.AI_GATEWAY_API_KEY = undefined
-    const response = await app.inject({
-      method: "POST",
-      url: "/v1/knowledge-base/preview-response",
-      headers: { cookie: owner.cookies },
-      payload: { question: "Que horas a padaria abre?" },
-    })
-    apiEnv.env.AI_GATEWAY_API_KEY = previousKey
-
-    expect(response.statusCode).toBe(503)
-    expect(response.json()).toEqual({ error: "ai_gateway_unavailable" })
   })
 })

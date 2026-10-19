@@ -1,11 +1,7 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
+import type { FastifyInstance } from "fastify"
 
 import { matchResult, matchTag } from "@/common/match"
-import {
-  getOrganizationAuth,
-  guards,
-  type OrganizationRequestAuth,
-} from "@/plugins/auth"
+import { guards, withOrganizationAuth } from "@/plugins/auth"
 
 import {
   channelConnectionParamsSchema,
@@ -185,15 +181,4 @@ export function registerChannelRoutes(app: FastifyInstance): void {
       })
     }
   )
-}
-
-function withOrganizationAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  handler: (auth: OrganizationRequestAuth) => Promise<unknown>
-): Promise<unknown> {
-  return matchResult(getOrganizationAuth(request), {
-    err: async (error) => reply.code(403).send({ error: error.type }),
-    ok: handler,
-  })
 }

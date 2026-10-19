@@ -1,6 +1,7 @@
 import { fromNodeHeaders } from "better-auth/node"
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
 
+import { matchResult } from "../common/match"
 import { err, ok, type Result } from "../common/result"
 import { type Auth, auth } from "../modules/auth/auth"
 
@@ -42,6 +43,17 @@ export function getOrganizationAuth(
   return auth?.organization
     ? ok(auth)
     : err({ type: "membership_required" })
+}
+
+export function withOrganizationAuth(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  handler: (auth: OrganizationRequestAuth) => Promise<unknown>
+): Promise<unknown> {
+  return matchResult(getOrganizationAuth(request), {
+    err: async (error) => reply.code(403).send({ error: error.type }),
+    ok: handler,
+  })
 }
 
 declare module "fastify" {

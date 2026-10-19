@@ -68,6 +68,7 @@ describe("channel connection API", () => {
       `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`
     )
     vi.stubEnv("DEPENDENCY_TIMEOUT_MS", "10000")
+    vi.stubEnv("AI_GATEWAY_API_KEY", "integration-gateway-key")
     vi.stubEnv("API_HOST", "127.0.0.1")
     vi.stubEnv("API_PORT", "3001")
     vi.stubEnv("NODE_ENV", "test")

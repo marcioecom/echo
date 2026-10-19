@@ -5,7 +5,7 @@ import { env } from "@/config/env"
 import {
   getOrganizationAuth,
   guards,
-  type OrganizationRequestAuth,
+  withOrganizationAuth,
 } from "@/plugins/auth"
 import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
 import {
@@ -130,17 +130,6 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
       })
     }
   )
-}
-
-function withOrganizationAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  handler: (auth: OrganizationRequestAuth) => Promise<unknown>
-): Promise<unknown> {
-  return matchResult(getOrganizationAuth(request), {
-    err: async (error) => reply.code(403).send({ error: error.type }),
-    ok: handler,
-  })
 }
 
 async function requireWebAppOrigin(

@@ -1,5 +1,5 @@
-import { markIndexDispatchFailed } from "@workspace/knowledge"
 import { knowledgeBaseJobNames } from "@workspace/jobs"
+import { markIndexDispatchFailed } from "@workspace/knowledge"
 
 import { database } from "@/lib/db"
 import { jobs } from "@/lib/jobs-client"

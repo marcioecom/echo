@@ -34,7 +34,7 @@ export const replaceKnowledgeDocumentFileSchema = z
   })
   .strict()
 
-export const knowledgeTestQuerySchema = z
+export const knowledgeTestBodySchema = z
   .object({
     question: z.string().trim().min(1).max(2000),
   })

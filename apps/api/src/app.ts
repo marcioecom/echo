@@ -3,8 +3,13 @@ import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
 import { createLoggerWithContext } from "@workspace/logger"
+import type { FastifyBaseLogger, FastifyError } from "fastify"
 import Fastify, { LogController } from "fastify"
-import type { FastifyBaseLogger } from "fastify"
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from "fastify-type-provider-zod"
 
 import { env } from "./config/env"
 import { auth } from "./modules/auth/auth"
@@ -21,6 +26,15 @@ export function createApp() {
   const app = Fastify({
     loggerInstance: logger,
     logController: new LogController({ disableRequestLogging: true }),
+  }).withTypeProvider<ZodTypeProvider>()
+
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
+  app.setErrorHandler<FastifyError>((error, _request, reply) => {
+    if (error.validation) {
+      return reply.code(400).send({ error: "invalid_request" })
+    }
+    throw error
   })
   registerRequestLogging(app, env.NODE_ENV === "development")
 

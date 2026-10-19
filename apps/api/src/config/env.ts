@@ -26,7 +26,7 @@ const apiEnvSchema = serverEnvSchema.extend({
       (value) => Buffer.byteLength(value) >= 32,
       "must be at least 32 bytes"
     ),
-  AI_GATEWAY_API_KEY: z.string().min(1).optional(),
+  AI_GATEWAY_API_KEY: z.string().min(1),
   AI_CHAT_MODEL: z.string().min(1).default("openai/gpt-6-luna"),
   AI_EMBEDDING_MODEL: z
     .string()

@@ -3,8 +3,18 @@ import { basename, extname } from "node:path"
 import { objectStore } from "@/lib/object-store"
 
 import type { KnowledgeUploadTokenPayload } from "./upload-token"
+import type { ObjectHead } from "@workspace/object-storage"
 
 const maxUploadBytes = 10_485_760
+export const uploadExpiresInSeconds = 900
+const allowedFiles = {
+  ".pdf": "application/pdf",
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".md": "text/markdown",
+  ".markdown": "text/markdown",
+  ".txt": "text/plain",
+} as const
 
 export function safeSourceName(fileName: string): string {
   const extension = extname(fileName).toLowerCase()
@@ -16,7 +26,15 @@ export function safeSourceName(fileName: string): string {
     : `document${extension}`
 }
 
-export type AcceptedKnowledgeUpload = {
+export function validateUploadFile(
+  fileName: string,
+  contentType: string
+): boolean {
+  const extension = extname(fileName).toLowerCase() as keyof typeof allowedFiles
+  return allowedFiles[extension] === contentType
+}
+
+export type VerifiedKnowledgeUpload = {
   ok: true
   etag: string
 }
@@ -27,11 +45,10 @@ export type RejectedKnowledgeUpload = {
   error: string
 }
 
-export async function acceptKnowledgeUpload(input: {
+export async function verifyUploadedObject(input: {
   upload: KnowledgeUploadTokenPayload
-  permanentKey: string
-}): Promise<AcceptedKnowledgeUpload | RejectedKnowledgeUpload> {
-  let head
+}): Promise<VerifiedKnowledgeUpload | RejectedKnowledgeUpload> {
+  let head: ObjectHead
   try {
     head = await objectStore.head(input.upload.objectKey)
   } catch (error) {
@@ -63,14 +80,6 @@ export async function acceptKnowledgeUpload(input: {
       status: 415,
       error: "knowledge_upload_metadata_mismatch",
     }
-  }
-  try {
-    await objectStore.copy({
-      sourceKey: input.upload.objectKey,
-      destinationKey: input.permanentKey,
-    })
-  } catch {
-    return { ok: false, status: 503, error: "knowledge_storage_unavailable" }
   }
   return { ok: true, etag: head.etag }
 }

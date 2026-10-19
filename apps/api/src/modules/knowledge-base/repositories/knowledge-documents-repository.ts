@@ -69,7 +69,7 @@ export class KnowledgeDocumentsRepository {
     sourceObjectEtag: string
     sourceSizeBytes: number
   }) {
-    const [document] = await this.db
+    const [inserted] = await this.db
       .insert(knowledgeDocuments)
       .values({
         id: input.id,
@@ -83,10 +83,17 @@ export class KnowledgeDocumentsRepository {
         sourceObjectEtag: input.sourceObjectEtag,
         sourceSizeBytes: input.sourceSizeBytes,
       })
+      .onConflictDoNothing({ target: knowledgeDocuments.id })
       .returning()
-    if (!document)
+    if (inserted) return inserted
+
+    const existing = await this.findIncludingRetired(
+      input.organizationId,
+      input.id
+    )
+    if (!existing)
       throw new Error("Knowledge file document insert returned no row")
-    return document
+    return existing
   }
 }
 

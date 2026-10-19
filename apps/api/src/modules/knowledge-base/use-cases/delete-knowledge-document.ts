@@ -1,17 +1,21 @@
 import { retireKnowledgeDocument } from "@workspace/knowledge"
 import type { FastifyBaseLogger } from "fastify"
 
+import { err, ok, type Result } from "@/common/result"
 import { database } from "@/lib/db"
 
 import { enqueueKnowledgeStorageDeletions } from "./enqueue-storage-deletions"
+
+export type DeleteKnowledgeDocumentError = { type: "not_found" }
 
 export async function deleteKnowledgeDocument(input: {
   organizationId: string
   documentId: string
   log: FastifyBaseLogger
-}) {
+}): Promise<Result<{ documentId: string }, DeleteKnowledgeDocumentError>> {
   const result = await retireKnowledgeDocument(database.db, input)
-  if (result.outcome === "missing") return result
+  if (result.outcome === "missing") return err({ type: "not_found" })
+
   try {
     await enqueueKnowledgeStorageDeletions(result.deletionIds)
   } catch (error) {
@@ -24,5 +28,5 @@ export async function deleteKnowledgeDocument(input: {
       "Knowledge storage deletion enqueue failed"
     )
   }
-  return result
+  return ok({ documentId: input.documentId })
 }
