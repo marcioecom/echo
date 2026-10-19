@@ -1,6 +1,12 @@
 "use client"
 
 import { Button } from "@workspace/ui/components/button"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@workspace/ui/components/tabs"
 import { Add01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { useState } from "react"
@@ -14,12 +20,13 @@ import { KnowledgeTestPanel } from "../components/knowledge-test-panel"
 
 export function KnowledgeBaseView() {
   const [composing, setComposing] = useState(false)
+  const [activeTab, setActiveTab] = useState("documents")
 
   return (
     <div className="space-y-6">
       <PageHeader
         actions={
-          composing ? null : (
+          activeTab === "documents" && !composing ? (
             <Button
               data-icon="inline-start"
               onClick={() => setComposing(true)}
@@ -28,19 +35,42 @@ export function KnowledgeBaseView() {
               <HugeiconsIcon icon={Add01Icon} size={16} strokeWidth={1.8} />
               {t("knowledge.add")}
             </Button>
-          )
+          ) : null
         }
         description={t("knowledge.description")}
         title={t("knowledge.title")}
       />
-      {composing ? (
-        <KnowledgeDocumentForm
-          onCancel={() => setComposing(false)}
-          onDone={() => setComposing(false)}
-        />
-      ) : null}
-      <KnowledgeDocumentList onAdd={() => setComposing(true)} />
-      <KnowledgeTestPanel />
+      <Tabs
+        className="space-y-4"
+        onValueChange={setActiveTab}
+        value={activeTab}
+      >
+        <TabsList aria-label={t("knowledge.title")}>
+          <TabsTrigger value="documents">
+            {t("knowledge.tabs.documents")}
+          </TabsTrigger>
+          <TabsTrigger value="preview">
+            {t("knowledge.tabs.preview")}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent
+          forceMount
+          hidden={activeTab !== "documents"}
+          value="documents"
+        >
+          {composing ? (
+            <KnowledgeDocumentForm
+              onCancel={() => setComposing(false)}
+              onDone={() => setComposing(false)}
+            />
+          ) : (
+            <KnowledgeDocumentList onAdd={() => setComposing(true)} />
+          )}
+        </TabsContent>
+        <TabsContent value="preview">
+          <KnowledgeTestPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -71,35 +71,3 @@ export function createRetrieveKnowledge(options: {
     }))
   }
 }
-
-export interface KnowledgeTestHit {
-  documentId: string
-  title: string
-  excerpt: string
-  score: number
-}
-
-export interface KnowledgeTestResult {
-  threshold: number | null
-  hits: readonly KnowledgeTestHit[]
-}
-
-export async function testKnowledgeQuery(
-  retrieve: RetrieveKnowledge,
-  input: { organizationId: string; question: string }
-): Promise<KnowledgeTestResult> {
-  const snippets = await retrieve({
-    organizationId: input.organizationId,
-    query: input.question,
-    limit: supportAgentRetrievedChunkLimit,
-  })
-  return {
-    threshold: null,
-    hits: snippets.map((snippet) => ({
-      documentId: snippet.documentId,
-      title: snippet.documentTitle,
-      excerpt: snippet.content,
-      score: snippet.similarity,
-    })),
-  }
-}

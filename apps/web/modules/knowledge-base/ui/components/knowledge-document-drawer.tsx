@@ -1,15 +1,14 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@workspace/ui/components/alert-dialog"
 import { Button } from "@workspace/ui/components/button"
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@workspace/ui/components/form"
+import { Input } from "@workspace/ui/components/input"
 import {
   Sheet,
   SheetContent,
@@ -17,19 +16,24 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@workspace/ui/components/sheet"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { useRef, useState } from "react"
 
 import { t, translateMessage } from "@/lib/i18n"
+import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { useDeleteKnowledgeDocument } from "../../hooks/use-delete-knowledge-document"
 import { useKnowledgeDocumentDetail } from "../../hooks/use-knowledge-document-detail"
 import { useKnowledgeDocuments } from "../../hooks/use-knowledge-documents"
+import { useKnowledgeDocumentTitleForm } from "../../hooks/use-knowledge-document-title-form"
 import { useReplaceKnowledgeDocumentFile } from "../../hooks/use-replace-knowledge-document-file"
 import { knowledgeFailureMessage, knowledgeSourceLabel } from "../../labels"
 import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
+import { KnowledgeFilePicker } from "./knowledge-file-picker"
 import { KnowledgeDocumentStatusBadge } from "./knowledge-document-status"
 import { KnowledgeDocumentTextForm } from "./knowledge-document-text-form"
+
+type DrawerMode = "reading" | "editing" | "replacing" | "confirm-delete"
 
 export function KnowledgeDocumentDrawer({
   document,
@@ -38,22 +42,36 @@ export function KnowledgeDocumentDrawer({
   document: KnowledgeDocument | null
   onClose: () => void
 }) {
+  const preventCloseRef = useRef(false)
+  const setPreventClose = useCallback((prevent: boolean) => {
+    preventCloseRef.current = prevent
+  }, [])
+  useEffect(() => {
+    if (!document) setPreventClose(false)
+  }, [document, setPreventClose])
   return (
     <Sheet
       open={document !== null}
       onOpenChange={(open) => {
-        if (!open) onClose()
+        if (!open && !preventCloseRef.current) onClose()
       }}
     >
       <SheetContent
         closeLabel={t("knowledge.detail.close")}
         id="knowledge-document-detail"
+        onEscapeKeyDown={(event) => {
+          if (preventCloseRef.current) event.preventDefault()
+        }}
+        onPointerDownOutside={(event) => {
+          if (preventCloseRef.current) event.preventDefault()
+        }}
       >
         {document ? (
           <KnowledgeDocumentDetailBody
             document={document}
             key={document.id}
             onClose={onClose}
+            setPreventClose={setPreventClose}
           />
         ) : null}
       </SheetContent>
@@ -64,41 +82,80 @@ export function KnowledgeDocumentDrawer({
 function KnowledgeDocumentDetailBody({
   document,
   onClose,
+  setPreventClose,
 }: {
   document: KnowledgeDocument
   onClose: () => void
+  setPreventClose: (prevent: boolean) => void
 }) {
   const { query } = useKnowledgeDocumentDetail(document.id)
   const { reindexMutation } = useKnowledgeDocuments()
-  const { deleteMutation } = useDeleteKnowledgeDocument({ onSuccess: onClose })
+  const { deleteMutation } = useDeleteKnowledgeDocument({
+    onSuccess: () => {
+      setPreventClose(false)
+      onClose()
+    },
+  })
   const { replaceMutation } = useReplaceKnowledgeDocumentFile({
     documentId: document.id,
   })
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [editing, setEditing] = useState(false)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const detail = query.data
   const shown = detail?.document ?? document
+  const [mode, setMode] = useState<DrawerMode>("reading")
+  const [replacementFile, setReplacementFile] = useState<File | null>(null)
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null)
+  const deleteTriggerRef = useRef<HTMLButtonElement>(null)
   const failure = knowledgeFailureMessage(shown.failureReason)
   const reindexing =
     reindexMutation.isPending && reindexMutation.variables === document.id
+  const busy =
+    replaceMutation.isPending || deleteMutation.isPending || reindexing
+
+  useEffect(() => {
+    setPreventClose(busy)
+    return () => setPreventClose(false)
+  }, [busy, setPreventClose])
+
+  const previousMode = useRef<DrawerMode>(mode)
+  useEffect(() => {
+    if (mode === "confirm-delete") cancelDeleteRef.current?.focus()
+    if (previousMode.current === "confirm-delete" && mode === "reading") {
+      deleteTriggerRef.current?.focus()
+    }
+    previousMode.current = mode
+  }, [mode])
+
+  const exitMode = () => {
+    setPreventClose(false)
+    setReplacementFile(null)
+    setMode("reading")
+  }
 
   return (
     <>
       <SheetHeader className="border-b border-border pr-12">
         <div className="flex items-start justify-between gap-3">
-          <SheetTitle className="text-base text-balance">
+          <SheetTitle className="text-base text-balance break-all">
             {shown.title}
           </SheetTitle>
           <KnowledgeDocumentStatusBadge status={shown.status} />
         </div>
-        <SheetDescription>{knowledgeSourceLabel(shown)}</SheetDescription>
-        {detail?.previousVersionActive ? (
+        <SheetDescription className="break-all">
+          {knowledgeSourceLabel(shown)}
+        </SheetDescription>
+        {detail?.previousVersionActive ||
+        (mode === "replacing" && shown.status === "ready") ||
+        (mode === "replacing" &&
+          (shown.status === "pending" || shown.status === "processing")) ? (
           <p
             className="mt-3 rounded-md bg-muted px-3 py-3 text-sm text-pretty"
             role="status"
           >
-            {t("knowledge.detail.previousStillActive")}
+            {detail?.previousVersionActive
+              ? t("knowledge.detail.previousStillActive")
+              : shown.status === "ready"
+                ? t("knowledge.detail.currentVersionAvailable")
+                : t("knowledge.detail.replacementPending")}
           </p>
         ) : null}
         {failure ? (
@@ -122,73 +179,165 @@ function KnowledgeDocumentDetailBody({
           </div>
         ) : null}
       </SheetHeader>
-      <div className="flex flex-wrap gap-2 px-6 py-3">
-        {shown.sourceType === "text" ? (
+      {mode === "reading" ? (
+        <div className="flex flex-wrap gap-2 px-6 py-3">
           <Button
-            onClick={() => setEditing((current) => !current)}
+            disabled={!detail}
+            onClick={() => setMode("editing")}
             size="sm"
             type="button"
             variant="outline"
           >
             {t("knowledge.edit")}
           </Button>
-        ) : (
+          {shown.sourceType === "file" ? (
+            <Button
+              disabled={busy}
+              onClick={() => {
+                replaceMutation.reset()
+                setReplacementFile(null)
+                setMode("replacing")
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {t("knowledge.replace")}
+            </Button>
+          ) : null}
           <Button
-            disabled={replaceMutation.isPending}
-            onClick={() => fileInputRef.current?.click()}
+            ref={deleteTriggerRef}
+            disabled={busy}
+            onClick={() => {
+              deleteMutation.reset()
+              setMode("confirm-delete")
+            }}
             size="sm"
             type="button"
             variant="outline"
           >
-            {replaceMutation.isPending
-              ? t("knowledge.replacing")
-              : t("knowledge.replace")}
+            {t("knowledge.delete")}
           </Button>
-        )}
-        <Button
-          onClick={() => setConfirmingDelete(true)}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          {t("knowledge.delete")}
-        </Button>
-        {shown.sourceType === "file" ? (
-          <input
-            accept=".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              event.target.value = ""
-              if (file) replaceMutation.mutate(file)
-            }}
-            ref={fileInputRef}
-            type="file"
+        </div>
+      ) : null}
+      {mode === "editing" && detail ? (
+        shown.sourceType === "text" ? (
+          <KnowledgeDocumentTextForm
+            content={detail.document.content ?? ""}
+            documentId={document.id}
+            onCancel={exitMode}
+            onDone={exitMode}
+            onPendingChange={setPreventClose}
+            title={shown.title}
           />
-        ) : null}
-      </div>
-      {replaceMutation.isError ? (
-        <p className="px-6 text-sm text-destructive" role="alert">
-          {translateMessage(replaceMutation.error.message)}
-        </p>
+        ) : (
+          <KnowledgeDocumentTitleForm
+            documentId={document.id}
+            onCancel={exitMode}
+            onDone={exitMode}
+            onPendingChange={setPreventClose}
+            title={shown.title}
+          />
+        )
       ) : null}
-      {editing && shown.sourceType === "text" ? (
-        <KnowledgeDocumentTextForm
-          content={detail?.document.content ?? ""}
-          documentId={document.id}
-          onCancel={() => setEditing(false)}
-          onDone={() => setEditing(false)}
-          title={shown.title}
-        />
+      {mode === "replacing" ? (
+        <section
+          aria-labelledby="knowledge-replace-title"
+          className="space-y-4 px-6 py-4"
+        >
+          <h2 className="text-sm font-medium" id="knowledge-replace-title">
+            {t("knowledge.replace")}
+          </h2>
+          <p className="text-sm break-all text-muted-foreground">
+            {t("knowledge.replaceSource", {
+              source: shown.sourceName ?? shown.title,
+            })}
+          </p>
+          <KnowledgeFilePicker
+            disabled={replaceMutation.isPending}
+            file={replacementFile}
+            onFileChange={setReplacementFile}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!replacementFile || replaceMutation.isPending}
+              onClick={() => {
+                if (replacementFile)
+                  replaceMutation.mutate(replacementFile, {
+                    onSuccess: exitMode,
+                  })
+              }}
+              type="button"
+            >
+              {replaceMutation.isPending
+                ? t("knowledge.replacing")
+                : t("knowledge.confirmReplace")}
+            </Button>
+            <Button
+              disabled={replaceMutation.isPending}
+              onClick={exitMode}
+              type="button"
+              variant="ghost"
+            >
+              {t("knowledge.cancel")}
+            </Button>
+          </div>
+          {replaceMutation.isError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translateMessage(replaceMutation.error.message)}
+            </p>
+          ) : null}
+        </section>
       ) : null}
-      {detail ? (
+      {mode === "confirm-delete" ? (
+        <section
+          aria-labelledby="knowledge-delete-title"
+          className="space-y-4 px-6 py-4"
+        >
+          <div className="space-y-1">
+            <h2 className="text-sm font-medium" id="knowledge-delete-title">
+              {t("knowledge.deleteTitle", { title: shown.title })}
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {t("knowledge.deleteBody")}
+          </p>
+          {deleteMutation.isError ? (
+            <p className="text-sm text-destructive" role="alert">
+              {translateMessage(deleteMutation.error.message)}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate(document.id)}
+              type="button"
+              variant="destructive"
+            >
+              {deleteMutation.isPending
+                ? t("knowledge.deleting")
+                : t("knowledge.deleteConfirm")}
+            </Button>
+            <Button
+              disabled={deleteMutation.isPending}
+              onClick={exitMode}
+              ref={cancelDeleteRef}
+              type="button"
+              variant="ghost"
+            >
+              {t("knowledge.cancel")}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+      {mode === "reading" && detail ? (
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <DocumentContent
             content={detail.document.content}
             status={detail.document.status}
           />
         </div>
-      ) : query.isError ? (
+      ) : mode === "reading" && query.isError ? (
         <div className="flex items-center gap-3 px-6 py-4">
           <p className="text-sm text-destructive" role="alert">
             {t("knowledge.detail.loadError")}
@@ -197,33 +346,75 @@ function KnowledgeDocumentDetailBody({
             {t("knowledge.retry")}
           </Button>
         </div>
-      ) : (
+      ) : mode === "reading" ? (
         <DetailSkeleton />
-      )}
-      <AlertDialog onOpenChange={setConfirmingDelete} open={confirmingDelete}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("knowledge.deleteTitle")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("knowledge.deleteBody")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMutation.isPending}>
-              {t("knowledge.cancel")}
-            </AlertDialogCancel>
-            <Button
-              disabled={deleteMutation.isPending}
-              onClick={() => deleteMutation.mutate(document.id)}
-              type="button"
-              variant="destructive"
-            >
-              {t("knowledge.deleteConfirm")}
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      ) : null}
     </>
+  )
+}
+
+function KnowledgeDocumentTitleForm({
+  documentId,
+  onCancel,
+  onDone,
+  onPendingChange,
+  title,
+}: {
+  documentId: string
+  onCancel: () => void
+  onDone: () => void
+  onPendingChange: (pending: boolean) => void
+  title: string
+}) {
+  const { form, saveMutation } = useKnowledgeDocumentTitleForm({
+    documentId,
+    onSuccess: onDone,
+    title,
+  })
+  useEffect(() => {
+    onPendingChange(saveMutation.isPending)
+  }, [onPendingChange, saveMutation.isPending])
+  return (
+    <Form {...form}>
+      <form
+        className="space-y-4 px-6 py-4"
+        onSubmit={form.handleSubmit((values) => saveMutation.mutate(values))}
+      >
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t("knowledge.titleLabel")}</FormLabel>
+              <FormControl>
+                <Input disabled={saveMutation.isPending} {...field} />
+              </FormControl>
+              <TranslatedFormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={saveMutation.isPending} type="submit">
+            {saveMutation.isPending
+              ? t("knowledge.saving")
+              : t("knowledge.save")}
+          </Button>
+          <Button
+            disabled={saveMutation.isPending}
+            onClick={onCancel}
+            type="button"
+            variant="ghost"
+          >
+            {t("knowledge.cancel")}
+          </Button>
+        </div>
+        {saveMutation.isError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {translateMessage(saveMutation.error.message)}
+          </p>
+        ) : null}
+      </form>
+    </Form>
   )
 }
 
@@ -236,7 +427,7 @@ function DocumentContent({
 }) {
   if (content) {
     return (
-      <p className="max-w-prose text-sm leading-relaxed text-pretty whitespace-pre-wrap">
+      <p className="max-w-prose text-sm leading-relaxed text-pretty break-all whitespace-pre-wrap">
         {content}
       </p>
     )

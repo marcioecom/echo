@@ -22,6 +22,7 @@
     "@fastify/websocket": "^11.3.0",
     "@inquirer/prompts": "^8.5.2",
     "@langchain/openai": "^1.5.10",
+    "@workspace/agent": "workspace:*",
     "@workspace/auth": "workspace:*",
     "@workspace/config": "workspace:*",
     "@workspace/db": "workspace:*",

@@ -17,6 +17,20 @@ import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import type { createApp } from "@/app"
+import type * as AgentModule from "@workspace/agent"
+
+type ModelDecision =
+  | {
+      action: "reply"
+      replyType: "answer" | "clarification"
+      body: string
+    }
+  | {
+      action: "handoff"
+      reason: "human_requested" | "low_confidence" | "unsupported_policy"
+      customerMessage: string
+      summary: string
+    }
 
 const testDoubles = vi.hoisted(() => ({
   enqueue: vi.fn<(jobName: string) => Promise<{ id: string }>>(async () => ({
@@ -30,6 +44,11 @@ const testDoubles = vi.hoisted(() => ({
     get: vi.fn(),
   },
   retrieve: null as RetrieveKnowledge | null,
+  modelDecision: vi.fn<() => ModelDecision>(() => ({
+    action: "reply",
+    replyType: "answer",
+    body: "Abrimos de terça a sábado.",
+  })),
 }))
 
 vi.mock("@/lib/jobs-client", () => ({
@@ -42,6 +61,17 @@ vi.mock("@/lib/jobs-client", () => ({
 vi.mock("@/lib/object-store", () => ({
   objectStore: testDoubles.objectStore,
 }))
+vi.mock("@workspace/agent", async (importOriginal) => {
+  const actual = await importOriginal<typeof AgentModule>()
+  return {
+    ...actual,
+    createSupportAgentModel: () => ({
+      withStructuredOutput: () => ({
+        invoke: async () => testDoubles.modelDecision(),
+      }),
+    }),
+  }
+})
 
 vi.mock("./embedder", () => ({
   retrieveKnowledge: null,
@@ -67,7 +97,8 @@ describe("knowledge document detail API", () => {
     "redis:7.4-alpine"
   ).withExposedPorts(6379)
 
-  const zeroVector = `[${Array.from({ length: 1536 }, () => 0).join(",")}]`
+  const testEmbedding = [1, ...Array.from({ length: 1535 }, () => 0)]
+  const testEmbeddingLiteral = `[${testEmbedding.join(",")}]`
   let app: ReturnType<typeof createApp>
   let database: ReturnType<typeof createDatabase>
   let retrieve: RetrieveKnowledge
@@ -90,7 +121,8 @@ describe("knowledge document detail API", () => {
       `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`
     )
     vi.stubEnv("DEPENDENCY_TIMEOUT_MS", "10000")
-    vi.stubEnv("API_HOST", "127.0.0.1")
+    vi.stubEnv("AI_GATEWAY_API_KEY", "integration-gateway-key")
+    vi.stubEnv("AI_CHAT_MODEL", "openai/gpt-5.6-luna")
     vi.stubEnv("API_PORT", "3001")
     vi.stubEnv("NODE_ENV", "test")
     vi.stubEnv("LOG_LEVEL", "silent")
@@ -128,7 +160,7 @@ describe("knowledge document detail API", () => {
     const knowledge = await import("@workspace/knowledge")
     retrieve = knowledge.createRetrieveKnowledge({
       database: database.db,
-      embedQuery: async () => Array.from({ length: 1536 }, () => 0),
+      embedQuery: async () => testEmbedding,
     })
     testDoubles.retrieve = retrieve
     testDoubles.enqueue.mockResolvedValue({ id: "job" })
@@ -256,7 +288,7 @@ describe("knowledge document detail API", () => {
       ordinal: input.ordinal ?? 0,
       content: input.content,
       embeddingModel: "openai/text-embedding-3-small",
-      embedding: zeroVector,
+      embedding: testEmbeddingLiteral,
     })
   }
 
@@ -488,7 +520,8 @@ describe("knowledge document detail API", () => {
         content: "Texto que sai do índice.",
       })
       .returning()
-    if (!document) throw new Error("Knowledge delete fixture insert returned no row")
+    if (!document)
+      throw new Error("Knowledge delete fixture insert returned no row")
     const foreign = await insertTextDocument({
       organizationId: other.organizationId,
       userId: other.userId,
@@ -686,15 +719,31 @@ describe("knowledge document detail API", () => {
       },
     })
 
-    const filePatch = await app.inject({
+    const fileTitlePatch = await app.inject({
       method: "PATCH",
       url: `/v1/knowledge-documents/${file.id}`,
       headers: { cookie: owner.cookies },
       payload: { title: "Outro nome" },
     })
-    expect(filePatch.statusCode).toBe(409)
-    expect(filePatch.json()).toEqual({ error: "knowledge_document_not_text" })
+    expect(fileTitlePatch.statusCode).toBe(200)
+    expect(fileTitlePatch.json()).toMatchObject({
+      document: {
+        title: "Outro nome",
+        revision: file.revision,
+        status: file.status,
+      },
+    })
 
+    const fileContentPatch = await app.inject({
+      method: "PATCH",
+      url: `/v1/knowledge-documents/${file.id}`,
+      headers: { cookie: owner.cookies },
+      payload: { title: "Outro nome", content: "Texto" },
+    })
+    expect(fileContentPatch.statusCode).toBe(409)
+    expect(fileContentPatch.json()).toEqual({
+      error: "knowledge_document_not_text",
+    })
     const { createKnowledgeUploadToken } = await import("./upload-token")
     const textUploadToken = createKnowledgeUploadToken({
       uploadId: createId(),
@@ -792,7 +841,9 @@ describe("knowledge document detail API", () => {
       title: "Manual",
       content: "ignored",
     })
-    await database.db.delete(knowledgeDocuments).where(eq(knowledgeDocuments.id, document.id))
+    await database.db
+      .delete(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.id, document.id))
     const [file] = await database.db
       .insert(knowledgeDocuments)
       .values({
@@ -949,26 +1000,20 @@ describe("knowledge document detail API", () => {
     )
   })
 
-  it("answers a knowledge test from the session organization", async () => {
-    const owner = await ownerContext("kb-test")
-    const other = await ownerContext("kb-test-other")
+  it("returns the support graph decision and tenant-scoped retrieval evidence without side effects", async () => {
+    const owner = await ownerContext("kb-preview")
+    const other = await ownerContext("kb-preview-other")
     const document = await insertTextDocument({
       organizationId: owner.organizationId,
       userId: owner.userId,
       title: "Horário da padaria",
       content: "Abrimos de terça a sábado.",
     })
-    const removed = await insertTextDocument({
-      organizationId: owner.organizationId,
-      userId: owner.userId,
-      title: "Documento apagado",
-      content: "Não entra na resposta.",
-    })
     const foreign = await insertTextDocument({
       organizationId: other.organizationId,
       userId: other.userId,
       title: "Segredo da outra loja",
-      content: "Não entra na resposta.",
+      content: "Texto de outra organização.",
     })
     await insertChunk({
       organizationId: owner.organizationId,
@@ -976,42 +1021,29 @@ describe("knowledge document detail API", () => {
       content: "Abrimos de terça a sábado.",
     })
     await insertChunk({
-      organizationId: owner.organizationId,
-      documentId: removed.id,
-      content: "Texto apagado.",
-    })
-    await insertChunk({
       organizationId: other.organizationId,
       documentId: foreign.id,
       content: "Texto de outra organização.",
     })
-    await database.db
-      .update(knowledgeDocuments)
-      .set({ deletedAt: new Date() })
-      .where(eq(knowledgeDocuments.id, removed.id))
 
+    const enqueueCallCount = testDoubles.enqueue.mock.calls.length
     const response = await app.inject({
       method: "POST",
-      url: "/v1/knowledge-base/test-query",
+      url: "/v1/knowledge-base/preview-response",
       headers: { cookie: owner.cookies },
       payload: { question: "Que horas a padaria abre?" },
     })
-    const rejected = await app.inject({
-      method: "POST",
-      url: "/v1/knowledge-base/test-query",
-      headers: { cookie: owner.cookies },
-      payload: {
-        question: "Que horas a padaria abre?",
-        organizationId: other.organizationId,
-      },
-    })
     const body = response.json() as {
-      threshold: number | null
+      decision: Record<string, unknown>
       hits: Array<Record<string, unknown>>
     }
 
-    expect(response.statusCode).toBe(200)
-    expect(body.threshold).toBeNull()
+    expect(response.statusCode, response.body).toBe(200)
+    expect(body.decision).toEqual({
+      action: "reply",
+      replyType: "answer",
+      body: "Abrimos de terça a sábado.",
+    })
     expect(body.hits).toEqual([
       expect.objectContaining({
         documentId: document.id,
@@ -1019,29 +1051,47 @@ describe("knowledge document detail API", () => {
         excerpt: "Abrimos de terça a sábado.",
       }),
     ])
-    expect(body.hits[0]).not.toHaveProperty("passesThreshold")
-    expect(typeof body.hits[0]?.score).toBe("number")
-    expect(response.body).not.toContain("Documento apagado")
     expect(response.body).not.toContain("Segredo da outra loja")
-    expect(rejected.statusCode).toBe(400)
-    expect(rejected.json()).toEqual({ error: "invalid_request" })
-  })
+    expect(testDoubles.enqueue).toHaveBeenCalledTimes(enqueueCallCount)
 
-  it("reports that knowledge embedding is unavailable without a gateway key", async () => {
-    const owner = await ownerContext("kb-embed")
-    const previous = testDoubles.retrieve
-    testDoubles.retrieve = null
+    testDoubles.modelDecision.mockImplementation(() => ({
+      action: "handoff",
+      reason: "low_confidence",
+      customerMessage: "Vou chamar alguém da equipe.",
+      summary: "A pergunta precisa de atendimento humano.",
+    }))
+    const handoff = await app.inject({
+      method: "POST",
+      url: "/v1/knowledge-base/preview-response",
+      headers: { cookie: owner.cookies },
+      payload: { question: "Preciso falar com uma pessoa." },
+    })
+    expect(handoff.statusCode, handoff.body).toBe(200)
+
+    const invalid = await app.inject({
+      method: "POST",
+      url: "/v1/knowledge-base/preview-response",
+      headers: { cookie: owner.cookies },
+      payload: { question: "   ", organizationId: other.organizationId },
+    })
+    expect(invalid.statusCode).toBe(400)
+    expect(invalid.json()).toEqual({ error: "invalid_request" })
+  })
+  it("returns an actionable unavailable response when the AI gateway key is absent", async () => {
+    const owner = await ownerContext("kb-preview-no-key")
+    // Import after the integration env is initialized so app and test share its module instance.
+    const apiEnv = await import("../../config/env")
+    const previousKey = apiEnv.env.AI_GATEWAY_API_KEY
+    apiEnv.env.AI_GATEWAY_API_KEY = undefined
     const response = await app.inject({
       method: "POST",
-      url: "/v1/knowledge-base/test-query",
+      url: "/v1/knowledge-base/preview-response",
       headers: { cookie: owner.cookies },
       payload: { question: "Que horas a padaria abre?" },
     })
-    testDoubles.retrieve = previous
+    apiEnv.env.AI_GATEWAY_API_KEY = previousKey
 
     expect(response.statusCode).toBe(503)
-    expect(response.json()).toEqual({
-      error: "knowledge_embedding_unavailable",
-    })
+    expect(response.json()).toEqual({ error: "ai_gateway_unavailable" })
   })
 })

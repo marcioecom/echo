@@ -1,14 +1,19 @@
 import { extname } from "node:path"
 
 import { createId } from "@workspace/domain"
+
+import {
+  createSupportAgentGraph,
+  createSupportAgentModel,
+} from "@workspace/agent"
 import {
   getKnowledgeDocument,
   listKnowledgeDocuments,
   reindexKnowledgeDocument,
-  testKnowledgeQuery,
 } from "@workspace/knowledge"
 import type { FastifyInstance } from "fastify"
 
+import { env } from "@/config/env"
 import { database } from "@/lib/db"
 import { objectStore } from "@/lib/object-store"
 import { guards, getOrganizationAuth } from "@/plugins/auth"
@@ -33,7 +38,6 @@ import { dispatchKnowledgeIndexing } from "../use-cases/dispatch-indexing"
 import { getKnowledgeDocumentDetail } from "../use-cases/get-knowledge-document-detail"
 import { patchKnowledgeDocument } from "../use-cases/patch-knowledge-document"
 import { replaceKnowledgeDocumentFile } from "../use-cases/replace-knowledge-document-file"
-
 const uploadExpiresInSeconds = 900
 const allowedFiles = {
   ".pdf": "application/pdf",
@@ -49,6 +53,8 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
     guards.requireUser,
     guards.requireMembership({ roles: ["owner", "admin"] }),
   ]
+
+  let previewGraph: ReturnType<typeof createSupportAgentGraph> | undefined
 
   app.post(
     "/v1/knowledge-document-uploads",
@@ -408,7 +414,7 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
   )
 
   app.post(
-    "/v1/knowledge-base/test-query",
+    "/v1/knowledge-base/preview-response",
     { preHandler },
     async (request, reply) => {
       const auth = getOrganizationAuth(request)
@@ -417,17 +423,35 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
       const parsed = knowledgeTestQuerySchema.safeParse(request.body)
       if (!parsed.success)
         return reply.code(400).send({ error: "invalid_request" })
+      if (!env.AI_GATEWAY_API_KEY)
+        return reply.code(503).send({ error: "ai_gateway_unavailable" })
       const retrieve = getRetrieveKnowledge()
-      if (!retrieve) {
-        return reply
-          .code(503)
-          .send({ error: "knowledge_embedding_unavailable" })
+      if (!retrieve)
+        return reply.code(503).send({ error: "ai_gateway_unavailable" })
+
+      if (!previewGraph) {
+        const model = createSupportAgentModel({
+          apiKey: env.AI_GATEWAY_API_KEY,
+          modelName: env.AI_CHAT_MODEL,
+        })
+        previewGraph = createSupportAgentGraph(model, retrieve)
       }
-      const result = await testKnowledgeQuery(retrieve, {
+      const result = await previewGraph.invoke({
         organizationId: auth.value.organization.id,
-        question: parsed.data.question,
+        query: parsed.data.question,
+        history: [],
       })
-      return reply.send(result)
+      const decision = result.decision
+      if (!decision) throw new Error("Support agent returned no decision")
+      return reply.send({
+        decision,
+        hits: (result.snippets ?? []).map((snippet) => ({
+          documentId: snippet.documentId,
+          title: snippet.documentTitle,
+          excerpt: snippet.content,
+          score: snippet.similarity,
+        })),
+      })
     }
   )
 }

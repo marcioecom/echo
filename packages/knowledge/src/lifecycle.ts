@@ -142,10 +142,7 @@ export async function listPendingKnowledgeStorageDeletionIds(
           ? eq(knowledgeStorageDeletions.organizationId, filter.organizationId)
           : undefined,
         filter
-          ? eq(
-              knowledgeStorageDeletions.knowledgeDocumentId,
-              filter.documentId
-            )
+          ? eq(knowledgeStorageDeletions.knowledgeDocumentId, filter.documentId)
           : undefined
       )
     )
@@ -219,7 +216,9 @@ export async function applyTextPatch(
 ): Promise<TextPatchResult> {
   const detail = await getKnowledgeDocument(db, input)
   if (!detail) return { outcome: "missing" }
-  if (detail.document.sourceType !== "text") return { outcome: "not_text" }
+  if (input.content !== undefined && detail.document.sourceType !== "text") {
+    return { outcome: "not_text" }
+  }
   if (input.title === undefined && input.content === undefined) {
     return { outcome: "invalid" }
   }
@@ -514,7 +513,10 @@ export async function runKnowledgeIndexAttempt(
 
 function isMissingObject(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false
-  if ("name" in error && (error.name === "NoSuchKey" || error.name === "NotFound")) {
+  if (
+    "name" in error &&
+    (error.name === "NoSuchKey" || error.name === "NotFound")
+  ) {
     return true
   }
   if (!("$metadata" in error)) return false

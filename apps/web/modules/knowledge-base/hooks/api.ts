@@ -1,7 +1,7 @@
 import type {
   KnowledgeDocument,
   KnowledgeDocumentDetail,
-  KnowledgeTestResponse,
+  KnowledgePreviewResponse,
   KnowledgeUpload,
 } from "../types"
 
@@ -127,10 +127,10 @@ export function replaceKnowledgeDocumentFile(
   })
 }
 
-export function testKnowledgeQuery(input: {
+export function previewKnowledgeResponse(input: {
   question: string
-}): Promise<KnowledgeTestResponse> {
-  return request("/v1/knowledge-base/test-query", {
+}): Promise<KnowledgePreviewResponse> {
+  return request("/v1/knowledge-base/preview-response", {
     method: "POST",
     body: input,
   })

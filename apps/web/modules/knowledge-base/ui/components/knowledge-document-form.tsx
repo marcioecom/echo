@@ -11,22 +11,14 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
-import {
-  Cancel01Icon,
-  File01Icon,
-  TextIcon,
-  Upload01Icon,
-} from "@hugeicons/core-free-icons"
+import { Cancel01Icon, File01Icon, TextIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useRef, useState } from "react"
 
 import { t, translateMessage } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { useKnowledgeDocumentForm } from "../../hooks/use-knowledge-document-form"
-
-const ACCEPT =
-  ".pdf,.docx,.md,.markdown,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain"
+import { KnowledgeFilePicker } from "./knowledge-file-picker"
 
 export function KnowledgeDocumentForm({
   onCancel,
@@ -39,9 +31,6 @@ export function KnowledgeDocumentForm({
     onSuccess: onDone,
   })
   const sourceType = form.watch("sourceType")
-  const selectedFile = form.watch("file")
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [dragging, setDragging] = useState(false)
 
   return (
     <section
@@ -143,76 +132,14 @@ export function KnowledgeDocumentForm({
                   <FormItem>
                     <FormLabel>{t("knowledge.file")}</FormLabel>
                     <FormControl>
-                      <div>
-                        <input
-                          accept={ACCEPT}
-                          className="sr-only"
-                          name={field.name}
-                          onBlur={field.onBlur}
-                          onChange={(event) =>
-                            field.onChange(event.target.files?.[0] ?? null)
-                          }
-                          ref={(node) => {
-                            field.ref(node)
-                            fileInputRef.current = node
-                          }}
-                          type="file"
-                        />
-                        <button
-                          className={cn(
-                            "flex w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed px-4 py-8 text-center transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-ring/30",
-                            dragging
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:bg-muted/50",
-                            selectedFile instanceof File &&
-                              "border-solid bg-muted/40"
-                          )}
-                          onClick={() => fileInputRef.current?.click()}
-                          onDragEnter={(event) => {
-                            event.preventDefault()
-                            setDragging(true)
-                          }}
-                          onDragLeave={(event) => {
-                            event.preventDefault()
-                            setDragging(false)
-                          }}
-                          onDragOver={(event) => event.preventDefault()}
-                          onDrop={(event) => {
-                            event.preventDefault()
-                            setDragging(false)
-                            const file = event.dataTransfer.files?.[0] ?? null
-                            field.onChange(file)
-                          }}
-                          type="button"
-                        >
-                          <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                            <HugeiconsIcon
-                              icon={Upload01Icon}
-                              size={18}
-                              strokeWidth={1.8}
-                            />
-                          </span>
-                          {selectedFile instanceof File ? (
-                            <>
-                              <span className="text-sm font-medium">
-                                {selectedFile.name}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {t("knowledge.fileReplace")}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-sm font-medium">
-                                {t("knowledge.fileDropTitle")}
-                              </span>
-                              <span className="max-w-sm text-xs text-pretty text-muted-foreground">
-                                {t("knowledge.fileHint")}
-                              </span>
-                            </>
-                          )}
-                        </button>
-                      </div>
+                      <KnowledgeFilePicker
+                        disabled={createMutation.isPending}
+                        file={field.value}
+                        onFileChange={(file) => {
+                          field.onChange(file)
+                          field.onBlur()
+                        }}
+                      />
                     </FormControl>
                     <TranslatedFormMessage />
                   </FormItem>

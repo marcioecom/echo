@@ -15,6 +15,7 @@ import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
 import {
+  applyTextPatch,
   deleteRetiredKnowledgeObject,
   retireKnowledgeDocument,
   runKnowledgeIndexAttempt,
@@ -81,7 +82,8 @@ describe("knowledge document lifecycle", () => {
         revision: input.revision ?? 1,
       })
       .returning()
-    if (!document) throw new Error("Knowledge fixture document insert returned no row")
+    if (!document)
+      throw new Error("Knowledge fixture document insert returned no row")
     return document
   }
 
@@ -130,6 +132,68 @@ describe("knowledge document lifecycle", () => {
       ],
     }
   }
+
+  it("renames files without changing their source or index revision", async () => {
+    const owner = await createOwner("kb-file-rename")
+    const document = await insertText({
+      organizationId: owner.organizationId,
+      userId: owner.userId,
+      title: "Original",
+      content: "Extracted text.",
+    })
+    const objectKey = `knowledge/documents/${owner.organizationId}/${document.id}/manual.pdf`
+    await database.db
+      .update(knowledgeDocuments)
+      .set({
+        sourceType: "file",
+        sourceName: "manual.pdf",
+        mimeType: "application/pdf",
+        sourceObjectKey: objectKey,
+        sourceObjectEtag: "etag",
+        sourceSizeBytes: 123,
+      })
+      .where(eq(knowledgeDocuments.id, document.id))
+
+    const renamed = await applyTextPatch(database.db, {
+      organizationId: owner.organizationId,
+      documentId: document.id,
+      title: "Renamed",
+    })
+    expect(renamed.outcome).toBe("saved")
+    if (renamed.outcome !== "saved") throw new Error("File rename did not save")
+    expect(renamed.reindex).toBe(false)
+
+    const unchanged = await applyTextPatch(database.db, {
+      organizationId: owner.organizationId,
+      documentId: document.id,
+      title: "Renamed",
+    })
+    expect(unchanged.outcome).toBe("unchanged")
+
+    const rejectedContent = await applyTextPatch(database.db, {
+      organizationId: owner.organizationId,
+      documentId: document.id,
+      title: "Must not apply",
+      content: "Replacement",
+    })
+    expect(rejectedContent.outcome).toBe("not_text")
+
+    const [stored] = await database.db
+      .select()
+      .from(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.id, document.id))
+    expect(stored).toMatchObject({
+      title: "Renamed",
+      sourceType: "file",
+      sourceName: "manual.pdf",
+      mimeType: "application/pdf",
+      sourceObjectKey: objectKey,
+      sourceObjectEtag: "etag",
+      sourceSizeBytes: 123,
+      revision: document.revision,
+      content: "Extracted text.",
+    })
+  })
 
   it("retrieves a pending document with chunks and hides a deleted document", async () => {
     const owner = await createOwner("kb-pending")
@@ -350,7 +414,8 @@ describe("knowledge document lifecycle", () => {
         objectKey: `knowledge/documents/${owner.organizationId}/${document.id}/nota.txt`,
       })
       .returning()
-    if (!deletion) throw new Error("Knowledge storage fixture insert returned no row")
+    if (!deletion)
+      throw new Error("Knowledge storage fixture insert returned no row")
     const removeObject = vi.fn(async () => {
       const error = new Error("missing")
       error.name = "NoSuchKey"
@@ -402,7 +467,8 @@ describe("knowledge document lifecycle", () => {
         objectKey,
       })
       .returning()
-    if (!deletion) throw new Error("Knowledge storage fixture insert returned no row")
+    if (!deletion)
+      throw new Error("Knowledge storage fixture insert returned no row")
     const removeObject = vi.fn(async () => undefined)
 
     await expect(

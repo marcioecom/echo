@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -21,12 +22,14 @@ export function KnowledgeDocumentTextForm({
   documentId,
   onCancel,
   onDone,
+  onPendingChange,
   title,
 }: {
   content: string
   documentId: string
   onCancel: () => void
   onDone: () => void
+  onPendingChange: (pending: boolean) => void
   title: string
 }) {
   const { form, saveMutation } = useKnowledgeDocumentTextForm({
@@ -35,6 +38,9 @@ export function KnowledgeDocumentTextForm({
     onSuccess: onDone,
     title,
   })
+  useEffect(() => {
+    onPendingChange(saveMutation.isPending)
+  }, [onPendingChange, saveMutation.isPending])
 
   return (
     <Form {...form}>
@@ -49,7 +55,7 @@ export function KnowledgeDocumentTextForm({
             <FormItem>
               <FormLabel>{t("knowledge.titleLabel")}</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input disabled={saveMutation.isPending} {...field} />
               </FormControl>
               <TranslatedFormMessage />
             </FormItem>
@@ -62,7 +68,11 @@ export function KnowledgeDocumentTextForm({
             <FormItem>
               <FormLabel>{t("knowledge.content")}</FormLabel>
               <FormControl>
-                <Textarea className="min-h-40" {...field} />
+                <Textarea
+                  className="min-h-64"
+                  disabled={saveMutation.isPending}
+                  {...field}
+                />
               </FormControl>
               <TranslatedFormMessage />
             </FormItem>
@@ -74,7 +84,12 @@ export function KnowledgeDocumentTextForm({
               ? t("knowledge.saving")
               : t("knowledge.save")}
           </Button>
-          <Button onClick={onCancel} type="button" variant="ghost">
+          <Button
+            disabled={saveMutation.isPending}
+            onClick={onCancel}
+            type="button"
+            variant="ghost"
+          >
             {t("knowledge.cancel")}
           </Button>
         </div>

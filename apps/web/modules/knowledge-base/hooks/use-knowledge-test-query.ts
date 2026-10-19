@@ -6,8 +6,8 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { testKnowledgeQuery } from "./api"
-import type { KnowledgeTestResponse } from "../types"
+import { previewKnowledgeResponse } from "./api"
+import type { KnowledgePreviewResponse } from "../types"
 
 const knowledgeTestSchema = z.object({
   question: z.string().trim().min(1, "knowledge.validation.question").max(2000),
@@ -15,19 +15,21 @@ const knowledgeTestSchema = z.object({
 
 type KnowledgeTestValues = z.infer<typeof knowledgeTestSchema>
 
-export function useKnowledgeTestQuery() {
-  const [result, setResult] = useState<KnowledgeTestResponse | null>(null)
+export function useKnowledgePreviewQuery() {
+  const [result, setResult] = useState<KnowledgePreviewResponse | null>(null)
   const form = useForm<KnowledgeTestValues>({
     resolver: zodResolver(knowledgeTestSchema),
     defaultValues: { question: "" },
   })
-  const testMutation = useMutation({
+  const previewMutation = useMutation({
     mutationFn: (values: KnowledgeTestValues) =>
-      testKnowledgeQuery({ question: values.question.trim() }),
+      previewKnowledgeResponse({ question: values.question.trim() }),
+    onMutate: () => {
+      setResult(null)
+    },
     onSuccess: (response) => {
       setResult(response)
     },
   })
-
-  return { form, result, testMutation }
+  return { form, result, previewMutation }
 }

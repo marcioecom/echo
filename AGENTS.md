@@ -1,9 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-
-This version has breaking changes - APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
-
 # Echo Agent Guide
 
 Read these sources before changing code:
@@ -77,6 +71,12 @@ If sources conflict, use this precedence order:
 
 - UI components come from `@workspace/ui` (shadcn-style, Hugeicons only). Dark mode tokens are structured but not yet designed; no theme toggle until that pass.
 - Add new shadcn UI components through `pnpm dlx shadcn add <component>` so the configured registry and project conventions remain the source of truth. Do not hand-roll registry components.
+
+## Loading Feedback
+
+- For initial loads with a known layout, use a skeleton shaped like the content (for example, document rows or a detail view). Keep cached content visible during background refetches instead of replacing it with a skeleton.
+- For submissions or work with no predictable result layout (for example, testing a question or indexing a document), show a short status message with the existing animated loading icon. Disable the submitting action until it finishes; do not imply measured progress when none exists.
+- Reuse the UI's existing loading patterns. Expose one readable status to assistive technology (`role="status"`), hide decorative icons from it, and respect `prefers-reduced-motion` so the message still communicates progress without animation.
 
 ## Start Checklist
 

@@ -7,6 +7,10 @@ import {
   createSupportAgentModel,
   createUnsupportedHandoffDraft,
 } from "./support-agent-graph"
+export {
+  createSupportAgentGraph,
+  createSupportAgentModel,
+} from "./support-agent-graph"
 
 export function createSupportAgent(options: {
   database: Database

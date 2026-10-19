@@ -14,8 +14,8 @@
     "build": "tsup",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run src --exclude \"**/*.integration.test.ts\"",
-    "test:integration": "vitest run src --include \"**/*.integration.test.ts\""
+    "test": "vitest run src --passWithNoTests --exclude \"**/*.integration.test.ts\"",
+    "test:integration": "vitest run integration.test"
   },
   "dependencies": {
     "@workspace/db": "workspace:*",
