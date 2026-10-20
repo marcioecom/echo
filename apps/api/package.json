@@ -12,7 +12,9 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run src --exclude \"**/*.integration.test.ts\"",
-    "test:integration": "vitest run integration.test"
+    "test:integration": "vitest run integration.test",
+    "format": "prettier --write --ignore-path ../../.prettierignore \"**/*.{ts,tsx}\"",
+    "format:check": "prettier --check --ignore-path ../../.prettierignore \"**/*.{ts,tsx}\""
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.6.23",

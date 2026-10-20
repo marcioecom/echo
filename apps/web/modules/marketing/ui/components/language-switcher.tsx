@@ -1,14 +1,13 @@
 "use client"
 
-import { Link } from "@tanstack/react-router"
+import type { Locale } from "@/modules/marketing/i18n/dictionary"
 
-import {
-  localeHomePath,
-  type Locale,
-} from "@/modules/marketing/i18n/dictionary"
+import { Link } from "@tanstack/react-router"
+import { cn } from "@workspace/ui/lib/utils"
+
+import { localeHomePath } from "@/modules/marketing/i18n/dictionary"
 import { useLanding } from "@/modules/marketing/i18n/landing-context"
 import { persistLanguageChoice } from "@/modules/marketing/i18n/negotiation"
-import { cn } from "@workspace/ui/lib/utils"
 
 const options: { locale: Locale; labelKey: "english" | "portuguese" }[] = [
   { locale: "en", labelKey: "english" },

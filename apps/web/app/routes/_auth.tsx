@@ -1,6 +1,6 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 import { WhatsappIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { t } from "@/lib/i18n"

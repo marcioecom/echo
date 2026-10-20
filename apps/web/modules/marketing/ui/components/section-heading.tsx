@@ -1,5 +1,6 @@
-import { cn } from "@workspace/ui/lib/utils"
 import type { ReactNode } from "react"
+
+import { cn } from "@workspace/ui/lib/utils"
 
 type SectionHeadingProps = {
   eyebrow?: string

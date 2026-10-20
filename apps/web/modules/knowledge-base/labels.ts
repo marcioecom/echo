@@ -1,6 +1,7 @@
-import { t, type MessageKey } from "@/lib/i18n"
-
 import type { KnowledgeDocument } from "./types"
+import type { MessageKey } from "@/lib/i18n"
+
+import { t } from "@/lib/i18n"
 
 const failureKeys: Record<string, MessageKey> = {
   index_dispatch_failed: "knowledge.failure.index_dispatch_failed",

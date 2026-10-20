@@ -1,4 +1,5 @@
 import type { Database } from "@workspace/db"
+
 import { knowledgeDocuments, organizations } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
 import { and, eq } from "drizzle-orm"

@@ -1,12 +1,13 @@
-import type { FastifyInstance } from "fastify"
+import type { AppInstance } from "@/lib/fastify"
 
 import { matchResult, matchTag } from "@/common/match"
 import { env } from "@/config/env"
+
 import { twilioWebhookRequestSchema } from "../adapters/twilio-webhook"
 import { processTwilioInboundMessage } from "../use-cases/process-twilio-inbound-message"
 import { processTwilioMessageStatus } from "../use-cases/process-twilio-message-status"
 
-export function registerInboundMessageRoutes(app: FastifyInstance): void {
+export function registerInboundMessageRoutes(app: AppInstance): void {
   app.post("/webhooks/twilio/whatsapp/inbound", async (request, reply) => {
     const webhook = twilioWebhookRequestSchema.safeParse({
       signature: request.headers["x-twilio-signature"],

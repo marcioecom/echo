@@ -1,14 +1,15 @@
+import { createLoggerWithContext } from "@workspace/logger"
+
 import { err, ok, Result } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
-import { createLoggerWithContext } from "@workspace/logger"
+
 import { publishSupportConversationUpdated } from "../events/publish-support-conversation-updated"
 import { supportInboxRepository } from "../repositories/support-inbox-repository"
 
-export type CreateOperatorReplyResult =
-  { type: "created"; messageId: string }
+export type CreateOperatorReplyResult = { type: "created"; messageId: string }
 
 export type CreateOperatorReplyError =
-  { type: "queue_unavailable", messageId: string }
+  | { type: "queue_unavailable"; messageId: string }
   | { type: "not_found" }
   | { type: "resolved" }
 

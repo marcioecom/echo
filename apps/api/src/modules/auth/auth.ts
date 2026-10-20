@@ -1,11 +1,13 @@
+import type { Database } from "@workspace/db"
+import type {
+  SendInvitationEmailJob,
+  SendPasswordResetEmailJob,
+} from "@workspace/jobs"
+
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { ac, admin, operator, owner } from "@workspace/auth"
-import { schema, type Database } from "@workspace/db"
+import { schema } from "@workspace/db"
 import { createId } from "@workspace/domain"
-import {
-  type SendInvitationEmailJob,
-  type SendPasswordResetEmailJob,
-} from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import { betterAuth } from "better-auth"
 import { organization } from "better-auth/plugins/organization"
@@ -22,7 +24,9 @@ export interface CreateAuthOptions {
   webAppUrl: string
   emailAssetBaseUrl: string
   deliverInvitationEmail: (request: SendInvitationEmailJob) => Promise<void>
-  deliverPasswordResetEmail: (request: SendPasswordResetEmailJob) => Promise<void>
+  deliverPasswordResetEmail: (
+    request: SendPasswordResetEmailJob
+  ) => Promise<void>
   onDeliveryError?: (error: unknown, request: SendInvitationEmailJob) => void
 }
 

@@ -1,5 +1,7 @@
 "use client"
 
+import { Cancel01Icon, File01Icon, TextIcon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -11,8 +13,6 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { Textarea } from "@workspace/ui/components/textarea"
 import { cn } from "@workspace/ui/lib/utils"
-import { Cancel01Icon, File01Icon, TextIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 
 import { t, translateMessage } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"

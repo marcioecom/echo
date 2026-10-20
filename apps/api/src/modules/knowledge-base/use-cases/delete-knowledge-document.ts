@@ -1,7 +1,9 @@
-import { retireKnowledgeDocument } from "@workspace/knowledge"
+import type { Result } from "@/common/result"
 import type { FastifyBaseLogger } from "fastify"
 
-import { err, ok, type Result } from "@/common/result"
+import { retireKnowledgeDocument } from "@workspace/knowledge"
+
+import { err, ok } from "@/common/result"
 import { database } from "@/lib/db"
 
 import { enqueueKnowledgeStorageDeletions } from "./enqueue-storage-deletions"

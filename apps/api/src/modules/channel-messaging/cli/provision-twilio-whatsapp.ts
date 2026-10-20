@@ -1,7 +1,9 @@
-import { password } from "@inquirer/prompts"
 import { parseArgs } from "node:util"
 
+import { password } from "@inquirer/prompts"
+
 import { database } from "@/lib/db"
+
 import { provisionWhatsAppChannelConnection } from "../use-cases/provision-whatsapp-channel-connection"
 import {
   formatProvisioningError,

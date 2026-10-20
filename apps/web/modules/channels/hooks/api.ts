@@ -1,7 +1,8 @@
-import { getApiUrl } from "@/lib/env"
-import { t, type MessageKey } from "@/lib/i18n"
-
 import type { ChannelConnection } from "../types"
+import type { MessageKey } from "@/lib/i18n"
+
+import { getApiUrl } from "@/lib/env"
+import { t } from "@/lib/i18n"
 
 const apiUrl = getApiUrl()
 

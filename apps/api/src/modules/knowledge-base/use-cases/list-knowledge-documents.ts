@@ -1,8 +1,10 @@
+import type { DocumentDto } from "./document-dto"
+
 import { listKnowledgeDocuments as listKnowledgeDocumentRecords } from "@workspace/knowledge"
 
 import { database } from "@/lib/db"
 
-import { type DocumentDto, documentDto } from "./document-dto"
+import { documentDto } from "./document-dto"
 
 export async function listKnowledgeDocuments(input: {
   organizationId: string

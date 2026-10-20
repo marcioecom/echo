@@ -19,8 +19,8 @@ import {
 import { Input } from "@workspace/ui/components/input"
 import { useState } from "react"
 
-import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { t } from "@/lib/i18n"
+import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { channelErrorMessage } from "../../hooks/api"
 import { useConnectChannelForm } from "../../hooks/use-connect-channel-form"

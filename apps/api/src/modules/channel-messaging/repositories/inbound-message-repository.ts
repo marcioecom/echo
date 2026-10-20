@@ -1,3 +1,7 @@
+import type { IngestedInboundMessage } from "../types"
+import type { Database } from "@workspace/db"
+import type { NormalizedInboundMessage } from "@workspace/domain"
+
 import {
   auditEvents,
   channelConnections,
@@ -7,19 +11,17 @@ import {
   organizations,
   supportConversations,
 } from "@workspace/db/schema"
-import type { Database } from "@workspace/db"
 import { createId } from "@workspace/domain"
 import { and, eq, isNull, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
-import type { NormalizedInboundMessage } from "@workspace/domain"
-
-import type { IngestedInboundMessage } from "../types"
 
 export class InboundMessageRepository {
   constructor(private readonly db: Database = database.db) {}
 
-  async ingest(input: NormalizedInboundMessage): Promise<IngestedInboundMessage> {
+  async ingest(
+    input: NormalizedInboundMessage
+  ): Promise<IngestedInboundMessage> {
     return this.db.transaction(async (transaction) => {
       const [activeConnection] = await transaction
         .select({ id: channelConnections.id })

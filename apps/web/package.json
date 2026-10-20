@@ -11,7 +11,8 @@
     "cf-typegen": "wrangler types",
     "test": "vitest run",
     "lint": "eslint",
-    "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "format": "prettier --write --ignore-path ../../.prettierignore \"**/*.{ts,tsx}\"",
+    "format:check": "prettier --check --ignore-path ../../.prettierignore \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

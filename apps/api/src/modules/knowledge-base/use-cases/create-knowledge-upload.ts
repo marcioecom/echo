@@ -1,6 +1,8 @@
+import type { Result } from "@/common/result"
+
 import { createId } from "@workspace/domain"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { objectStore } from "@/lib/object-store"
 
 import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"

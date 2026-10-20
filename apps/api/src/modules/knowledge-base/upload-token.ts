@@ -25,11 +25,15 @@ function signature(encodedPayload: string): Buffer {
 export function createKnowledgeUploadToken(
   payload: KnowledgeUploadTokenPayload
 ): string {
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url")
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+    "base64url"
+  )
   return `${encodedPayload}.${signature(encodedPayload).toString("base64url")}`
 }
 
-export function verifyKnowledgeUploadToken(token: string): KnowledgeUploadTokenPayload | null {
+export function verifyKnowledgeUploadToken(
+  token: string
+): KnowledgeUploadTokenPayload | null {
   const [encodedPayload, encodedSignature, ...rest] = token.split(".")
   if (!encodedPayload || !encodedSignature || rest.length > 0) return null
 

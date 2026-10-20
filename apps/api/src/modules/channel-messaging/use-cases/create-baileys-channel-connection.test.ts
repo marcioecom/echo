@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { createBaileysChannelConnection } from "./create-baileys-channel-connection"
+
 const {
   encrypt,
   enqueue,
@@ -35,8 +37,6 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     findForOrganization,
   },
 }))
-
-import { createBaileysChannelConnection } from "./create-baileys-channel-connection"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const firstChannelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"

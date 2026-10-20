@@ -1,10 +1,13 @@
-import { err, ok, type Result } from "@/common/result"
+import type { DocumentDto } from "./document-dto"
+import type { Result } from "@/common/result"
+
+import { err, ok } from "@/common/result"
 
 import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
 import { safeSourceName, verifyUploadedObject } from "../upload"
 import { verifyKnowledgeUploadToken } from "../upload-token"
 import { dispatchKnowledgeIndexing } from "./dispatch-indexing"
-import { type DocumentDto, documentDto } from "./document-dto"
+import { documentDto } from "./document-dto"
 
 export type CreateFileKnowledgeDocumentError =
   | { type: "invalid_upload_token" }

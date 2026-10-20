@@ -1,5 +1,8 @@
+import type { Result } from "@/common/result"
+
 import { waGatewayJobNames } from "@workspace/jobs"
-import { err, ok, type Result } from "@/common/result"
+
+import { err, ok } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
 
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"

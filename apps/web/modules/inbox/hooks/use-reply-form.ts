@@ -8,8 +8,8 @@ import { z } from "zod"
 
 import { translateMessage } from "@/lib/i18n"
 
-import { inboxQueryKeys } from "./use-inbox-conversations"
 import { inboxApiRequest } from "./api"
+import { inboxQueryKeys } from "./use-inbox-conversations"
 
 const replySchema = z.object({
   body: z.string().trim().min(1, "inbox.validation.body").max(1600),

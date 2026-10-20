@@ -1,23 +1,22 @@
+import type { createApp } from "@/app"
+import type * as AgentModule from "@workspace/agent"
+import type { createDatabase } from "@workspace/db"
+import type { KnowledgeDocumentFailureReason } from "@workspace/domain"
+import type { RetrieveKnowledge } from "@workspace/knowledge"
+import type { Redis } from "ioredis"
+
 import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import type { createDatabase } from "@workspace/db"
 import {
   knowledgeDocumentChunks,
   knowledgeDocuments,
 } from "@workspace/db/schema"
-import {
-  createId,
-  type KnowledgeDocumentFailureReason,
-} from "@workspace/domain"
-import type { RetrieveKnowledge } from "@workspace/knowledge"
+import { createId } from "@workspace/domain"
 import { eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import type { createApp } from "@/app"
-import type * as AgentModule from "@workspace/agent"
 
 type ModelDecision =
   | {
@@ -43,7 +42,7 @@ const testDoubles = vi.hoisted(() => ({
     delete: vi.fn(),
     get: vi.fn(),
   },
-  retrieve: null as RetrieveKnowledge | null,
+  embedding: [1, ...Array.from({ length: 1535 }, () => 0)],
   modelDecision: vi.fn<() => ModelDecision>(() => ({
     action: "reply",
     replyType: "answer",
@@ -73,13 +72,12 @@ vi.mock("@workspace/agent", async (importOriginal) => {
   }
 })
 
-vi.mock("./embedder", () => ({
-  retrieveKnowledge: null,
-  getRetrieveKnowledge: () => (input: Parameters<RetrieveKnowledge>[0]) => {
-    if (!testDoubles.retrieve) {
-      throw new Error("Test retrieve knowledge is not configured")
+vi.mock("@langchain/openai", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@langchain/openai")>()),
+  OpenAIEmbeddings: class {
+    async embedQuery() {
+      return testDoubles.embedding
     }
-    return testDoubles.retrieve(input)
   },
 }))
 
@@ -167,7 +165,6 @@ describe("knowledge document detail API", () => {
       database: database.db,
       embedQuery: async () => testEmbedding,
     })
-    testDoubles.retrieve = retrieve
     testDoubles.enqueue.mockResolvedValue({ id: "job" })
     testDoubles.objectStore.copy.mockResolvedValue(undefined)
     testDoubles.objectStore.delete.mockResolvedValue(undefined)
@@ -1017,7 +1014,11 @@ describe("knowledge document detail API", () => {
       method: "POST",
       url: "/v1/knowledge-document-uploads",
       headers: { cookie: owner.cookies },
-      payload: { fileName: "horario.txt", contentType: "text/plain", sizeBytes: 12 },
+      payload: {
+        fileName: "horario.txt",
+        contentType: "text/plain",
+        sizeBytes: 12,
+      },
     })
     const upload = created.json() as {
       uploadUrl: string

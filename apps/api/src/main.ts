@@ -1,4 +1,5 @@
 import { createLoggerWithContext } from "@workspace/logger"
+
 import { createApp } from "./app"
 import { env } from "./config/env"
 import { database } from "./lib/db"

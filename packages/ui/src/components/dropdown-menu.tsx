@@ -1,11 +1,10 @@
 "use client"
 
-import * as React from "react"
-import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
-
-import { cn } from "@workspace/ui/lib/utils"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowRight01Icon, Tick02Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { cn } from "@workspace/ui/lib/utils"
+import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui"
+import * as React from "react"
 
 function DropdownMenu({
   ...props

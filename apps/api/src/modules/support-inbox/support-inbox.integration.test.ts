@@ -16,6 +16,8 @@ import { eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 
+import { SupportInboxRepository } from "./repositories/support-inbox-repository"
+
 const { databaseRef } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
 }))
@@ -30,8 +32,6 @@ vi.mock("../../lib/db", () => ({
     ),
   },
 }))
-
-import { SupportInboxRepository } from "./repositories/support-inbox-repository"
 
 describe("Support Inbox projections", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")

@@ -1,6 +1,11 @@
+import type { IngestedInboundMessage } from "../types"
+import type { IngestInboundMessageError } from "./ingest-inbound-message"
+import type { Result } from "@/common/result"
+
 import { createLoggerWithContext } from "@workspace/logger"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
+
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
 import {
   normalizeTwilioInboundMessage,
@@ -8,11 +13,7 @@ import {
   verifyTwilioWebhook,
 } from "../adapters/twilio-webhook"
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
-import type { IngestedInboundMessage } from "../types"
-import {
-  ingestInboundMessage,
-  type IngestInboundMessageError,
-} from "./ingest-inbound-message"
+import { ingestInboundMessage } from "./ingest-inbound-message"
 
 const logger = createLoggerWithContext("api:channel-messaging:twilio-inbound")
 
@@ -65,7 +66,10 @@ export async function resolveAndVerifyTwilioWebhook(input: {
   signature: string
   url: string
   form: Record<string, string>
-  routing?: Result<{ accountSid: string; address: string }, "unknown_connection">
+  routing?: Result<
+    { accountSid: string; address: string },
+    "unknown_connection"
+  >
 }): Promise<
   Result<
     { organizationId: string; channelConnectionId: string },

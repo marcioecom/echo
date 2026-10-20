@@ -43,6 +43,7 @@ If sources conflict, use this precedence order:
 - Share code through `packages/*` only when at least two apps truly need it.
 - Never import source code directly from one app into another app.
 - Keep provider-specific code at the edges.
+- `apps/api/AGENTS.md` documents API conventions (thin routes, use-cases, auth guards, Zod validation, uploads, formatting). Read it before editing `apps/api`.
 
 ## Web Auth And Data Fetching
 
@@ -59,6 +60,7 @@ If sources conflict, use this precedence order:
 ## Imports
 
 - Write TypeScript imports without file extensions; do not use `.js` suffixes in source imports.
+- Let Prettier order imports (`pnpm format`): type imports, builtins, third-party (`@workspace/*`), `@/` aliases, then relative imports.
 
 ## Design Context
 

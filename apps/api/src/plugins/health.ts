@@ -1,8 +1,9 @@
-import type { FastifyInstance } from "fastify"
-import { pingRedis } from "../lib/redis"
-import { database } from "../lib/db"
+import type { AppInstance } from "../lib/fastify"
 
-export function registerHealthRoutes(app: FastifyInstance) {
+import { database } from "../lib/db"
+import { pingRedis } from "../lib/redis"
+
+export function registerHealthRoutes(app: AppInstance) {
   app.get("/health/live", { logLevel: "silent" }, async () => ({
     status: "ok",
   }))

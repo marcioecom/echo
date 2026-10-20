@@ -1,4 +1,6 @@
-import { t, type MessageKey } from "@/lib/i18n"
+import type { MessageKey } from "@/lib/i18n"
+
+import { t } from "@/lib/i18n"
 
 const roleKeys = {
   owner: "members.roles.owner",

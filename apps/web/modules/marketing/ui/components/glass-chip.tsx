@@ -1,6 +1,7 @@
-import { cn } from "@workspace/ui/lib/utils"
-import { HugeiconsIcon } from "@hugeicons/react"
 import type { ComponentProps } from "react"
+
+import { HugeiconsIcon } from "@hugeicons/react"
+import { cn } from "@workspace/ui/lib/utils"
 
 type GlassChipProps = {
   icon: ComponentProps<typeof HugeiconsIcon>["icon"]

@@ -38,7 +38,9 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
               {ctaLabel}
             </Link>
             {signedIn ? null : (
-              <p className="text-sm text-neutral-600">{copy.hero.clickTrigger}</p>
+              <p className="text-sm text-neutral-600">
+                {copy.hero.clickTrigger}
+              </p>
             )}
           </div>
         </div>

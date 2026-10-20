@@ -1,6 +1,8 @@
 import Fastify from "fastify"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { registerChannelRoutes } from "./channel-routes"
+
 const {
   authState,
   createBaileysChannelConnection,
@@ -20,6 +22,43 @@ const {
     organization?: { id: string; name: string; slug: string } | null
   }
 
+  const requireUser = async (
+    request: { auth: RequestAuth | null },
+    reply: {
+      code: (statusCode: number) => { send: (payload: unknown) => unknown }
+    }
+  ) => {
+    if (authState.unauthenticated) {
+      return reply.code(401).send({ error: "unauthenticated" })
+    }
+    request.auth = {
+      user: { id: "user-id", name: "Owner", email: "owner@test.dev" },
+      member: null,
+      organization: null,
+    }
+  }
+  const requireMembership =
+    (options?: { roles?: string[] }) =>
+    async (
+      request: { auth: RequestAuth | null },
+      reply: {
+        code: (statusCode: number) => {
+          send: (payload: unknown) => unknown
+        }
+      }
+    ) => {
+      if (options?.roles && !options.roles.includes(authState.role)) {
+        return reply.code(403).send({ error: "insufficient_role" })
+      }
+      const user = request.auth?.user
+      if (!user) return
+      request.auth = {
+        user,
+        member: { id: "member-id", role: authState.role },
+        organization: { id: organizationId, name: "Acme", slug: "acme" },
+      }
+    }
+
   return {
     authState,
     organizationId,
@@ -30,42 +69,12 @@ const {
     requestBaileysPairingCode: vi.fn(),
     updateChannelConnection: vi.fn(),
     guards: {
-      requireUser: async (
-        request: { auth: RequestAuth | null },
-        reply: {
-          code: (statusCode: number) => { send: (payload: unknown) => unknown }
-        }
-      ) => {
-        if (authState.unauthenticated) {
-          return reply.code(401).send({ error: "unauthenticated" })
-        }
-        request.auth = {
-          user: { id: "user-id", name: "Owner", email: "owner@test.dev" },
-          member: null,
-          organization: null,
-        }
-      },
-      requireMembership:
-        (options?: { roles?: string[] }) =>
-        async (
-          request: { auth: RequestAuth | null },
-          reply: {
-            code: (statusCode: number) => {
-              send: (payload: unknown) => unknown
-            }
-          }
-        ) => {
-          if (options?.roles && !options.roles.includes(authState.role)) {
-            return reply.code(403).send({ error: "insufficient_role" })
-          }
-          const user = request.auth?.user
-          if (!user) return
-          request.auth = {
-            user,
-            member: { id: "member-id", role: authState.role },
-            organization: { id: organizationId, name: "Acme", slug: "acme" },
-          }
-        },
+      requireUser,
+      requireMembership,
+      requireOrganization: (options?: { roles?: string[] }) => [
+        requireUser,
+        requireMembership(options),
+      ],
     },
   }
 })
@@ -124,8 +133,6 @@ vi.mock("../../../plugins/auth", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../plugins/auth")>()),
   guards,
 }))
-
-import { registerChannelRoutes } from "./channel-routes"
 
 const channelConnectionId = "01K1EDN69NFBWCG42B2H99V2C4"
 const authToken = "super-secret-token"

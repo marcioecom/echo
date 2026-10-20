@@ -2,6 +2,8 @@ import formbody from "@fastify/formbody"
 import Fastify from "fastify"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { registerInboundMessageRoutes } from "./routes"
+
 const { processTwilioInboundMessage } = vi.hoisted(() => ({
   processTwilioInboundMessage: vi.fn(),
 }))
@@ -12,8 +14,6 @@ vi.mock("../../../config/env", () => ({
 vi.mock("../use-cases/process-twilio-inbound-message", () => ({
   processTwilioInboundMessage,
 }))
-
-import { registerInboundMessageRoutes } from "./routes"
 
 describe("Twilio WhatsApp webhook route", () => {
   beforeEach(() => processTwilioInboundMessage.mockReset())

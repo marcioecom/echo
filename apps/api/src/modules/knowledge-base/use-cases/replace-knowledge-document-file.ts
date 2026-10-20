@@ -1,19 +1,22 @@
+import type { DocumentDto } from "./document-dto"
+import type { Result } from "@/common/result"
+import type { KnowledgeDocumentRecord } from "@workspace/knowledge"
+import type { FastifyBaseLogger } from "fastify"
+
 import {
   applyFileReplace,
   getKnowledgeDocument,
   listPendingKnowledgeStorageDeletionIds,
-  type KnowledgeDocumentRecord,
 } from "@workspace/knowledge"
-import type { FastifyBaseLogger } from "fastify"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { database } from "@/lib/db"
 
 import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
 import { safeSourceName, verifyUploadedObject } from "../upload"
 import { verifyKnowledgeUploadToken } from "../upload-token"
 import { dispatchKnowledgeIndexing } from "./dispatch-indexing"
-import { documentDto, type DocumentDto } from "./document-dto"
+import { documentDto } from "./document-dto"
 import { enqueueKnowledgeStorageDeletions } from "./enqueue-storage-deletions"
 
 export type ReplaceKnowledgeDocumentFileError =

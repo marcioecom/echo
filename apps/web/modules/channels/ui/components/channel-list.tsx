@@ -1,5 +1,7 @@
 "use client"
 
+import type { ChannelConnection } from "../../types"
+
 import { WhatsappIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
@@ -10,7 +12,6 @@ import { t } from "@/lib/i18n"
 
 import { useChannelLive } from "../../hooks/use-channel-events"
 import { useChannels } from "../../hooks/use-channels"
-import type { ChannelConnection } from "../../types"
 import { ChannelRow } from "./channel-row"
 
 export function ChannelList({

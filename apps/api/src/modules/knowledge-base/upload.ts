@@ -1,9 +1,9 @@
+import type { KnowledgeUploadTokenPayload } from "./upload-token"
+import type { ObjectHead } from "@workspace/object-storage"
+
 import { basename, extname } from "node:path"
 
 import { objectStore } from "@/lib/object-store"
-
-import type { KnowledgeUploadTokenPayload } from "./upload-token"
-import type { ObjectHead } from "@workspace/object-storage"
 
 const maxUploadBytes = 10_485_760
 export const uploadExpiresInSeconds = 900

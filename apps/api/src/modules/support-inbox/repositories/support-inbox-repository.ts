@@ -1,4 +1,16 @@
+import type {
+  SupportInboxConversation,
+  SupportInboxConversationDetail,
+  SupportInboxCursor,
+} from "../types"
 import type { Database } from "@workspace/db"
+import type {
+  ActorType,
+  MessageContentType,
+  SupportConversationHandoffReason,
+  SupportConversationStatus,
+} from "@workspace/domain"
+
 import {
   auditEvents,
   channelConnections,
@@ -9,21 +21,12 @@ import {
   users,
 } from "@workspace/db/schema"
 import {
+  createId,
   supportConversationHandoffReasonSchema,
-  type ActorType,
-  type MessageContentType,
-  type SupportConversationHandoffReason,
-  type SupportConversationStatus,
 } from "@workspace/domain"
-import { createId } from "@workspace/domain"
 import { and, asc, desc, eq, lt, or, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
-import type {
-  SupportInboxConversation,
-  SupportInboxConversationDetail,
-  SupportInboxCursor,
-} from "../types"
 
 export class SupportInboxRepository {
   constructor(private readonly db: Database = database.db) {}

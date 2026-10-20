@@ -1,4 +1,12 @@
+import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
 import type { Database } from "@workspace/db"
+import type {
+  ChannelConnectionStatus,
+  ChannelProvider,
+  ChannelSessionState,
+  ChannelType,
+} from "@workspace/domain"
+
 import {
   auditEvents,
   baileysAuthKeys,
@@ -9,16 +17,9 @@ import {
   organizations,
   supportConversations,
 } from "@workspace/db/schema"
-import {
-  createId,
-  type ChannelConnectionStatus,
-  type ChannelProvider,
-  type ChannelSessionState,
-  type ChannelType,
-} from "@workspace/domain"
+import { createId } from "@workspace/domain"
 import { and, desc, eq, ne, sql } from "drizzle-orm"
 
-import type { EncryptedChannelCredentials } from "../adapters/channel-credentials-cipher"
 import { database } from "@/lib/db"
 
 export class ChannelRoutingConflictError extends Error {

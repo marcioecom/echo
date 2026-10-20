@@ -1,8 +1,9 @@
 "use client"
 
+import type { AgentDecision } from "../../types"
+
 import { Loading03Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -18,7 +19,6 @@ import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { KnowledgeBaseApiError } from "../../hooks/api"
 import { useKnowledgePreviewQuery } from "../../hooks/use-knowledge-test-query"
-import type { AgentDecision } from "../../types"
 
 export function KnowledgeTestPanel() {
   const { form, result, previewMutation } = useKnowledgePreviewQuery()

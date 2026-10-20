@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { handleWaIngressJob } from "./wa-ingress"
+
 const { applyDeliveryStatus, ingestInboundMessage, publish } = vi.hoisted(
   () => ({
     applyDeliveryStatus: vi.fn(),
@@ -23,8 +25,6 @@ vi.mock(
 vi.mock("@/lib/redis", () => ({
   redisConnection: { duplicate: () => ({ disconnect: async () => undefined }) },
 }))
-
-import { handleWaIngressJob } from "./wa-ingress"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"

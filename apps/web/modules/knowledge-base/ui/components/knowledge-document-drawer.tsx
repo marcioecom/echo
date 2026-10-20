@@ -1,5 +1,7 @@
 "use client"
 
+import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
+
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -24,14 +26,13 @@ import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { useDeleteKnowledgeDocument } from "../../hooks/use-delete-knowledge-document"
 import { useKnowledgeDocumentDetail } from "../../hooks/use-knowledge-document-detail"
-import { useKnowledgeDocuments } from "../../hooks/use-knowledge-documents"
 import { useKnowledgeDocumentTitleForm } from "../../hooks/use-knowledge-document-title-form"
+import { useKnowledgeDocuments } from "../../hooks/use-knowledge-documents"
 import { useReplaceKnowledgeDocumentFile } from "../../hooks/use-replace-knowledge-document-file"
 import { knowledgeFailureMessage, knowledgeSourceLabel } from "../../labels"
-import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
-import { KnowledgeFilePicker } from "./knowledge-file-picker"
 import { KnowledgeDocumentStatusBadge } from "./knowledge-document-status"
 import { KnowledgeDocumentTextForm } from "./knowledge-document-text-form"
+import { KnowledgeFilePicker } from "./knowledge-file-picker"
 
 type DrawerMode = "reading" | "editing" | "replacing" | "confirm-delete"
 

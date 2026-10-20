@@ -1,9 +1,10 @@
-import { PostgreSqlContainer } from "@testcontainers/postgresql"
+import type { createApp } from "./app"
 import type { createDatabase } from "@workspace/db"
 import type { Redis } from "ioredis"
+
+import { PostgreSqlContainer } from "@testcontainers/postgresql"
 import { GenericContainer } from "testcontainers"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
-import type { createApp } from "./app"
 
 describe("API readiness with real dependencies", () => {
   const postgresContainer = new PostgreSqlContainer("pgvector/pgvector:pg18")
@@ -49,7 +50,10 @@ describe("API readiness with real dependencies", () => {
     vi.stubEnv("R2_BUCKET_NAME", "echo-storage")
     vi.stubEnv("R2_ACCESS_KEY_ID", "test-access-key")
     vi.stubEnv("R2_SECRET_ACCESS_KEY", "test-secret-key")
-    vi.stubEnv("KNOWLEDGE_UPLOAD_TOKEN_SECRET", "knowledge-upload-token-secret-at-least-32")
+    vi.stubEnv(
+      "KNOWLEDGE_UPLOAD_TOKEN_SECRET",
+      "knowledge-upload-token-secret-at-least-32"
+    )
 
     vi.resetModules()
     const [appModule, dbModule, redisModule] = await Promise.all([

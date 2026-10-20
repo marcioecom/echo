@@ -2,6 +2,10 @@ import websocket from "@fastify/websocket"
 import Fastify from "fastify"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
+import { encodeSupportInboxCursor } from "../schemas"
+import { registerSupportInboxRoutes } from "./routes"
+
 const { authState, conversationId, findDetail, guards, list, organizationId } =
   vi.hoisted(() => {
     const authState = { unauthenticated: false }
@@ -11,41 +15,46 @@ const { authState, conversationId, findDetail, guards, list, organizationId } =
       organization?: unknown
     }
 
+    const requireUser = async (
+      request: { auth: RequestAuth | null },
+      reply: {
+        code: (statusCode: number) => { send: (payload: unknown) => void }
+      }
+    ) => {
+      if (authState.unauthenticated) {
+        reply.code(401).send({ error: "unauthenticated" })
+        return
+      }
+      request.auth = {
+        user: {
+          id: "user-id",
+          name: "Operator",
+          email: "operator@test.dev",
+        },
+        member: null,
+        organization: null,
+      }
+    }
+    const requireMembership =
+      () => async (request: { auth: RequestAuth | null }) => {
+        const user = request.auth?.user
+        if (!user) return
+
+        request.auth = {
+          user,
+          member: { id: "member-id", role: "operator" },
+          organization: { id: organizationId, name: "Acme", slug: "acme" },
+        }
+      }
+
     return {
       authState,
       conversationId: "01K1EDN69NFBWCG42B2H99V2C4",
       findDetail: vi.fn(),
       guards: {
-        requireUser: async (
-          request: { auth: RequestAuth | null },
-          reply: {
-            code: (statusCode: number) => { send: (payload: unknown) => void }
-          }
-        ) => {
-          if (authState.unauthenticated) {
-            reply.code(401).send({ error: "unauthenticated" })
-            return
-          }
-          request.auth = {
-            user: {
-              id: "user-id",
-              name: "Operator",
-              email: "operator@test.dev",
-            },
-            member: null,
-            organization: null,
-          }
-        },
-        requireMembership: () => async (request: { auth: RequestAuth | null }) => {
-          const user = request.auth?.user
-          if (!user) return
-
-          request.auth = {
-            user,
-            member: { id: "member-id", role: "operator" },
-            organization: { id: organizationId, name: "Acme", slug: "acme" },
-          }
-        },
+        requireUser,
+        requireMembership,
+        requireOrganization: () => [requireUser, requireMembership()],
       },
       list: vi.fn(),
       organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
@@ -62,10 +71,6 @@ vi.mock("../../../plugins/auth", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../plugins/auth")>()),
   guards,
 }))
-
-import { registerSupportInboxRoutes } from "./routes"
-import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
-import { encodeSupportInboxCursor } from "../schemas"
 
 async function createTestApp(options?: { unauthenticated?: boolean }) {
   authState.unauthenticated = options?.unauthenticated ?? false

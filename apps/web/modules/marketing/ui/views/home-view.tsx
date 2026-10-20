@@ -1,7 +1,8 @@
 "use client"
 
-import { authClient } from "@/lib/auth-client"
 import type { Locale } from "@/modules/marketing/i18n/dictionary"
+
+import { authClient } from "@/lib/auth-client"
 import {
   LandingProvider,
   useLanding,

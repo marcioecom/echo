@@ -1,7 +1,7 @@
+import type { SupportInboxCursor } from "./types"
+
 import { supportConversationStatusSchema, ulidSchema } from "@workspace/domain"
 import { z } from "zod"
-
-import type { SupportInboxCursor } from "./types"
 
 const pageSize = 10
 
@@ -28,7 +28,9 @@ export function encodeSupportInboxCursor(input: SupportInboxCursor): string {
   ).toString("base64url")
 }
 
-export function decodeSupportInboxCursor(value: string): SupportInboxCursor | null {
+export function decodeSupportInboxCursor(
+  value: string
+): SupportInboxCursor | null {
   try {
     const parsed = z
       .object({ lastActivityAt: z.iso.datetime(), id: ulidSchema })

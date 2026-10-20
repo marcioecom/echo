@@ -1,13 +1,16 @@
+import type { DocumentDto } from "./document-dto"
+import type { Result } from "@/common/result"
+
 import {
   getKnowledgeDocument,
   reindexKnowledgeDocument as reindexKnowledgeDocumentRecord,
 } from "@workspace/knowledge"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { database } from "@/lib/db"
 
 import { dispatchKnowledgeIndexing } from "./dispatch-indexing"
-import { documentDto, type DocumentDto } from "./document-dto"
+import { documentDto } from "./document-dto"
 
 export type ReindexKnowledgeDocumentError =
   | { type: "not_found" }

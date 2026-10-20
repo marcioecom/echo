@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const { enqueue, findForOrganization, isOrganizationActive } =
-  vi.hoisted(() => ({
+import { requestBaileysPairingCode } from "./request-baileys-pairing-code"
+
+const { enqueue, findForOrganization, isOrganizationActive } = vi.hoisted(
+  () => ({
     enqueue: vi.fn(),
     findForOrganization: vi.fn(),
     isOrganizationActive: vi.fn(),
-  }))
+  })
+)
 
 vi.mock("@/lib/jobs-client", () => ({
   jobs: { enqueue },
@@ -16,8 +19,6 @@ vi.mock("../repositories/channel-connections-repository", () => ({
     findForOrganization,
   },
 }))
-
-import { requestBaileysPairingCode } from "./request-baileys-pairing-code"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"

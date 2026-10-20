@@ -1,5 +1,9 @@
 "use client"
 
+import type { InboxConversation, InboxStatusFilter } from "../../types"
+import type { MessageKey } from "@/lib/i18n"
+import type { ActorType } from "@workspace/domain"
+
 import {
   AlertCircleIcon,
   Message01Icon,
@@ -8,13 +12,11 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useNavigate } from "@tanstack/react-router"
-import type { ActorType } from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { appLocale, t, type MessageKey } from "@/lib/i18n"
+import { appLocale, t } from "@/lib/i18n"
 
-import type { InboxConversation, InboxStatusFilter } from "../../types"
 import { ConversationStatus } from "./conversation-status"
 
 const filters: Array<{ value: InboxStatusFilter; label: MessageKey }> = [
@@ -163,9 +165,7 @@ export function ConversationList({
         {!isLoading && !isError && conversations.length === 0 ? (
           <FilterEmptyState
             status={status}
-            onShowAll={() =>
-              navigate({ to: ".", search: { status: "all" } })
-            }
+            onShowAll={() => navigate({ to: ".", search: { status: "all" } })}
           />
         ) : null}
         <ul className="divide-y divide-border">

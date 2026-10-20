@@ -1,23 +1,21 @@
-import { authMessages, type AuthMessages } from "@/modules/auth/i18n"
-import {
-  channelsMessages,
-  type ChannelsMessages,
-} from "@/modules/channels/i18n"
-import { inboxMessages, type InboxMessages } from "@/modules/inbox/i18n"
-import {
-  knowledgeMessages,
-  type KnowledgeMessages,
-} from "@/modules/knowledge-base/i18n"
+import type { AuthMessages } from "@/modules/auth/i18n"
+import type { ChannelsMessages } from "@/modules/channels/i18n"
+import type { InboxMessages } from "@/modules/inbox/i18n"
+import type { KnowledgeMessages } from "@/modules/knowledge-base/i18n"
+import type { MembersMessages } from "@/modules/organization/i18n"
+import type { ShellMessages } from "@/modules/shell/i18n"
+
+import { authMessages } from "@/modules/auth/i18n"
+import { channelsMessages } from "@/modules/channels/i18n"
+import { inboxMessages } from "@/modules/inbox/i18n"
+import { knowledgeMessages } from "@/modules/knowledge-base/i18n"
 import { localeFromPath } from "@/modules/marketing/i18n/dictionary"
 import {
   prefersPortuguese,
   readLanguageCookie,
 } from "@/modules/marketing/i18n/negotiation"
-import {
-  membersMessages,
-  type MembersMessages,
-} from "@/modules/organization/i18n"
-import { shellMessages, type ShellMessages } from "@/modules/shell/i18n"
+import { membersMessages } from "@/modules/organization/i18n"
+import { shellMessages } from "@/modules/shell/i18n"
 
 export type AppLocale = "en" | "pt-BR"
 

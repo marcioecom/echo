@@ -1,5 +1,7 @@
 "use client"
 
+import type { KnowledgePreviewResponse } from "../types"
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation } from "@tanstack/react-query"
 import { useState } from "react"
@@ -7,7 +9,6 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { previewKnowledgeResponse } from "./api"
-import type { KnowledgePreviewResponse } from "../types"
 
 const knowledgeTestSchema = z.object({
   question: z.string().trim().min(1, "knowledge.validation.question").max(2000),

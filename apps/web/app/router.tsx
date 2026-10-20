@@ -1,7 +1,7 @@
+import * as Sentry from "@sentry/tanstackstart-react"
 import { QueryClient } from "@tanstack/react-query"
 import { createRouter } from "@tanstack/react-router"
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query"
-import * as Sentry from "@sentry/tanstackstart-react"
 
 import { routeTree } from "./routeTree.gen"
 

@@ -1,5 +1,7 @@
 "use client"
 
+import type { LanguageChoice } from "@/modules/marketing/i18n/negotiation"
+
 import {
   Logout01Icon,
   MoreHorizontalIcon,
@@ -25,10 +27,7 @@ import { cn } from "@workspace/ui/lib/utils"
 
 import { appLocale, t } from "@/lib/i18n"
 import { useSignOut } from "@/modules/auth/hooks/use-sign-out"
-import {
-  persistLanguageChoice,
-  type LanguageChoice,
-} from "@/modules/marketing/i18n/negotiation"
+import { persistLanguageChoice } from "@/modules/marketing/i18n/negotiation"
 import { memberRoleLabel } from "@/modules/organization/role-label"
 
 const languages = [

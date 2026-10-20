@@ -1,4 +1,6 @@
-import { err, ok, type Result } from "@/common/result"
+import type { Result } from "@/common/result"
+
+import { err, ok } from "@/common/result"
 
 import { publishChannelStatusChanged } from "../events/publish-channel-status-changed"
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"

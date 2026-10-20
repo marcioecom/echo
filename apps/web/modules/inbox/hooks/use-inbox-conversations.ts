@@ -1,12 +1,13 @@
 "use client"
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
-
 import type {
   InboxConversationDetail,
   InboxConversationPage,
   InboxStatusFilter,
 } from "../types"
+
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
+
 import { inboxApiRequest } from "./api"
 
 export const inboxQueryKeys = {

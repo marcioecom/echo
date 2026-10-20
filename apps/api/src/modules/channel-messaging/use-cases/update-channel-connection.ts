@@ -1,12 +1,12 @@
+import type { ChannelConnectionView } from "../channel-connection-view"
+import type { Result } from "@/common/result"
+
 import { waGatewayJobNames } from "@workspace/jobs"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
 
-import {
-  toChannelConnectionView,
-  type ChannelConnectionView,
-} from "../channel-connection-view"
+import { toChannelConnectionView } from "../channel-connection-view"
 import { publishChannelStatusChanged } from "../events/publish-channel-status-changed"
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
 import { enqueueBaileysLogout } from "./enqueue-baileys-logout"

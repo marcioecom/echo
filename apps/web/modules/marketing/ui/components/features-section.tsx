@@ -27,10 +27,7 @@ export function FeaturesSection() {
         />
         <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-neutral-200/90 bg-neutral-200/90 sm:grid-cols-2">
           {copy.features.items.map((feature) => (
-            <article
-              key={feature.title}
-              className="bg-white p-6 sm:p-8"
-            >
+            <article key={feature.title} className="bg-white p-6 sm:p-8">
               <h3 className="text-lg font-semibold tracking-tight">
                 {feature.title}
               </h3>

@@ -1,14 +1,15 @@
+import type { FastifyBaseLogger, FastifyError } from "fastify"
+import type { ZodTypeProvider } from "fastify-type-provider-zod"
+
 import cors from "@fastify/cors"
 import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
 import { createLoggerWithContext } from "@workspace/logger"
-import type { FastifyBaseLogger, FastifyError } from "fastify"
 import Fastify, { LogController } from "fastify"
 import {
   serializerCompiler,
   validatorCompiler,
-  type ZodTypeProvider,
 } from "fastify-type-provider-zod"
 
 import { env } from "./config/env"
@@ -51,12 +52,13 @@ export function createApp() {
   })
 
   app.register(async (routes) => {
-    registerHealthRoutes(routes)
-    registerAuthRoutes(routes, auth)
-    registerInboundMessageRoutes(routes)
-    registerChannelRoutes(routes)
-    registerSupportInboxRoutes(routes)
-    registerKnowledgeBaseRoutes(routes)
+    const instance = routes.withTypeProvider<ZodTypeProvider>()
+    registerHealthRoutes(instance)
+    registerAuthRoutes(instance, auth)
+    registerInboundMessageRoutes(instance)
+    registerChannelRoutes(instance)
+    registerSupportInboxRoutes(instance)
+    registerKnowledgeBaseRoutes(instance)
   })
 
   return app

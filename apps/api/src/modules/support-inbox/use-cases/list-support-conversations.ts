@@ -1,9 +1,10 @@
+import type { SupportInboxCursor } from "../types"
 import type { SupportConversationStatus } from "@workspace/domain"
 
 import { err, ok } from "@/common/result"
+
 import { supportInboxRepository } from "../repositories/support-inbox-repository"
 import { decodeSupportInboxCursor, encodeSupportInboxCursor } from "../schemas"
-import type { SupportInboxCursor } from "../types"
 
 export type ListSupportConversationsError = { type: "invalid_cursor" }
 

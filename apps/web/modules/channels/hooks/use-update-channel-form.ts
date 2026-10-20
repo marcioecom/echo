@@ -1,12 +1,13 @@
 "use client"
 
+import type { ChannelConnection } from "../types"
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import type { ChannelConnection } from "../types"
 import { updateChannel } from "./api"
 import { channelQueryKeys } from "./use-channels"
 
