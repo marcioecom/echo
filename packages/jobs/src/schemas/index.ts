@@ -5,6 +5,9 @@ import {
   sendPasswordResetEmailJobSchema,
 } from "./email"
 import {
+  type DeleteKnowledgeObjectJob,
+  deleteKnowledgeObjectJobOptions,
+  deleteKnowledgeObjectJobSchema,
   type IndexKnowledgeDocumentJob,
   indexKnowledgeDocumentJobSchema,
   knowledgeBaseJobNames,
@@ -63,6 +66,13 @@ export const jobDefinitions = {
     schema: indexKnowledgeDocumentJobSchema,
     jobId: (payload: IndexKnowledgeDocumentJob) =>
       `${knowledgeBaseJobNames.indexKnowledgeDocument}--${payload.documentId}--${payload.revision}`,
+  },
+  [knowledgeBaseJobNames.deleteKnowledgeObject]: {
+    queueName: knowledgeBaseQueueName,
+    schema: deleteKnowledgeObjectJobSchema,
+    options: deleteKnowledgeObjectJobOptions,
+    jobId: (payload: DeleteKnowledgeObjectJob) =>
+      `${knowledgeBaseJobNames.deleteKnowledgeObject}--${payload.deletionId}`,
   },
   [waGatewayJobNames.connect]: {
     queueName: waGatewayQueueName,

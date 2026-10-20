@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
+import { createTwilioChannelConnection } from "./create-twilio-channel-connection"
+import { deleteChannelConnection } from "./delete-channel-connection"
+import { updateChannelConnection } from "./update-channel-connection"
+
 const {
   ChannelRoutingConflictError,
   OrganizationNotActiveError,
@@ -85,11 +90,6 @@ vi.mock("../twilio-inbound-webhook-url", () => ({
   twilioInboundWebhookUrl: () =>
     "http://localhost:3001/webhooks/twilio/whatsapp/inbound",
 }))
-
-import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
-import { createTwilioChannelConnection } from "./create-twilio-channel-connection"
-import { deleteChannelConnection } from "./delete-channel-connection"
-import { updateChannelConnection } from "./update-channel-connection"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN69NFBWCG42B2H99V2C4"

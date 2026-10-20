@@ -1,5 +1,13 @@
 "use client"
 
+import type { InboxConversationDetail } from "../../types"
+import type { MessageKey } from "@/lib/i18n"
+import type {
+  ActorType,
+  MessageStatus,
+  SupportConversationHandoffReason,
+} from "@workspace/domain"
+
 import {
   AlertCircleIcon,
   ArrowLeft01Icon,
@@ -14,19 +22,13 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "@tanstack/react-router"
-import type {
-  ActorType,
-  MessageStatus,
-  SupportConversationHandoffReason,
-} from "@workspace/domain"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { appLocale, t, type MessageKey } from "@/lib/i18n"
+import { appLocale, t } from "@/lib/i18n"
 
 import { InboxApiError } from "../../hooks/api"
 import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
-import type { InboxConversationDetail } from "../../types"
 import { ConversationStatus } from "./conversation-status"
 import { ReplyComposer } from "./reply-composer"
 

@@ -1,10 +1,13 @@
 "use client"
 
+import type { ChannelConnection } from "../../types"
+import type { MessageKey } from "@/lib/i18n"
 import type {
   ChannelConnectionStatus,
   ChannelProvider,
   ChannelSessionState,
 } from "@workspace/domain"
+
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -17,13 +20,12 @@ import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 import { useState } from "react"
 
-import { appLocale, t, type MessageKey } from "@/lib/i18n"
+import { appLocale, t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { channelErrorMessage, humanChannelError } from "../../hooks/api"
 import { useChannelActions } from "../../hooks/use-channel-actions"
 import { useUpdateChannelForm } from "../../hooks/use-update-channel-form"
-import type { ChannelConnection } from "../../types"
 import { BaileysPairingSession } from "./baileys-pairing-session"
 
 const providerKeys = {

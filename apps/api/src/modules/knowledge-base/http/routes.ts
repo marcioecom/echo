@@ -1,274 +1,135 @@
-import { extname, basename } from "node:path"
+import type { AppInstance } from "@/lib/fastify"
 
-import { createId } from "@workspace/domain"
-import type { FastifyInstance } from "fastify"
+import { matchResult, matchTag } from "@/common/match"
+import { guards, organizationAuth } from "@/plugins/auth"
 
-import { guards, getOrganizationAuth } from "@/plugins/auth"
-import { objectStore } from "@/lib/object-store"
-import { dispatchKnowledgeIndexing } from "../use-cases/dispatch-indexing"
 import {
   createFileKnowledgeDocumentSchema,
   createTextKnowledgeDocumentSchema,
   knowledgeDocumentParamsSchema,
   knowledgeDocumentUploadSchema,
+  knowledgeTestBodySchema,
+  patchKnowledgeDocumentSchema,
+  replaceKnowledgeDocumentFileSchema,
 } from "../schemas"
+import { createFileKnowledgeDocument } from "../use-cases/create-file-knowledge-document"
+import { createKnowledgeUpload } from "../use-cases/create-knowledge-upload"
+import { createTextKnowledgeDocument } from "../use-cases/create-text-knowledge-document"
+import { deleteKnowledgeDocument } from "../use-cases/delete-knowledge-document"
 import { getKnowledgeDocumentDetail } from "../use-cases/get-knowledge-document-detail"
-import { knowledgeDocumentsRepository } from "../repositories/knowledge-documents-repository"
-import {
-  createKnowledgeUploadToken,
-  verifyKnowledgeUploadToken,
-} from "../upload-token"
+import { listKnowledgeDocuments } from "../use-cases/list-knowledge-documents"
+import { patchKnowledgeDocument } from "../use-cases/patch-knowledge-document"
+import { previewKnowledgeResponse } from "../use-cases/preview-knowledge-response"
+import { reindexKnowledgeDocument } from "../use-cases/reindex-knowledge-document"
+import { replaceKnowledgeDocumentFile } from "../use-cases/replace-knowledge-document-file"
 
-const maxUploadBytes = 10_485_760
-const uploadExpiresInSeconds = 900
-const allowedFiles = {
-  ".pdf": "application/pdf",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  ".md": "text/markdown",
-  ".markdown": "text/markdown",
-  ".txt": "text/plain",
-} as const
-
-export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
-  const preHandler = [
-    guards.requireUser,
-    guards.requireMembership({ roles: ["owner", "admin"] }),
-  ]
+export function registerKnowledgeBaseRoutes(app: AppInstance): void {
+  const preHandler = guards.requireOrganization({ roles: ["owner", "admin"] })
 
   app.post(
     "/v1/knowledge-document-uploads",
-    { preHandler },
+    { preHandler, schema: { body: knowledgeDocumentUploadSchema } },
     async (request, reply) => {
-      const auth = getOrganizationAuth(request)
-      if (!auth.ok)
-        return reply.code(403).send({ error: "membership_required" })
-      const parsed = knowledgeDocumentUploadSchema.safeParse(request.body)
-      if (!parsed.success)
-        return reply.code(400).send({ error: "invalid_request" })
-      const file = validateUploadFile(
-        parsed.data.fileName,
-        parsed.data.contentType
-      )
-      if (!file)
-        return reply
-          .code(415)
-          .send({ error: "knowledge_unsupported_file_type" })
-      if (
-        !(await knowledgeDocumentsRepository.hasActiveOrganization(
-          auth.value.organization.id
-        ))
-      ) {
-        return reply.code(404).send({ error: "organization_not_found" })
-      }
-
-      const uploadId = createId()
-      const objectKey = `knowledge/uploads/${auth.value.organization.id}/${uploadId}${file.extension}`
-      const expiresAt = Date.now() + uploadExpiresInSeconds * 1_000
-      const uploadUrl = await objectStore.presignPut({
-        key: objectKey,
-        contentType: parsed.data.contentType,
-        expiresIn: uploadExpiresInSeconds,
-      })
-      const uploadToken = createKnowledgeUploadToken({
-        uploadId,
-        organizationId: auth.value.organization.id,
-        createdByUserId: auth.value.user.id,
-        fileName: parsed.data.fileName,
-        contentType: parsed.data.contentType,
-        sizeBytes: parsed.data.sizeBytes,
-        objectKey,
-        expiresAt,
+      const auth = organizationAuth(request)
+      const result = await createKnowledgeUpload({
+        organizationId: auth.organization.id,
+        createdByUserId: auth.user.id,
+        fileName: request.body.fileName,
+        contentType: request.body.contentType,
+        sizeBytes: request.body.sizeBytes,
       })
 
-      return reply.code(201).send({
-        uploadUrl: uploadUrl.url,
-        uploadToken,
-        expiresAt: new Date(expiresAt).toISOString(),
-        headers: uploadUrl.headers,
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            knowledge_unsupported_file_type: () =>
+              reply
+                .code(415)
+                .send({ error: "knowledge_unsupported_file_type" }),
+            organization_not_found: () =>
+              reply.code(404).send({ error: "organization_not_found" }),
+          }),
+        ok: (value) => reply.code(201).send(value),
       })
     }
   )
 
   app.post(
     "/v1/knowledge-documents/file",
-    { preHandler },
+    { preHandler, schema: { body: createFileKnowledgeDocumentSchema } },
     async (request, reply) => {
-      const auth = getOrganizationAuth(request)
-      if (!auth.ok)
-        return reply.code(403).send({ error: "membership_required" })
-      const parsed = createFileKnowledgeDocumentSchema.safeParse(request.body)
-      if (!parsed.success)
-        return reply.code(400).send({ error: "invalid_request" })
-      const upload = verifyKnowledgeUploadToken(parsed.data.uploadToken)
-      if (
-        !upload ||
-        upload.organizationId !== auth.value.organization.id ||
-        upload.createdByUserId !== auth.value.user.id
-      ) {
-        return reply.code(400).send({ error: "invalid_upload_token" })
-      }
-      if (
-        !(await knowledgeDocumentsRepository.hasActiveOrganization(
-          upload.organizationId
-        ))
-      ) {
-        return reply.code(404).send({ error: "organization_not_found" })
-      }
-
-      const existing = await knowledgeDocumentsRepository.find(
-        upload.organizationId,
-        upload.uploadId
-      )
-      if (existing) return reply.send({ document: documentDto(existing) })
-
-      let head
-      try {
-        head = await objectStore.head(upload.objectKey)
-      } catch (error) {
-        return reply.code(storageErrorStatus(error)).send({
-          error:
-            storageErrorStatus(error) === 404
-              ? "knowledge_uploaded_object_not_found"
-              : "knowledge_storage_unavailable",
-        })
-      }
-      if (head.contentLength !== upload.sizeBytes) {
-        return reply
-          .code(
-            head.contentLength && head.contentLength > maxUploadBytes
-              ? 413
-              : 415
-          )
-          .send({
-            error:
-              head.contentLength && head.contentLength > maxUploadBytes
-                ? "knowledge_upload_too_large"
-                : "knowledge_upload_metadata_mismatch",
-          })
-      }
-      if (head.contentType !== upload.contentType || !head.etag) {
-        return reply
-          .code(415)
-          .send({ error: "knowledge_upload_metadata_mismatch" })
-      }
-
-      const sourceName = safeSourceName(upload.fileName)
-      const permanentKey = `knowledge/documents/${upload.organizationId}/${upload.uploadId}/${sourceName}`
-      try {
-        await objectStore.copy({
-          sourceKey: upload.objectKey,
-          destinationKey: permanentKey,
-        })
-      } catch {
-        return reply.code(503).send({ error: "knowledge_storage_unavailable" })
-      }
-
-      let document
-      try {
-        document = await knowledgeDocumentsRepository.createFile({
-          id: upload.uploadId,
-          organizationId: upload.organizationId,
-          createdByUserId: upload.createdByUserId,
-          title: parsed.data.title,
-          sourceName,
-          mimeType: upload.contentType,
-          sourceObjectKey: permanentKey,
-          sourceObjectEtag: head.etag,
-          sourceSizeBytes: upload.sizeBytes,
-        })
-      } catch (error) {
-        await objectStore.delete(permanentKey).catch(() => undefined)
-        throw error
-      }
-
-      await objectStore.delete(upload.objectKey).catch((error: unknown) => {
-        request.log.warn(
-          { err: error, documentId: document.id },
-          "Knowledge upload cleanup failed"
-        )
+      const auth = organizationAuth(request)
+      const result = await createFileKnowledgeDocument({
+        organizationId: auth.organization.id,
+        createdByUserId: auth.user.id,
+        title: request.body.title,
+        uploadToken: request.body.uploadToken,
       })
-      if (
-        !(await dispatchKnowledgeIndexing({
-          organizationId: document.organizationId,
-          documentId: document.id,
-          revision: document.revision,
-        }))
-      ) {
-        return reply.code(503).send({
-          error: "knowledge_index_dispatch_unavailable",
-          documentId: document.id,
-        })
-      }
-      return reply.code(201).send({ document: documentDto(document) })
+
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            invalid_upload_token: () =>
+              reply.code(400).send({ error: "invalid_upload_token" }),
+            organization_not_found: () =>
+              reply.code(404).send({ error: "organization_not_found" }),
+            upload_rejected: (value) =>
+              reply.code(value.status).send({ error: value.error }),
+            index_dispatch_unavailable: (value) =>
+              reply.code(503).send({
+                error: "knowledge_index_dispatch_unavailable",
+                documentId: value.documentId,
+              }),
+          }),
+        ok: (value) => reply.code(201).send(value),
+      })
     }
   )
 
   app.post(
     "/v1/knowledge-documents/text",
-    { preHandler },
+    { preHandler, schema: { body: createTextKnowledgeDocumentSchema } },
     async (request, reply) => {
-      const auth = getOrganizationAuth(request)
-      if (!auth.ok)
-        return reply.code(403).send({ error: "membership_required" })
-      const parsed = createTextKnowledgeDocumentSchema.safeParse(request.body)
-      if (!parsed.success)
-        return reply.code(400).send({ error: "invalid_request" })
-      if (
-        !(await knowledgeDocumentsRepository.hasActiveOrganization(
-          auth.value.organization.id
-        ))
-      ) {
-        return reply.code(404).send({ error: "organization_not_found" })
-      }
-
-      const document = await knowledgeDocumentsRepository.createText({
-        organizationId: auth.value.organization.id,
-        createdByUserId: auth.value.user.id,
-        title: parsed.data.title,
-        content: parsed.data.content.trim(),
+      const auth = organizationAuth(request)
+      const result = await createTextKnowledgeDocument({
+        organizationId: auth.organization.id,
+        createdByUserId: auth.user.id,
+        title: request.body.title,
+        content: request.body.content,
       })
-      if (
-        !(await dispatchKnowledgeIndexing({
-          organizationId: document.organizationId,
-          documentId: document.id,
-          revision: document.revision,
-        }))
-      ) {
-        return reply.code(503).send({
-          error: "knowledge_index_dispatch_unavailable",
-          documentId: document.id,
-        })
-      }
-      return reply.code(201).send({ document: documentDto(document) })
+
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            organization_not_found: () =>
+              reply.code(404).send({ error: "organization_not_found" }),
+            index_dispatch_unavailable: (value) =>
+              reply.code(503).send({
+                error: "knowledge_index_dispatch_unavailable",
+                documentId: value.documentId,
+              }),
+          }),
+        ok: (value) => reply.code(201).send(value),
+      })
     }
   )
 
   app.get("/v1/knowledge-documents", { preHandler }, async (request, reply) => {
-    const auth = getOrganizationAuth(request)
-    if (!auth.ok) return reply.code(403).send({ error: "membership_required" })
-    return reply.send({
-      items: (
-        await knowledgeDocumentsRepository.list(auth.value.organization.id)
-      ).map(documentDto),
+    const auth = organizationAuth(request)
+    const result = await listKnowledgeDocuments({
+      organizationId: auth.organization.id,
     })
+    return reply.send(result)
   })
 
   app.get(
     "/v1/knowledge-documents/:documentId",
-    { preHandler },
+    { preHandler, schema: { params: knowledgeDocumentParamsSchema } },
     async (request, reply) => {
-      const auth = getOrganizationAuth(request)
-      if (!auth.ok)
-        return reply.code(403).send({ error: "membership_required" })
-      const params = knowledgeDocumentParamsSchema.safeParse(request.params)
-      if (!params.success) {
-        return reply.code(404).send({ error: "knowledge_document_not_found" })
-      }
-
+      const auth = organizationAuth(request)
       const detail = await getKnowledgeDocumentDetail({
-        organizationId: auth.value.organization.id,
-        documentId: params.data.documentId,
+        organizationId: auth.organization.id,
+        documentId: request.params.documentId,
       })
       if (!detail) {
         return reply.code(404).send({ error: "knowledge_document_not_found" })
@@ -279,102 +140,145 @@ export function registerKnowledgeBaseRoutes(app: FastifyInstance): void {
 
   app.post(
     "/v1/knowledge-documents/:documentId/reindex",
-    { preHandler },
+    { preHandler, schema: { params: knowledgeDocumentParamsSchema } },
     async (request, reply) => {
-      const auth = getOrganizationAuth(request)
-      if (!auth.ok)
-        return reply.code(403).send({ error: "membership_required" })
-      const params = knowledgeDocumentParamsSchema.safeParse(request.params)
-      if (!params.success)
-        return reply.code(404).send({ error: "knowledge_document_not_found" })
-      const existing = await knowledgeDocumentsRepository.find(
-        auth.value.organization.id,
-        params.data.documentId
-      )
-      if (!existing)
-        return reply.code(404).send({ error: "knowledge_document_not_found" })
-      if (existing.status === "pending" || existing.status === "processing") {
-        return reply.code(409).send({ error: "knowledge_document_indexing" })
-      }
+      const auth = organizationAuth(request)
+      const result = await reindexKnowledgeDocument({
+        organizationId: auth.organization.id,
+        documentId: request.params.documentId,
+      })
 
-      const document = await knowledgeDocumentsRepository.queueReindex(
-        auth.value.organization.id,
-        existing.id
-      )
-      if (!document)
-        return reply.code(409).send({ error: "knowledge_document_indexing" })
-      if (
-        !(await dispatchKnowledgeIndexing({
-          organizationId: document.organizationId,
-          documentId: document.id,
-          revision: document.revision,
-        }))
-      ) {
-        return reply.code(503).send({
-          error: "knowledge_index_dispatch_unavailable",
-          documentId: document.id,
-        })
-      }
-      return reply.send({ document: documentDto(document) })
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            not_found: () =>
+              reply.code(404).send({ error: "knowledge_document_not_found" }),
+            indexing: () =>
+              reply.code(409).send({ error: "knowledge_document_indexing" }),
+            index_dispatch_unavailable: (value) =>
+              reply.code(503).send({
+                error: "knowledge_index_dispatch_unavailable",
+                documentId: value.documentId,
+              }),
+          }),
+        ok: (value) => reply.send(value),
+      })
     }
   )
-}
 
-function validateUploadFile(fileName: string, contentType: string) {
-  const extension = extname(fileName).toLowerCase() as keyof typeof allowedFiles
-  return allowedFiles[extension] === contentType ? { extension } : null
-}
+  app.patch(
+    "/v1/knowledge-documents/:documentId",
+    {
+      preHandler,
+      schema: {
+        params: knowledgeDocumentParamsSchema,
+        body: patchKnowledgeDocumentSchema,
+      },
+    },
+    async (request, reply) => {
+      const auth = organizationAuth(request)
+      const result = await patchKnowledgeDocument({
+        organizationId: auth.organization.id,
+        documentId: request.params.documentId,
+        title: request.body.title,
+        content: request.body.content,
+      })
 
-function safeSourceName(fileName: string): string {
-  const extension = extname(fileName).toLowerCase()
-  const safeName = basename(fileName)
-    .normalize("NFC")
-    .replace(/[^A-Za-z0-9._-]/g, "_")
-  return safeName.length > 0 && safeName !== extension
-    ? safeName
-    : `document${extension}`
-}
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            not_found: () =>
+              reply.code(404).send({ error: "knowledge_document_not_found" }),
+            not_text: () =>
+              reply.code(409).send({ error: "knowledge_document_not_text" }),
+            invalid: () => reply.code(400).send({ error: "invalid_request" }),
+            index_dispatch_unavailable: (value) =>
+              reply.code(503).send({
+                error: "knowledge_index_dispatch_unavailable",
+                documentId: value.documentId,
+              }),
+          }),
+        ok: (value) => reply.send(value),
+      })
+    }
+  )
 
-function storageErrorStatus(error: unknown): 404 | 503 {
-  if (typeof error !== "object" || error === null || !("$metadata" in error)) {
-    return 503
-  }
-  const metadata = error.$metadata
-  if (
-    typeof metadata === "object" &&
-    metadata !== null &&
-    "httpStatusCode" in metadata &&
-    metadata.httpStatusCode === 404
-  ) {
-    return 404
-  }
-  return 503
-}
+  app.put(
+    "/v1/knowledge-documents/:documentId/file",
+    {
+      preHandler,
+      schema: {
+        params: knowledgeDocumentParamsSchema,
+        body: replaceKnowledgeDocumentFileSchema,
+      },
+    },
+    async (request, reply) => {
+      const auth = organizationAuth(request)
+      const result = await replaceKnowledgeDocumentFile({
+        organizationId: auth.organization.id,
+        createdByUserId: auth.user.id,
+        documentId: request.params.documentId,
+        uploadToken: request.body.uploadToken,
+        log: request.log,
+      })
 
-function documentDto(document: {
-  id: string
-  title: string
-  sourceType: string
-  sourceName: string | null
-  mimeType: string | null
-  sourceSizeBytes: number | null
-  status: string
-  failureReason: string | null
-  revision: number
-  createdAt: Date
-  updatedAt: Date
-}) {
-  return {
-    id: document.id,
-    title: document.title,
-    sourceType: document.sourceType,
-    sourceName: document.sourceName,
-    mimeType: document.mimeType,
-    sourceSizeBytes: document.sourceSizeBytes,
-    status: document.status,
-    failureReason: document.failureReason,
-    revision: document.revision,
-    createdAt: document.createdAt,
-    updatedAt: document.updatedAt,
-  }
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            invalid_upload_token: () =>
+              reply.code(400).send({ error: "invalid_upload_token" }),
+            organization_not_found: () =>
+              reply.code(404).send({ error: "organization_not_found" }),
+            not_found: () =>
+              reply.code(404).send({ error: "knowledge_document_not_found" }),
+            not_file: () =>
+              reply.code(409).send({ error: "knowledge_document_not_file" }),
+            upload_rejected: (value) =>
+              reply.code(value.status).send({ error: value.error }),
+            index_dispatch_unavailable: (value) =>
+              reply.code(503).send({
+                error: "knowledge_index_dispatch_unavailable",
+                documentId: value.documentId,
+              }),
+          }),
+        ok: (value) => reply.send(value),
+      })
+    }
+  )
+
+  app.delete(
+    "/v1/knowledge-documents/:documentId",
+    { preHandler, schema: { params: knowledgeDocumentParamsSchema } },
+    async (request, reply) => {
+      const auth = organizationAuth(request)
+      const result = await deleteKnowledgeDocument({
+        organizationId: auth.organization.id,
+        documentId: request.params.documentId,
+        log: request.log,
+      })
+
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            not_found: () =>
+              reply.code(404).send({ error: "knowledge_document_not_found" }),
+          }),
+        ok: () => reply.code(204).send(),
+      })
+    }
+  )
+
+  app.post(
+    "/v1/knowledge-base/preview-response",
+    { preHandler, schema: { body: knowledgeTestBodySchema } },
+    async (request, reply) => {
+      const auth = organizationAuth(request)
+      return reply.send(
+        await previewKnowledgeResponse({
+          organizationId: auth.organization.id,
+          question: request.body.question,
+        })
+      )
+    }
+  )
 }

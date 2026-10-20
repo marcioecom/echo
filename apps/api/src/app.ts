@@ -1,10 +1,16 @@
+import type { FastifyBaseLogger, FastifyError } from "fastify"
+import type { ZodTypeProvider } from "fastify-type-provider-zod"
+
 import cors from "@fastify/cors"
 import formbody from "@fastify/formbody"
 import rateLimit from "@fastify/rate-limit"
 import websocket from "@fastify/websocket"
 import { createLoggerWithContext } from "@workspace/logger"
 import Fastify, { LogController } from "fastify"
-import type { FastifyBaseLogger } from "fastify"
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod"
 
 import { env } from "./config/env"
 import { auth } from "./modules/auth/auth"
@@ -21,6 +27,15 @@ export function createApp() {
   const app = Fastify({
     loggerInstance: logger,
     logController: new LogController({ disableRequestLogging: true }),
+  }).withTypeProvider<ZodTypeProvider>()
+
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
+  app.setErrorHandler<FastifyError>((error, _request, reply) => {
+    if (error.validation) {
+      return reply.code(400).send({ error: "invalid_request" })
+    }
+    throw error
   })
   registerRequestLogging(app, env.NODE_ENV === "development")
 
@@ -33,16 +48,17 @@ export function createApp() {
   app.register(cors, {
     origin: env.WEB_APP_URL,
     credentials: true,
-    methods: ["GET", "HEAD", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
   })
 
   app.register(async (routes) => {
-    registerHealthRoutes(routes)
-    registerAuthRoutes(routes, auth)
-    registerInboundMessageRoutes(routes)
-    registerChannelRoutes(routes)
-    registerSupportInboxRoutes(routes)
-    registerKnowledgeBaseRoutes(routes)
+    const instance = routes.withTypeProvider<ZodTypeProvider>()
+    registerHealthRoutes(instance)
+    registerAuthRoutes(instance, auth)
+    registerInboundMessageRoutes(instance)
+    registerChannelRoutes(instance)
+    registerSupportInboxRoutes(instance)
+    registerKnowledgeBaseRoutes(instance)
   })
 
   return app

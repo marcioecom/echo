@@ -126,10 +126,10 @@ const en = {
       "The WhatsApp session ended before pairing finished. Generate a new QR code.",
     reconnect_exhausted:
       "Echo could not keep the WhatsApp session open. Try again in a moment.",
-    routing_conflict:
-      "This number is already linked to another organization.",
+    routing_conflict: "This number is already linked to another organization.",
     connection_replaced: "This number connected on another device.",
-    missing_phone: "WhatsApp connected, but Echo could not read the phone number.",
+    missing_phone:
+      "WhatsApp connected, but Echo could not read the phone number.",
     forbidden: "WhatsApp refused this session. Try again later.",
   },
   errors: {
@@ -273,8 +273,7 @@ const ptBR = {
       "A sessão do WhatsApp encerrou antes de concluir o pareamento. Gere um QR code novo.",
     reconnect_exhausted:
       "Não foi possível manter a sessão do WhatsApp aberta. Tente de novo em instantes.",
-    routing_conflict:
-      "Esse número já está vinculado a outra organização.",
+    routing_conflict: "Esse número já está vinculado a outra organização.",
     connection_replaced: "Esse número conectou em outro aparelho.",
     missing_phone:
       "O WhatsApp conectou, mas a Echo não conseguiu ler o número.",

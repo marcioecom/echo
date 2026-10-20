@@ -1,12 +1,15 @@
-import { normalizedInboundMessageSchema } from "@workspace/domain"
+import type { Result } from "@/common/result"
 import type {
   NormalizedInboundMessage,
   UnsupportedMediaKind,
 } from "@workspace/domain"
+
+import { normalizedInboundMessageSchema } from "@workspace/domain"
 import twilio from "twilio"
 import { z } from "zod"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
+
 import { twilioAccountSidSchema, whatsAppAddressSchema } from "../schemas"
 
 export const twilioWebhookRequestSchema = z.object({

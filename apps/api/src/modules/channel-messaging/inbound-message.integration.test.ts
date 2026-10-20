@@ -1,3 +1,5 @@
+import type { NormalizedInboundMessage } from "@workspace/domain"
+
 import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
@@ -15,6 +17,9 @@ import { createId } from "@workspace/domain"
 import { and, asc, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
+
+import { InboundMessageRepository } from "./repositories/inbound-message-repository"
+import { ingestInboundMessage } from "./use-cases/ingest-inbound-message"
 
 const { databaseRef, enqueue } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
@@ -39,10 +44,6 @@ vi.mock("../../lib/db", () => ({
 vi.mock("../../lib/jobs-client", () => ({
   jobs: { enqueue },
 }))
-
-import { InboundMessageRepository } from "./repositories/inbound-message-repository"
-import type { NormalizedInboundMessage } from "@workspace/domain"
-import { ingestInboundMessage } from "./use-cases/ingest-inbound-message"
 
 describe("inbound Message persistence", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")

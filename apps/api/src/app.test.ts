@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { createApp } from "./app"
+
 const { processTwilioInboundMessage, postgres, redis } = vi.hoisted(() => ({
   processTwilioInboundMessage: vi.fn(),
   postgres: vi.fn(),
@@ -34,8 +36,6 @@ vi.mock(
     processTwilioInboundMessage,
   })
 )
-
-import { createApp } from "./app"
 
 describe("API health", () => {
   beforeEach(() => {

@@ -23,6 +23,7 @@
     "@workspace/domain": "workspace:*",
     "@workspace/email": "workspace:*",
     "@workspace/jobs": "workspace:*",
+    "@workspace/knowledge": "workspace:*",
     "@workspace/logger": "workspace:*",
     "@workspace/messaging": "workspace:*",
     "@workspace/object-storage": "workspace:*",

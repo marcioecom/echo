@@ -1,0 +1,35 @@
+{
+  "name": "@workspace/knowledge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run src --passWithNoTests --exclude \"**/*.integration.test.ts\"",
+    "test:integration": "vitest run integration.test"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "@workspace/domain": "workspace:*",
+    "drizzle-orm": "^0.45.2"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.14.0",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
+    "eslint": "^9.39.4",
+    "testcontainers": "^11.14.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
+  }
+}

@@ -1,5 +1,7 @@
 "use client"
 
+import type { InboxStatusFilter } from "../../types"
+
 import { t } from "@/lib/i18n"
 import { PageHeader } from "@/modules/shell/ui/page-header"
 
@@ -8,7 +10,6 @@ import {
   useInboxConversations,
 } from "../../hooks/use-inbox-conversations"
 import { useInboxEvents } from "../../hooks/use-inbox-events"
-import type { InboxStatusFilter } from "../../types"
 import {
   ConversationDetail,
   EmptyConversationDetail,

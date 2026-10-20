@@ -1,8 +1,7 @@
 "use client"
 
-import { Button } from "@workspace/ui/components/button"
-import { Input } from "@workspace/ui/components/input"
-import { cn } from "@workspace/ui/lib/utils"
+import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
+
 import {
   Add01Icon,
   BookOpen01Icon,
@@ -10,6 +9,9 @@ import {
   TextIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { Button } from "@workspace/ui/components/button"
+import { Input } from "@workspace/ui/components/input"
+import { cn } from "@workspace/ui/lib/utils"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -17,7 +19,6 @@ import { t } from "@/lib/i18n"
 
 import { useKnowledgeDocuments } from "../../hooks/use-knowledge-documents"
 import { knowledgeFailureMessage, knowledgeSourceLabel } from "../../labels"
-import type { KnowledgeDocument, KnowledgeDocumentStatus } from "../../types"
 import { KnowledgeDocumentDrawer } from "./knowledge-document-drawer"
 import { KnowledgeDocumentStatusBadge } from "./knowledge-document-status"
 

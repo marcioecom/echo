@@ -1,5 +1,13 @@
 "use client"
 
+import type { MessageKey } from "@/lib/i18n"
+
+import {
+  Alert02Icon,
+  CheckmarkCircle02Icon,
+  Loading03Icon,
+} from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -17,14 +25,8 @@ import {
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
-import {
-  Alert02Icon,
-  CheckmarkCircle02Icon,
-  Loading03Icon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 
-import { t, type MessageKey } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { useOnboardingForm } from "@/modules/auth/hooks/use-onboarding-form"
 

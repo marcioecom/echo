@@ -10,7 +10,10 @@ const input = {
 
 describe("Twilio channel provider", () => {
   it("accepts an online WhatsApp sender owned by the subaccount", async () => {
-    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const provider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
     const listSenders = vi.spyOn(provider, "listSenders").mockResolvedValue([
       {
         sid: "XE11111111111111111111111111111111",
@@ -53,7 +56,10 @@ describe("Twilio channel provider", () => {
 
   it("redacts provider failures behind a stable error", async () => {
     const cause = new Error("secret provider detail")
-    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const provider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
     vi.spyOn(provider, "listSenders").mockRejectedValue(cause)
 
     await expect(provider.verifyWhatsAppSender(input)).rejects.toEqual(
@@ -66,7 +72,10 @@ describe("Twilio channel provider", () => {
   })
 
   it("verifies the shared Sandbox through the owning Twilio Account", async () => {
-    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const provider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
     const listSenders = vi.spyOn(provider, "listSenders")
     const fetchAccount = vi.spyOn(provider, "fetchAccount").mockResolvedValue({
       sid: input.accountSid,
@@ -85,7 +94,10 @@ describe("Twilio channel provider", () => {
   })
 
   it("rejects Sandbox mode for any other address", async () => {
-    const provider = new TwilioChannelProvider(input.accountSid, input.authToken)
+    const provider = new TwilioChannelProvider(
+      input.accountSid,
+      input.authToken
+    )
     const fetchAccount = vi.spyOn(provider, "fetchAccount")
 
     await expect(

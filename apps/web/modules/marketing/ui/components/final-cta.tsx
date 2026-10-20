@@ -34,7 +34,9 @@ export function FinalCta({ signedIn }: FinalCtaProps) {
             {label}
           </Link>
           {signedIn ? null : (
-            <p className="text-sm text-white/70">{copy.finalCta.clickTrigger}</p>
+            <p className="text-sm text-white/70">
+              {copy.finalCta.clickTrigger}
+            </p>
           )}
         </div>
       </div>

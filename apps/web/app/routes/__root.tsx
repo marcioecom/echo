@@ -1,3 +1,5 @@
+import type { ReactNode } from "react"
+
 import { QueryClient } from "@tanstack/react-query"
 import {
   createRootRouteWithContext,
@@ -6,14 +8,14 @@ import {
   Scripts,
   useLocation,
 } from "@tanstack/react-router"
-import { useEffect, type ReactNode } from "react"
+import { Toaster } from "@workspace/ui/components/sonner"
+import { cn } from "@workspace/ui/lib/utils"
+import { useEffect } from "react"
 
 import { DefaultError } from "@/components/default-error"
 import { NotFound } from "@/components/not-found"
 import { documentLang } from "@/lib/i18n"
 import { htmlLang } from "@/modules/marketing/i18n/dictionary"
-import { Toaster } from "@workspace/ui/components/sonner"
-import { cn } from "@workspace/ui/lib/utils"
 
 import appCss from "../styles.css?url"
 

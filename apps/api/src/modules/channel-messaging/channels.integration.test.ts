@@ -1,7 +1,10 @@
+import type { createApp } from "@/app"
+import type { createDatabase } from "@workspace/db"
+import type { Redis } from "ioredis"
+
 import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
-import type { createDatabase } from "@workspace/db"
 import {
   channelConnectionProviderBindings,
   channelConnections,
@@ -11,7 +14,6 @@ import { inboxEventChannel, parseInboxEvent } from "@workspace/jobs"
 import { ChannelCredentialsCipher } from "@workspace/messaging"
 import { and, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
-import type { Redis } from "ioredis"
 import { GenericContainer } from "testcontainers"
 import {
   afterAll,
@@ -22,7 +24,6 @@ import {
   it,
   vi,
 } from "vitest"
-import type { createApp } from "@/app"
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64")
 const authToken = "twilio-auth-token"
@@ -68,6 +69,7 @@ describe("channel connection API", () => {
       `redis://${redisService.getHost()}:${redisService.getMappedPort(6379)}`
     )
     vi.stubEnv("DEPENDENCY_TIMEOUT_MS", "10000")
+    vi.stubEnv("AI_GATEWAY_API_KEY", "integration-gateway-key")
     vi.stubEnv("API_HOST", "127.0.0.1")
     vi.stubEnv("API_PORT", "3001")
     vi.stubEnv("NODE_ENV", "test")
@@ -177,7 +179,10 @@ describe("channel connection API", () => {
         })
         .where(
           and(
-            eq(channelConnectionProviderBindings.organizationId, organizationId),
+            eq(
+              channelConnectionProviderBindings.organizationId,
+              organizationId
+            ),
             eq(
               channelConnectionProviderBindings.channelConnectionId,
               channelConnectionId
@@ -472,8 +477,8 @@ describe("channel connection API", () => {
 
     const firstId = (createFirst.json() as { channel: { id: string } }).channel
       .id
-    const secondId = (createSecond.json() as { channel: { id: string } }).channel
-      .id
+    const secondId = (createSecond.json() as { channel: { id: string } })
+      .channel.id
     expect(firstId).not.toBe(secondId)
 
     const listed = await app.inject({

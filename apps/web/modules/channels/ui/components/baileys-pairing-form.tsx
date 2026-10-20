@@ -1,5 +1,6 @@
 "use client"
 
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -15,10 +16,9 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 
-import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { t } from "@/lib/i18n"
+import { TranslatedFormMessage } from "@/lib/i18n-form"
 
 import { channelErrorMessage, deleteChannel } from "../../hooks/api"
 import { useBaileysPairingForm } from "../../hooks/use-baileys-pairing-form"
@@ -42,8 +42,9 @@ export function BaileysPairingForm({
   const live = useChannelLive()
   const channelId = mutation.data?.channel.id ?? null
   const wait = useBaileysQrWait({ organizationId, channelId })
-  const pairingCode =
-    channelId ? live.pairingCodeByChannelId[channelId] ?? null : null
+  const pairingCode = channelId
+    ? (live.pairingCodeByChannelId[channelId] ?? null)
+    : null
 
   const retryMutation = useMutation({
     mutationFn: async () => {

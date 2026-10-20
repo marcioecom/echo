@@ -12,7 +12,24 @@ import { createId } from "@workspace/domain"
 import { count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import twilio from "twilio"
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest"
+
+import { ChannelCredentialsCipher } from "./adapters/channel-credentials-cipher"
+import {
+  TwilioChannelProvider,
+  TwilioConfigurationError,
+} from "./adapters/twilio-channel-provider"
+import { ChannelConnectionsRepository } from "./repositories/channel-connections-repository"
+import { processTwilioInboundMessage } from "./use-cases/process-twilio-inbound-message"
+import { provisionWhatsAppChannelConnection } from "./use-cases/provision-whatsapp-channel-connection"
 
 const { databaseRef, ingestInboundMessage } = vi.hoisted(() => ({
   databaseRef: { current: {} as object },
@@ -37,15 +54,6 @@ vi.mock("../../lib/db", () => ({
 vi.mock("./use-cases/ingest-inbound-message", () => ({
   ingestInboundMessage,
 }))
-
-import { ChannelCredentialsCipher } from "./adapters/channel-credentials-cipher"
-import {
-  TwilioChannelProvider,
-  TwilioConfigurationError,
-} from "./adapters/twilio-channel-provider"
-import { ChannelConnectionsRepository } from "./repositories/channel-connections-repository"
-import { processTwilioInboundMessage } from "./use-cases/process-twilio-inbound-message"
-import { provisionWhatsAppChannelConnection } from "./use-cases/provision-whatsapp-channel-connection"
 
 describe("Twilio WhatsApp Channel Connection", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
@@ -166,10 +174,7 @@ describe("Twilio WhatsApp Channel Connection", () => {
   it("disables the previous route when replacing the WhatsApp address", async () => {
     const organizationId = await createOrganization("replaced-channel")
     const repository = new ChannelConnectionsRepository(database.db)
-    vi.spyOn(
-      TwilioChannelProvider.prototype,
-      "verifyWhatsAppSender"
-    )
+    vi.spyOn(TwilioChannelProvider.prototype, "verifyWhatsAppSender")
       .mockResolvedValueOnce({
         externalSenderId: "XE55555555555555555555555555555555",
       })
@@ -212,10 +217,7 @@ describe("Twilio WhatsApp Channel Connection", () => {
 
   it("preserves the active route when replacement validation fails", async () => {
     const organizationId = await createOrganization("failed-replacement")
-    vi.spyOn(
-      TwilioChannelProvider.prototype,
-      "verifyWhatsAppSender"
-    )
+    vi.spyOn(TwilioChannelProvider.prototype, "verifyWhatsAppSender")
       .mockResolvedValueOnce({
         externalSenderId: "XE77777777777777777777777777777777",
       })

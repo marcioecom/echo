@@ -1,4 +1,5 @@
 import type { ListedChannelConnection } from "./repositories/channel-connections-repository"
+
 import { twilioInboundWebhookUrl } from "./twilio-inbound-webhook-url"
 
 export interface ChannelConnectionView {

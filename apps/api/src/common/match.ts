@@ -11,9 +11,7 @@ export function matchResult<Value, Error, Output>(
 }
 
 type TaggedCases<Tagged extends { type: string }, Output> = {
-  [Type in Tagged["type"]]: (
-    value: Extract<Tagged, { type: Type }>
-  ) => Output
+  [Type in Tagged["type"]]: (value: Extract<Tagged, { type: Type }>) => Output
 }
 
 export function matchTag<Tagged extends { type: string }, Output>(

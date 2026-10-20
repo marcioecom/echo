@@ -1,5 +1,6 @@
 "use client"
 
+import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -8,7 +9,6 @@ import {
   FormItem,
   FormLabel,
 } from "@workspace/ui/components/form"
-import { Link } from "@tanstack/react-router"
 
 import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"

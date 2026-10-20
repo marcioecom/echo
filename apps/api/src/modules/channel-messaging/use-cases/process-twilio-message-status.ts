@@ -1,5 +1,8 @@
-import { err, ok, type Result } from "@/common/result"
+import type { Result } from "@/common/result"
+
+import { err, ok } from "@/common/result"
 import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"
+
 import { statusUpdateFromTwilio } from "../adapters/twilio-channel-provider"
 import {
   parseTwilioStatusWebhookRouting,
@@ -8,7 +11,10 @@ import {
 import { outboundMessageRepository } from "../repositories/outbound-message-repository"
 import { resolveAndVerifyTwilioWebhook } from "./process-twilio-inbound-message"
 
-type StatusRejection = "unknown_connection" | "invalid_signature" | "malformed_event"
+type StatusRejection =
+  | "unknown_connection"
+  | "invalid_signature"
+  | "malformed_event"
 
 export async function processTwilioMessageStatus(input: {
   signature: string

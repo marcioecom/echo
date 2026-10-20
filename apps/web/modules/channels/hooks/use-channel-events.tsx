@@ -1,13 +1,9 @@
 "use client"
 
+import type { ReactNode } from "react"
+
 import { useQueryClient } from "@tanstack/react-query"
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useEffect, useState } from "react"
 
 import {
   channelPairingCodeEventSchema,
@@ -29,7 +25,8 @@ export interface ChannelLiveEvents {
 export function useChannelEvents(organizationId: string): ChannelLiveEvents {
   const queryClient = useQueryClient()
   const [connected, setConnected] = useState(false)
-  const [eventsOrganizationId, setEventsOrganizationId] = useState(organizationId)
+  const [eventsOrganizationId, setEventsOrganizationId] =
+    useState(organizationId)
   const [qrByChannelId, setQrByChannelId] = useState<
     ChannelLiveEvents["qrByChannelId"]
   >({})

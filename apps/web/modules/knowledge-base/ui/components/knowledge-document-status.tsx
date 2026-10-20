@@ -1,3 +1,6 @@
+import type { KnowledgeDocumentStatus } from "../../types"
+import type { MessageKey } from "@/lib/i18n"
+
 import {
   Alert02Icon,
   CheckmarkCircle02Icon,
@@ -7,9 +10,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { t, type MessageKey } from "@/lib/i18n"
-
-import type { KnowledgeDocumentStatus } from "../../types"
+import { t } from "@/lib/i18n"
 
 const statusKeys = {
   pending: "knowledge.status.pending",

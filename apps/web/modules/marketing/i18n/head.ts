@@ -1,6 +1,8 @@
+import type { Locale } from "./dictionary"
+
 import { getAppUrl } from "@/lib/env"
 
-import { dictionary, localeHomePath, type Locale } from "./dictionary"
+import { dictionary, localeHomePath } from "./dictionary"
 
 function absoluteUrl(path: string) {
   return new URL(path, `${getAppUrl().replace(/\/$/, "")}/`).toString()

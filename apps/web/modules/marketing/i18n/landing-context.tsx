@@ -1,8 +1,11 @@
 "use client"
 
-import { createContext, useContext, type ReactNode } from "react"
+import type { LandingCopy, Locale } from "./dictionary"
+import type { ReactNode } from "react"
 
-import { dictionary, type LandingCopy, type Locale } from "./dictionary"
+import { createContext, useContext } from "react"
+
+import { dictionary } from "./dictionary"
 
 type LandingContextValue = {
   locale: Locale

@@ -57,7 +57,10 @@ export function createJobClient(connection: Redis): JobClient {
       const definition = jobDefinitions[jobName]
       const parsedPayload = definition.schema.parse(payload)
 
-      const jobOptions: JobsOptions = { ...options }
+      const jobOptions: JobsOptions = {
+        ...("options" in definition ? definition.options : undefined),
+        ...options,
+      }
       if ("jobId" in definition) {
         jobOptions.jobId = definition.jobId(parsedPayload as never)
       }

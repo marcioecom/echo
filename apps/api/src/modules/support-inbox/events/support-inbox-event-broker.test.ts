@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest"
 import type { WebSocket } from "ws"
+
+import { describe, expect, it, vi } from "vitest"
 
 import { SupportInboxEventBroker } from "./support-inbox-event-broker"
 

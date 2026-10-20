@@ -34,4 +34,30 @@ export interface KnowledgeDocumentDetail {
   document: KnowledgeDocument & {
     content: string | null
   }
+  previousVersionActive: boolean
+}
+
+export interface KnowledgeTestHit {
+  documentId: string
+  title: string
+  excerpt: string
+  score: number
+}
+
+export type AgentDecision =
+  | {
+      action: "reply"
+      replyType: "answer" | "clarification"
+      body: string
+    }
+  | {
+      action: "handoff"
+      reason: "human_requested" | "low_confidence" | "unsupported_policy"
+      customerMessage: string
+      summary: string
+    }
+
+export interface KnowledgePreviewResponse {
+  decision: AgentDecision
+  hits: KnowledgeTestHit[]
 }

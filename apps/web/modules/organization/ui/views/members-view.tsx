@@ -1,5 +1,7 @@
 "use client"
 
+import type { MessageKey } from "@/lib/i18n"
+
 import { UserAdd01Icon, UserMultiple02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { organizationRoleNames } from "@workspace/auth"
@@ -15,7 +17,7 @@ import { Input } from "@workspace/ui/components/input"
 import { cn } from "@workspace/ui/lib/utils"
 import { useRef, useState } from "react"
 
-import { t, type MessageKey } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { useInviteMemberForm } from "@/modules/organization/hooks/use-invite-member-form"
 import { useMembers } from "@/modules/organization/hooks/use-members"

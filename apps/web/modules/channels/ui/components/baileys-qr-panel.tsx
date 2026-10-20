@@ -1,11 +1,12 @@
 "use client"
 
+import type { BaileysQrWait } from "../../hooks/use-baileys-qr-wait"
+
 import { Button } from "@workspace/ui/components/button"
 
 import { t } from "@/lib/i18n"
 
 import { humanChannelError } from "../../hooks/api"
-import type { BaileysQrWait } from "../../hooks/use-baileys-qr-wait"
 import { BaileysQrImage } from "./baileys-qr-image"
 
 export function BaileysQrPanel({

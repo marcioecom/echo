@@ -25,7 +25,8 @@ flowchart LR
 - Hosts Better Auth (sign-up, sign-in, invitations, membership).
 - Validates Twilio webhook signatures and normalizes inbound WhatsApp messages (`modules/channel-messaging`).
 - Owns the support-inbox read/write API: conversation listing with cursor pagination, conversation detail, operator replies (`modules/support-inbox`).
-- Accepts knowledge-base document uploads via a scoped upload token and dispatches indexing jobs (`modules/knowledge-base`).
+- Accepts text and file content for the knowledge base, supports document title edits and replace/delete actions, and dispatches indexing jobs (`modules/knowledge-base`).
+- Provides a side-effect-free knowledge preview that runs an isolated question through the Support Agent graph and returns its decision with optional retrieved sources. Configure `AI_GATEWAY_API_KEY` and `AI_CHAT_MODEL` in `apps/api/.env`; the endpoint returns HTTP 503 when AI Gateway access is unavailable.
 - Exposes `/health/live` and `/health/ready`, failing closed when Postgres or Redis is unreachable.
 - Runs the Baileys ingress worker with a dedicated Redis connection: `connectTimeout` is retained, but `commandTimeout` is disabled so BullMQ's blocking reads can wait for jobs. The API's shared Redis connection keeps its command timeout.
 
@@ -41,7 +42,7 @@ flowchart LR
 
 ### `apps/web`
 
-- TanStack Start operator interface on Cloudflare Workers: authentication flows, the `/inbox` and `/inbox/$conversationId` support views, and `/settings` (members, knowledge base). Dashboard data is loaded on the client through React Query and a WebSocket to `apps/api`.
+- TanStack Start operator interface on Cloudflare Workers: authentication flows, the `/inbox` and `/inbox/$conversationId` support views, and `/settings` (members and knowledge base). Knowledge-base management is restricted to organization owners and admins at `/settings/knowledge`; the question preview is a separate tab on that page. Dashboard data is loaded on the client through React Query and a WebSocket to `apps/api`.
 
 ### Shared packages
 
@@ -62,5 +63,5 @@ flowchart LR
 ## Known boundaries
 
 - Channel provisioning (`channel:provision:twilio`) is an internal CLI operation today; Meta Embedded Signup is not yet implemented.
-- The knowledge-base module has no automated test coverage, unlike auth, channel-messaging, and support-inbox.
+- The worker contains the Support Agent graph for inbound first-line responses. This describes code, not a verified production deployment.
 - This diagram describes the codebase's own architecture, not any specific deployment's current operational status.

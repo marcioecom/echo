@@ -1,8 +1,9 @@
 "use client"
 
+import type { ChannelConnection } from "../types"
+
 import { useEffect, useState } from "react"
 
-import type { ChannelConnection } from "../types"
 import { useChannelLive } from "./use-channel-events"
 import { useChannels } from "./use-channels"
 
@@ -28,7 +29,7 @@ export function useBaileysQrWait(input: {
   const [timedOut, setTimedOut] = useState(false)
 
   const qr = input.channelId
-    ? live.qrByChannelId[input.channelId] ?? null
+    ? (live.qrByChannelId[input.channelId] ?? null)
     : null
 
   const channel = findChannel(channels.data?.items, input.channelId)

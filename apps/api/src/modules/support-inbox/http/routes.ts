@@ -1,12 +1,10 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
+import type { AppInstance } from "@/lib/fastify"
+import type { FastifyReply, FastifyRequest } from "fastify"
 
 import { matchResult, matchTag } from "@/common/match"
 import { env } from "@/config/env"
-import {
-  getOrganizationAuth,
-  guards,
-  type OrganizationRequestAuth,
-} from "@/plugins/auth"
+import { getOrganizationAuth, guards, organizationAuth } from "@/plugins/auth"
+
 import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
 import {
   createOperatorReplyBodySchema,
@@ -19,8 +17,8 @@ import { listSupportConversations } from "../use-cases/list-support-conversation
 
 const webAppOrigin = new URL(env.WEB_APP_URL).origin
 
-export function registerSupportInboxRoutes(app: FastifyInstance): void {
-  const preHandler = [guards.requireUser, guards.requireMembership()]
+export function registerSupportInboxRoutes(app: AppInstance): void {
+  const preHandler = guards.requireOrganization()
 
   app.get(
     "/v1/support-conversations",
@@ -31,18 +29,17 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: "invalid_query" })
       }
 
-      return withOrganizationAuth(request, reply, async (auth) => {
-        const result = await listSupportConversations({
-          organizationId: auth.organization.id,
-          status: query.data.status,
-          cursor: query.data.cursor,
-          limit: query.data.limit,
-        })
+      const auth = organizationAuth(request)
+      const result = await listSupportConversations({
+        organizationId: auth.organization.id,
+        status: query.data.status,
+        cursor: query.data.cursor,
+        limit: query.data.limit,
+      })
 
-        return matchResult(result, {
-          err: (error) => reply.code(400).send({ error: error.type }),
-          ok: (value) => reply.send(value),
-        })
+      return matchResult(result, {
+        err: (error) => reply.code(400).send({ error: error.type }),
+        ok: (value) => reply.send(value),
       })
     }
   )
@@ -57,33 +54,28 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         return reply.code(400).send({ error: "invalid_reply" })
       }
 
-      return withOrganizationAuth(request, reply, async (auth) => {
-        const result = await createOperatorReply({
-          organizationId: auth.organization.id,
-          conversationId: params.data.conversationId,
-          operatorUserId: auth.user.id,
-          body: body.data.body,
-        })
+      const auth = organizationAuth(request)
+      const result = await createOperatorReply({
+        organizationId: auth.organization.id,
+        conversationId: params.data.conversationId,
+        operatorUserId: auth.user.id,
+        body: body.data.body,
+      })
 
-        return matchResult(result, {
-          err: (error) =>
-            matchTag(error, {
-              resolved: () =>
-                reply
-                  .code(409)
-                  .send({ error: "support_conversation_resolved" }),
-              not_found: () =>
-                reply
-                  .code(404)
-                  .send({ error: "support_conversation_not_found" }),
-              queue_unavailable: (value) =>
-                reply.code(503).send({
-                  error: "outbound_message_dispatch_unavailable",
-                  messageId: value.messageId,
-                }),
-            }),
-          ok: (value) => reply.code(201).send({ messageId: value.messageId }),
-        })
+      return matchResult(result, {
+        err: (error) =>
+          matchTag(error, {
+            resolved: () =>
+              reply.code(409).send({ error: "support_conversation_resolved" }),
+            not_found: () =>
+              reply.code(404).send({ error: "support_conversation_not_found" }),
+            queue_unavailable: (value) =>
+              reply.code(503).send({
+                error: "outbound_message_dispatch_unavailable",
+                messageId: value.messageId,
+              }),
+          }),
+        ok: (value) => reply.code(201).send({ messageId: value.messageId }),
       })
     }
   )
@@ -97,15 +89,14 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
         return reply.code(404).send({ error: "support_conversation_not_found" })
       }
 
-      return withOrganizationAuth(request, reply, async (auth) => {
-        const detail = await getSupportConversationDetail({
-          organizationId: auth.organization.id,
-          conversationId: params.data.conversationId,
-        })
-        return detail
-          ? reply.send(detail)
-          : reply.code(404).send({ error: "support_conversation_not_found" })
+      const auth = organizationAuth(request)
+      const detail = await getSupportConversationDetail({
+        organizationId: auth.organization.id,
+        conversationId: params.data.conversationId,
       })
+      return detail
+        ? reply.send(detail)
+        : reply.code(404).send({ error: "support_conversation_not_found" })
     }
   )
 
@@ -130,17 +121,6 @@ export function registerSupportInboxRoutes(app: FastifyInstance): void {
       })
     }
   )
-}
-
-function withOrganizationAuth(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  handler: (auth: OrganizationRequestAuth) => Promise<unknown>
-): Promise<unknown> {
-  return matchResult(getOrganizationAuth(request), {
-    err: async (error) => reply.code(403).send({ error: error.type }),
-    ok: handler,
-  })
 }
 
 async function requireWebAppOrigin(

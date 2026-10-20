@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { ingestInboundMessage } from "./ingest-inbound-message"
+
 const { enqueue, logError, logInfo, publish, repositoryIngest } = vi.hoisted(
   () => ({
     enqueue: vi.fn(),
@@ -25,8 +27,6 @@ vi.mock(
     publishSupportConversationUpdated: publish,
   })
 )
-
-import { ingestInboundMessage } from "./ingest-inbound-message"
 
 const input = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
@@ -101,7 +101,9 @@ describe("ingestInboundMessage", () => {
 
   it("publishes a duplicate and re-enqueues with an idempotent job id for webhook retry", async () => {
     repositoryIngest.mockResolvedValue({ ...ingested, duplicate: true })
-    enqueue.mockResolvedValue({ id: `process-inbound-message--${ingested.messageId}` })
+    enqueue.mockResolvedValue({
+      id: `process-inbound-message--${ingested.messageId}`,
+    })
 
     await expect(ingestInboundMessage(input)).resolves.toEqual({
       ok: true,

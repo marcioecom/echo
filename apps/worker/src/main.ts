@@ -1,10 +1,13 @@
 import { awaitAllCallbacks } from "@langchain/core/callbacks/promises"
 import { workbench } from "@getworkbench/fastify"
+import { listPendingKnowledgeStorageDeletionIds } from "@workspace/knowledge"
+import { knowledgeBaseJobNames } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 import { Worker } from "bullmq"
 import { createApp } from "./app"
 import { env } from "./config/env"
 import { database } from "./lib/db"
+import { jobs } from "./lib/jobs-client"
 import { pingRedis, redisConnection } from "./lib/redis"
 import { getProcessor } from "./processors/registry"
 import { getAllQueues, queuesConfigs } from "./queues"
@@ -82,6 +85,7 @@ async function main(): Promise<void> {
         "langsmith.flush",
         () => (env.LANGSMITH_TRACING === "true" ? awaitAllCallbacks() : Promise.resolve()),
       ],
+      ["jobs.close", () => jobs.close()],
       ["redis.quit", () => redisConnection.quit()],
       ["database.close", () => database.close()],
     ]
@@ -107,6 +111,7 @@ async function main(): Promise<void> {
   try {
     await database.check()
     await pingRedis()
+    await enqueuePendingKnowledgeStorageDeletions()
 
     process.once("SIGINT", () => void shutdown("SIGINT"))
     process.once("SIGTERM", () => void shutdown("SIGTERM"))
@@ -116,6 +121,19 @@ async function main(): Promise<void> {
     await shutdown()
     throw error
   }
+}
+
+async function enqueuePendingKnowledgeStorageDeletions(): Promise<void> {
+  const deletionIds = await listPendingKnowledgeStorageDeletionIds(database.db)
+  if (deletionIds.length === 0) return
+  logger.info("Enqueueing pending knowledge storage deletions", {
+    count: deletionIds.length,
+  })
+  await Promise.all(
+    deletionIds.map((deletionId) =>
+      jobs.enqueue(knowledgeBaseJobNames.deleteKnowledgeObject, { deletionId })
+    )
+  )
 }
 
 void main().catch((error) => {

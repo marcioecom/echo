@@ -19,3 +19,23 @@ export const createTextKnowledgeDocumentSchema = z.object({
 export const knowledgeDocumentParamsSchema = z.object({
   documentId: z.string().length(26),
 })
+
+export const patchKnowledgeDocumentSchema = z
+  .object({
+    title: z.string().trim().min(1).max(255).optional(),
+    content: z.string().trim().min(1).max(1_000_000).optional(),
+  })
+  .strict()
+  .refine((value) => value.title !== undefined || value.content !== undefined)
+
+export const replaceKnowledgeDocumentFileSchema = z
+  .object({
+    uploadToken: z.string().min(1),
+  })
+  .strict()
+
+export const knowledgeTestBodySchema = z
+  .object({
+    question: z.string().trim().min(1).max(2000),
+  })
+  .strict()

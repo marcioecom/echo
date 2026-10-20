@@ -1,17 +1,17 @@
+import type { ChannelConnectionView } from "../channel-connection-view"
+import type { Result } from "@/common/result"
+
 import { waGatewayJobNames } from "@workspace/jobs"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
 
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
-import {
-  toChannelConnectionView,
-  type ChannelConnectionView,
-} from "../channel-connection-view"
+import { toChannelConnectionView } from "../channel-connection-view"
 import { publishChannelStatusChanged } from "../events/publish-channel-status-changed"
 import {
-  ChannelRoutingConflictError,
   channelConnectionsRepository,
+  ChannelRoutingConflictError,
   OrganizationNotActiveError,
 } from "../repositories/channel-connections-repository"
 

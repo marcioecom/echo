@@ -1,3 +1,6 @@
+import type { MessageKey } from "@/lib/i18n"
+import type { SupportConversationStatus } from "@workspace/domain"
+
 import {
   BotIcon,
   CheckmarkCircle02Icon,
@@ -5,10 +8,9 @@ import {
   UserIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import type { SupportConversationStatus } from "@workspace/domain"
 import { cn } from "@workspace/ui/lib/utils"
 
-import { t, type MessageKey } from "@/lib/i18n"
+import { t } from "@/lib/i18n"
 
 const statusKeys = {
   open: "inbox.status.open",

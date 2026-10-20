@@ -1,8 +1,12 @@
-import { fromNodeHeaders } from "better-auth/node"
-import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
+import type { Result } from "../common/result"
+import type { AppInstance } from "../lib/fastify"
+import type { Auth } from "../modules/auth/auth"
+import type { FastifyReply, FastifyRequest } from "fastify"
 
-import { err, ok, type Result } from "../common/result"
-import { type Auth, auth } from "../modules/auth/auth"
+import { fromNodeHeaders } from "better-auth/node"
+
+import { err, ok } from "../common/result"
+import { auth } from "../modules/auth/auth"
 
 export interface RequestAuthUser {
   id: string
@@ -39,9 +43,17 @@ export function getOrganizationAuth(
   request: FastifyRequest
 ): Result<OrganizationRequestAuth, { type: "membership_required" }> {
   const auth = request.auth
-  return auth?.organization
-    ? ok(auth)
-    : err({ type: "membership_required" })
+  return auth?.organization ? ok(auth) : err({ type: "membership_required" })
+}
+
+export function organizationAuth(
+  request: FastifyRequest
+): OrganizationRequestAuth {
+  const result = getOrganizationAuth(request)
+  if (!result.ok) {
+    throw new Error("organizationAuth used without organization guards")
+  }
+  return result.value
 }
 
 declare module "fastify" {
@@ -55,9 +67,12 @@ export interface AuthGuards {
   requireMembership: (options?: {
     roles?: string[]
   }) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>
+  requireOrganization: (options?: {
+    roles?: string[]
+  }) => Array<(request: FastifyRequest, reply: FastifyReply) => Promise<void>>
 }
 
-export function registerAuthRoutes(app: FastifyInstance, auth: Auth): void {
+export function registerAuthRoutes(app: AppInstance, auth: Auth): void {
   app.decorateRequest("auth", null)
 
   app.all("/api/auth/*", async (request, reply) => {
@@ -153,7 +168,12 @@ function requireMembership(options?: { roles?: string[] }) {
   }
 }
 
+function requireOrganization(options?: { roles?: string[] }) {
+  return [requireUser, requireMembership(options)]
+}
+
 export const guards = {
   requireUser,
   requireMembership,
+  requireOrganization,
 }

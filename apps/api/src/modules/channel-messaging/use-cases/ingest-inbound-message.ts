@@ -1,11 +1,14 @@
+import type { IngestedInboundMessage } from "../types"
+import type { Result } from "@/common/result"
 import type { NormalizedInboundMessage } from "@workspace/domain"
+
 import { createLoggerWithContext } from "@workspace/logger"
 
-import { err, ok, type Result } from "@/common/result"
+import { err, ok } from "@/common/result"
 import { jobs } from "@/lib/jobs-client"
 import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"
+
 import { inboundMessageRepository } from "../repositories/inbound-message-repository"
-import type { IngestedInboundMessage } from "../types"
 
 const logger = createLoggerWithContext("api:channel-messaging:inbound-message")
 

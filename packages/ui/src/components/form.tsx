@@ -1,19 +1,17 @@
 "use client"
 
-import * as React from "react"
+import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form"
+
+import { Label } from "@workspace/ui/components/label"
+import { cn } from "@workspace/ui/lib/utils"
 import { Slot } from "radix-ui"
+import * as React from "react"
 import {
   Controller,
   FormProvider,
   useFormContext,
   useFormState,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
 } from "react-hook-form"
-
-import { Label } from "@workspace/ui/components/label"
-import { cn } from "@workspace/ui/lib/utils"
 
 const Form = FormProvider
 

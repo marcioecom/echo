@@ -1,7 +1,8 @@
 import type { Database } from "@workspace/db"
+
 import { knowledgeDocuments, organizations } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 
 import { database } from "@/lib/db"
 
@@ -22,7 +23,7 @@ export class KnowledgeDocumentsRepository {
     return organization !== undefined
   }
 
-  async find(organizationId: string, id: string) {
+  async findIncludingRetired(organizationId: string, id: string) {
     const [document] = await this.db
       .select()
       .from(knowledgeDocuments)
@@ -34,26 +35,6 @@ export class KnowledgeDocumentsRepository {
       )
       .limit(1)
     return document
-  }
-
-  async list(organizationId: string) {
-    return this.db
-      .select({
-        id: knowledgeDocuments.id,
-        title: knowledgeDocuments.title,
-        sourceType: knowledgeDocuments.sourceType,
-        sourceName: knowledgeDocuments.sourceName,
-        mimeType: knowledgeDocuments.mimeType,
-        sourceSizeBytes: knowledgeDocuments.sourceSizeBytes,
-        status: knowledgeDocuments.status,
-        failureReason: knowledgeDocuments.failureReason,
-        revision: knowledgeDocuments.revision,
-        createdAt: knowledgeDocuments.createdAt,
-        updatedAt: knowledgeDocuments.updatedAt,
-      })
-      .from(knowledgeDocuments)
-      .where(eq(knowledgeDocuments.organizationId, organizationId))
-      .orderBy(desc(knowledgeDocuments.updatedAt))
   }
 
   async createText(input: {
@@ -89,7 +70,7 @@ export class KnowledgeDocumentsRepository {
     sourceObjectEtag: string
     sourceSizeBytes: number
   }) {
-    const [document] = await this.db
+    const [inserted] = await this.db
       .insert(knowledgeDocuments)
       .values({
         id: input.id,
@@ -103,47 +84,17 @@ export class KnowledgeDocumentsRepository {
         sourceObjectEtag: input.sourceObjectEtag,
         sourceSizeBytes: input.sourceSizeBytes,
       })
+      .onConflictDoNothing({ target: knowledgeDocuments.id })
       .returning()
-    if (!document)
+    if (inserted) return inserted
+
+    const existing = await this.findIncludingRetired(
+      input.organizationId,
+      input.id
+    )
+    if (!existing)
       throw new Error("Knowledge file document insert returned no row")
-    return document
-  }
-
-  async queueReindex(organizationId: string, id: string) {
-    const [document] = await this.db
-      .update(knowledgeDocuments)
-      .set({
-        status: "pending",
-        failureReason: null,
-        revision: sql`${knowledgeDocuments.revision} + 1`,
-      })
-      .where(
-        and(
-          eq(knowledgeDocuments.organizationId, organizationId),
-          eq(knowledgeDocuments.id, id),
-          inArray(knowledgeDocuments.status, ["ready", "failed"])
-        )
-      )
-      .returning()
-    return document
-  }
-
-  async markDispatchFailed(
-    organizationId: string,
-    id: string,
-    revision: number
-  ): Promise<void> {
-    await this.db
-      .update(knowledgeDocuments)
-      .set({ status: "failed", failureReason: "index_dispatch_failed" })
-      .where(
-        and(
-          eq(knowledgeDocuments.organizationId, organizationId),
-          eq(knowledgeDocuments.id, id),
-          eq(knowledgeDocuments.revision, revision),
-          eq(knowledgeDocuments.status, "pending")
-        )
-      )
+    return existing
   }
 }
 

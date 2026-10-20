@@ -20,10 +20,18 @@ const apiEnvSchema = serverEnvSchema.extend({
   R2_BUCKET_NAME: z.string().min(1),
   R2_ACCESS_KEY_ID: z.string().min(1),
   R2_SECRET_ACCESS_KEY: z.string().min(1),
-  KNOWLEDGE_UPLOAD_TOKEN_SECRET: z.string().refine(
-    (value) => Buffer.byteLength(value) >= 32,
-    "must be at least 32 bytes"
-  ),
+  KNOWLEDGE_UPLOAD_TOKEN_SECRET: z
+    .string()
+    .refine(
+      (value) => Buffer.byteLength(value) >= 32,
+      "must be at least 32 bytes"
+    ),
+  AI_GATEWAY_API_KEY: z.string().min(1),
+  AI_CHAT_MODEL: z.string().min(1).default("openai/gpt-6-luna"),
+  AI_EMBEDDING_MODEL: z
+    .string()
+    .min(1)
+    .default("openai/text-embedding-3-small"),
 })
 
 export type ApiEnv = z.output<typeof apiEnvSchema>

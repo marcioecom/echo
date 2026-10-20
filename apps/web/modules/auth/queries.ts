@@ -1,8 +1,9 @@
-import { queryOptions, type QueryClient } from "@tanstack/react-query"
+import type { Workspace } from "./session"
+import type { QueryClient } from "@tanstack/react-query"
+
+import { queryOptions } from "@tanstack/react-query"
 
 import { authClient } from "@/lib/auth-client"
-
-import type { Workspace } from "./session"
 
 export const sessionQueryKey = ["auth", "session"] as const
 export const workspaceQueryKey = ["auth", "workspace"] as const

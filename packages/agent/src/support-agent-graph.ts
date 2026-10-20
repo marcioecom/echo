@@ -3,9 +3,11 @@ import { StateGraph, StateSchema } from "@langchain/langgraph"
 import { ChatOpenAI } from "@langchain/openai"
 import { z } from "zod"
 
-import type { KnowledgeSnippet, RetrieveKnowledge } from "./retrieve-knowledge"
-
-export const supportAgentRetrievedChunkLimit = 6
+import {
+  supportAgentRetrievedChunkLimit,
+  type KnowledgeSnippet,
+  type RetrieveKnowledge,
+} from "@workspace/knowledge"
 
 const handoffCopySchema = z.object({
   customerMessage: z.string().trim().min(1).max(500),

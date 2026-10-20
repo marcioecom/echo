@@ -71,7 +71,9 @@ export function ReplyComposer({
             {translateMessage(form.formState.errors.body.message)}
           </p>
         ) : disabled ? null : (
-          <p className="text-[11px] text-muted-foreground">{t("inbox.replyHint")}</p>
+          <p className="text-[11px] text-muted-foreground">
+            {t("inbox.replyHint")}
+          </p>
         )}
       </div>
     </form>

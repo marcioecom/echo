@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { createOperatorReply } from "./create-operator-reply"
+
 const { enqueue, publish, repositoryCreate } = vi.hoisted(() => ({
   enqueue: vi.fn(),
   publish: vi.fn(),
@@ -18,8 +20,6 @@ vi.mock("../events/publish-support-conversation-updated", () => ({
 vi.mock("../repositories/support-inbox-repository", () => ({
   supportInboxRepository: { createOperatorReply: repositoryCreate },
 }))
-
-import { createOperatorReply } from "./create-operator-reply"
 
 const input = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",

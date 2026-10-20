@@ -1,10 +1,8 @@
-import {
-  inboxEventChannelPattern,
-  parseInboxEvent,
-} from "@workspace/jobs"
+import { inboxEventChannelPattern, parseInboxEvent } from "@workspace/jobs"
 import { Redis } from "ioredis"
 
 import { env } from "@/config/env"
+
 import { supportInboxEventBroker } from "./support-inbox-event-broker"
 
 export async function startInboxEventBridge(): Promise<Redis> {

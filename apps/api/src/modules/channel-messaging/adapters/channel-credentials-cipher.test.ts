@@ -1,8 +1,7 @@
+import { ChannelCredentialsCipher } from "@workspace/messaging"
 import { describe, expect, it } from "vitest"
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64")
-
-import { ChannelCredentialsCipher } from "@workspace/messaging"
 
 const context = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
@@ -12,7 +11,10 @@ const context = {
 
 describe("channel credentials cipher", () => {
   it("round trips credentials with a fresh nonce", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
 
     const first = cipher.encrypt("secret", context)
     const second = cipher.encrypt("secret", context)
@@ -23,7 +25,10 @@ describe("channel credentials cipher", () => {
   })
 
   it("rejects tampering and the wrong authenticated context", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
     const encrypted = cipher.encrypt("secret", context)
 
     expect(() =>
@@ -44,7 +49,10 @@ describe("channel credentials cipher", () => {
   })
 
   it("rejects credentials encrypted with another key version", () => {
-    const cipher = new ChannelCredentialsCipher({ encryptionKey, keyVersion: "v1" })
+    const cipher = new ChannelCredentialsCipher({
+      encryptionKey,
+      keyVersion: "v1",
+    })
 
     expect(() =>
       cipher.decrypt(

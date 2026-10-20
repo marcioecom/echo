@@ -1,6 +1,5 @@
 "use client"
 
-import { cn } from "@workspace/ui/lib/utils"
 import {
   BookOpen01Icon,
   InboxIcon,
@@ -9,6 +8,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Link, useRouterState } from "@tanstack/react-router"
+import { cn } from "@workspace/ui/lib/utils"
 
 import { BrandLogo } from "@/components/brand-logo"
 import { t } from "@/lib/i18n"

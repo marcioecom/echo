@@ -1,5 +1,7 @@
 // Consumed in the API process: inbound persistence lives next to the Twilio
 // webhook, and the worker must not import this app.
+import type { Job } from "bullmq"
+
 import {
   waInboundJobSchema,
   waIngressJobNames,
@@ -7,7 +9,7 @@ import {
   waStatusJobSchema,
 } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
-import { UnrecoverableError, Worker, type Job } from "bullmq"
+import { UnrecoverableError, Worker } from "bullmq"
 
 import { redisConnection } from "@/lib/redis"
 import { publishSupportConversationUpdated } from "@/modules/support-inbox/events/publish-support-conversation-updated"

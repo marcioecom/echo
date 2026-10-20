@@ -1,13 +1,12 @@
+import type { ProvisionTwilioWhatsAppInput } from "../schemas"
+
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
 import {
   TwilioChannelProvider,
   TwilioConfigurationError,
 } from "../adapters/twilio-channel-provider"
 import { channelConnectionsRepository } from "../repositories/channel-connections-repository"
-import {
-  provisionTwilioWhatsAppSchema,
-  type ProvisionTwilioWhatsAppInput,
-} from "../schemas"
+import { provisionTwilioWhatsAppSchema } from "../schemas"
 
 export class OrganizationUnavailableError extends Error {
   constructor() {

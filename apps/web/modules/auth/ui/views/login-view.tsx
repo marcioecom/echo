@@ -1,5 +1,6 @@
 "use client"
 
+import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import {
   Form,
@@ -9,7 +10,6 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import { Link } from "@tanstack/react-router"
 
 import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
