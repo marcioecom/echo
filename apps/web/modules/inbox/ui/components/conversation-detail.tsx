@@ -10,7 +10,9 @@ import type {
 
 import {
   AlertCircleIcon,
+  ArrowDown01Icon,
   ArrowLeft01Icon,
+  ArrowUp01Icon,
   BotIcon,
   CheckmarkCircle01Icon,
   Clock01Icon,
@@ -24,11 +26,13 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
+import { useEffect, useId, useRef, useState } from "react"
 
 import { appLocale, t } from "@/lib/i18n"
 
 import { InboxApiError } from "../../hooks/api"
 import { useTimelineAutoScroll } from "../../hooks/use-timeline-auto-scroll"
+import { AudioMessage } from "./audio-message"
 import { ConversationStatus } from "./conversation-status"
 import { ReplyComposer } from "./reply-composer"
 
@@ -38,6 +42,7 @@ const handoffReasonKeys = {
   unsupported_policy: "inbox.handoff.reason.unsupported_policy",
   ai_failure: "inbox.handoff.reason.ai_failure",
   unsupported_content: "inbox.handoff.reason.unsupported_content",
+  transcription_failed: "inbox.handoff.reason.transcription_failed",
   operator_takeover: "inbox.handoff.reason.operator_takeover",
 } as const satisfies Record<SupportConversationHandoffReason, MessageKey>
 
@@ -151,7 +156,7 @@ export function ConversationDetail({
   const needsYou = detail.conversation.status === "human_required"
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col bg-background">
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
       <header className="flex min-h-14 items-center gap-3 border-b border-border px-4 py-3">
         <Button asChild variant="ghost" size="icon" className="md:hidden">
           <Link to="/inbox" aria-label={t("inbox.back")}>
@@ -207,9 +212,11 @@ export function ConversationDetail({
         />
       ) : null}
 
+      {/* `relative` keeps absolutely positioned sr-only labels inside this
+          scroller; otherwise they anchor to the page and stretch it. */}
       <div
         ref={timelineRef}
-        className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-5 sm:px-6"
+        className="relative min-h-0 flex-1 overflow-y-auto bg-muted/20 px-4 py-5 sm:px-6"
         role="log"
         aria-label={t("inbox.messagesLabel")}
       >
@@ -290,7 +297,7 @@ export function ConversationDetail({
                     )}
                     <div
                       className={cn(
-                        "text-left text-sm whitespace-pre-wrap",
+                        "text-left text-sm break-words whitespace-pre-wrap",
                         isSystem
                           ? "rounded-md px-3 py-1.5 text-center text-xs text-muted-foreground"
                           : "rounded-lg px-3 py-2",
@@ -310,6 +317,13 @@ export function ConversationDetail({
                         <span className="italic opacity-80">
                           {t("inbox.unsupported")}
                         </span>
+                      ) : message.contentType === "audio" ? (
+                        <AudioMessage
+                          conversationId={detail.conversation.id}
+                          inverted={outbound && !isAi}
+                          message={message}
+                          senderName={senderName}
+                        />
                       ) : (
                         message.body
                       )}
@@ -350,11 +364,31 @@ function HandoffSummary({
   summary: string | null
   active: boolean
 }) {
+  const [expanded, setExpanded] = useState(false)
+  const [isClamped, setIsClamped] = useState(false)
+  const summaryRef = useRef<HTMLParagraphElement>(null)
+  const summaryId = useId()
+
+  useEffect(() => {
+    if (expanded) return
+    const element = summaryRef.current
+    if (!element) return
+
+    const measure = () => {
+      setIsClamped(element.scrollHeight - element.clientHeight > 1)
+    }
+    measure()
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [summary, expanded])
+
   return (
-    <aside className="border-b border-border bg-background px-4 py-3 sm:px-6">
+    <aside className="border-b border-border bg-background px-4 py-2.5 sm:px-6 sm:py-3">
       <div
         className={cn(
-          "mx-auto max-w-3xl rounded-lg px-3.5 py-3",
+          "mx-auto max-w-3xl rounded-lg px-3.5 py-2.5 sm:py-3",
           active
             ? "bg-warning/15 ring-1 ring-warning/25"
             : "bg-muted/50 ring-1 ring-border"
@@ -396,11 +430,38 @@ function HandoffSummary({
             <p
               className={cn(
                 "mt-1.5 text-sm leading-relaxed text-pretty whitespace-pre-wrap",
+                !expanded && "line-clamp-2 md:line-clamp-none",
                 active ? "text-warning-foreground" : "text-foreground"
               )}
+              id={summaryId}
+              ref={summaryRef}
             >
               {summary ?? t("inbox.handoff.summaryEmpty")}
             </p>
+            {isClamped ? (
+              <button
+                aria-controls={summaryId}
+                aria-expanded={expanded}
+                className={cn(
+                  "mt-1 inline-flex items-center gap-1 rounded-md py-1 text-[11px] font-medium underline-offset-2 transition-colors hover:underline focus-visible:ring-2 focus-visible:outline-none md:hidden",
+                  active
+                    ? "text-warning-foreground focus-visible:ring-warning-foreground/40"
+                    : "text-muted-foreground hover:text-foreground focus-visible:ring-ring/40"
+                )}
+                onClick={() => setExpanded((value) => !value)}
+                type="button"
+              >
+                <HugeiconsIcon
+                  aria-hidden="true"
+                  icon={expanded ? ArrowUp01Icon : ArrowDown01Icon}
+                  size={12}
+                  strokeWidth={1.8}
+                />
+                {expanded
+                  ? t("inbox.handoff.summaryHide")
+                  : t("inbox.handoff.summaryShow")}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

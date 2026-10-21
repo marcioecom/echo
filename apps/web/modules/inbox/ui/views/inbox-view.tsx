@@ -36,7 +36,7 @@ export function InboxView({
     conversationsQuery.data?.pages.flatMap((page) => page.items) ?? []
 
   return (
-    <div className="flex h-[calc(100svh-5.5rem)] min-h-96 flex-col md:h-[calc(100svh-4rem)]">
+    <div className="flex h-[calc(100svh-6rem)] min-h-96 flex-col md:h-[calc(100svh-4rem)]">
       <PageHeader className="mb-4 shrink-0" title={t("inbox.title")} />
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-background">
         <div

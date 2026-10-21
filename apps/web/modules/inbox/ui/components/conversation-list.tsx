@@ -53,6 +53,19 @@ function senderLabel(sender: NonNullable<InboxConversation["lastMessage"]>) {
   return t(senderKeys[sender.senderType])
 }
 
+function lastMessagePreview(
+  message: NonNullable<InboxConversation["lastMessage"]>
+) {
+  if (message.contentType !== "audio") return message.preview
+  if (message.transcriptStatus === "failed") {
+    return t("inbox.audio.transcriptionFailed")
+  }
+  return [
+    t("inbox.audio.preview"),
+    message.preview.trim() || t("inbox.audio.transcribing"),
+  ].join(" · ")
+}
+
 function contactInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"
@@ -132,7 +145,7 @@ export function ConversationList({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="relative min-h-0 flex-1 overflow-y-auto">
         {isError && conversations.length > 0 ? (
           <div
             role="alert"
@@ -216,7 +229,7 @@ export function ConversationList({
                             <span className="text-foreground/70">
                               {senderLabel(conversation.lastMessage)}:
                             </span>{" "}
-                            {conversation.lastMessage.preview}
+                            {lastMessagePreview(conversation.lastMessage)}
                           </>
                         ) : (
                           t("inbox.noMessagesYet")

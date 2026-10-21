@@ -3,7 +3,9 @@ import type {
   ChannelType,
   MessageContentType,
   MessageDirection,
+  MessageMediaDownloadStatus,
   MessageStatus,
+  MessageTranscriptionStatus,
   SupportConversationHandoffReason,
   SupportConversationStatus,
 } from "@workspace/domain"
@@ -25,6 +27,7 @@ export interface InboxConversation {
     preview: string
     senderType: ActorType
     contentType: MessageContentType
+    transcriptStatus: MessageTranscriptionStatus | null
   } | null
 }
 
@@ -63,8 +66,18 @@ export interface InboxConversationDetail {
     status: MessageStatus
     occurredAt: string
     operatorName: string | null
+    media: InboxMessageMedia | null
   }>
 }
+
+export interface InboxMessageMedia {
+  mimeType: string
+  durationMs: number | null
+  downloadStatus: MessageMediaDownloadStatus
+  transcriptStatus: MessageTranscriptionStatus
+}
+
+export type InboxTimelineMessage = InboxConversationDetail["messages"][number]
 
 export const supportConversationUpdatedEventSchema = z.object({
   type: z.literal("support_conversation.updated"),
