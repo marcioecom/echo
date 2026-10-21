@@ -77,6 +77,11 @@ const cipher = new ChannelCredentialsCipher({
 
 const audioBytes = new Uint8Array([79, 103, 103, 83, 1, 2, 3])
 
+const mediaJobOptions = {
+  attempts: 3,
+  backoff: { type: "exponential" as const, delay: 15_000 },
+}
+
 describe("fetch inbound media", () => {
   const container = new PostgreSqlContainer("pgvector/pgvector:pg18")
   let database: ReturnType<typeof createDatabase>
@@ -319,7 +324,10 @@ describe("fetch inbound media", () => {
         supportConversationId: state.supportConversationId,
         messageId: state.messageId,
       },
-      { jobId: `transcribe-inbound-audio--${state.messageId}` }
+      {
+        ...mediaJobOptions,
+        jobId: `transcribe-inbound-audio--${state.messageId}`,
+      }
     )
   })
 
@@ -456,7 +464,10 @@ describe("fetch inbound media", () => {
     expect(supportConversationsQueue.add).toHaveBeenCalledWith(
       "transcribe-inbound-audio",
       expect.objectContaining({ messageId: state.messageId }),
-      { jobId: `transcribe-inbound-audio--${state.messageId}` }
+      {
+        ...mediaJobOptions,
+        jobId: `transcribe-inbound-audio--${state.messageId}`,
+      }
     )
   })
 
