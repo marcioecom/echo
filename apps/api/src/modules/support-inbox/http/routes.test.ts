@@ -1,68 +1,87 @@
 import websocket from "@fastify/websocket"
 import Fastify from "fastify"
+import {
+  serializerCompiler,
+  validatorCompiler,
+} from "fastify-type-provider-zod"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
 import { encodeSupportInboxCursor } from "../schemas"
 import { registerSupportInboxRoutes } from "./routes"
 
-const { authState, conversationId, findDetail, guards, list, organizationId } =
-  vi.hoisted(() => {
-    const authState = { unauthenticated: false }
-    type RequestAuth = {
-      user?: unknown
-      member?: unknown
-      organization?: unknown
+const {
+  authState,
+  conversationId,
+  findDetail,
+  findMessageMedia,
+  guards,
+  list,
+  messageId,
+  organizationId,
+  presignGet,
+} = vi.hoisted(() => {
+  const authState = { unauthenticated: false }
+  type RequestAuth = {
+    user?: unknown
+    member?: unknown
+    organization?: unknown
+  }
+
+  const requireUser = async (
+    request: { auth: RequestAuth | null },
+    reply: {
+      code: (statusCode: number) => { send: (payload: unknown) => void }
     }
-
-    const requireUser = async (
-      request: { auth: RequestAuth | null },
-      reply: {
-        code: (statusCode: number) => { send: (payload: unknown) => void }
-      }
-    ) => {
-      if (authState.unauthenticated) {
-        reply.code(401).send({ error: "unauthenticated" })
-        return
-      }
-      request.auth = {
-        user: {
-          id: "user-id",
-          name: "Operator",
-          email: "operator@test.dev",
-        },
-        member: null,
-        organization: null,
-      }
+  ) => {
+    if (authState.unauthenticated) {
+      reply.code(401).send({ error: "unauthenticated" })
+      return
     }
-    const requireMembership =
-      () => async (request: { auth: RequestAuth | null }) => {
-        const user = request.auth?.user
-        if (!user) return
-
-        request.auth = {
-          user,
-          member: { id: "member-id", role: "operator" },
-          organization: { id: organizationId, name: "Acme", slug: "acme" },
-        }
-      }
-
-    return {
-      authState,
-      conversationId: "01K1EDN69NFBWCG42B2H99V2C4",
-      findDetail: vi.fn(),
-      guards: {
-        requireUser,
-        requireMembership,
-        requireOrganization: () => [requireUser, requireMembership()],
+    request.auth = {
+      user: {
+        id: "user-id",
+        name: "Operator",
+        email: "operator@test.dev",
       },
-      list: vi.fn(),
-      organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
+      member: null,
+      organization: null,
     }
-  })
+  }
+  const requireMembership =
+    () => async (request: { auth: RequestAuth | null }) => {
+      const user = request.auth?.user
+      if (!user) return
+
+      request.auth = {
+        user,
+        member: { id: "member-id", role: "operator" },
+        organization: { id: organizationId, name: "Acme", slug: "acme" },
+      }
+    }
+
+  return {
+    authState,
+    conversationId: "01K1EDN69NFBWCG42B2H99V2C4",
+    findDetail: vi.fn(),
+    findMessageMedia: vi.fn(),
+    guards: {
+      requireUser,
+      requireMembership,
+      requireOrganization: () => [requireUser, requireMembership()],
+    },
+    list: vi.fn(),
+    messageId: "01K1EDN69NFBWCG42B2H99V2C5",
+    organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
+    presignGet: vi.fn(),
+  }
+})
 
 vi.mock("../repositories/support-inbox-repository", () => ({
-  supportInboxRepository: { findDetail, list },
+  supportInboxRepository: { findDetail, findMessageMedia, list },
+}))
+vi.mock("../../../lib/object-store", () => ({
+  objectStore: { presignGet },
 }))
 vi.mock("../../../config/env", () => ({
   env: { WEB_APP_URL: "http://localhost:3000" },
@@ -75,6 +94,8 @@ vi.mock("../../../plugins/auth", async (importOriginal) => ({
 async function createTestApp(options?: { unauthenticated?: boolean }) {
   authState.unauthenticated = options?.unauthenticated ?? false
   const app = Fastify()
+  app.setValidatorCompiler(validatorCompiler)
+  app.setSerializerCompiler(serializerCompiler)
   await app.register(websocket)
   app.decorateRequest("auth", null)
   registerSupportInboxRoutes(app)
@@ -113,6 +134,7 @@ describe("Support Inbox routes", () => {
             preview: "I need help",
             senderType: "contact",
             contentType: "text",
+            transcriptStatus: null,
           },
         },
       ],
@@ -188,6 +210,53 @@ describe("Support Inbox routes", () => {
 
     expect(response.statusCode).toBe(404)
     expect(findDetail).toHaveBeenCalledWith({ organizationId, conversationId })
+    await app.close()
+  })
+
+  it("returns a signed media URL for stored audio inside the tenant", async () => {
+    const objectKey = "organizations/acme/inbound/audio.ogg"
+    findMessageMedia.mockResolvedValue({
+      objectKey,
+      mimeType: "audio/ogg",
+      durationMs: 4200,
+    })
+    presignGet.mockResolvedValue({
+      url: "https://storage.example/audio.ogg?signature=abc",
+      expiresAt: new Date("2026-08-02T12:05:00.000Z"),
+    })
+    const app = await createTestApp()
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/support-conversations/${conversationId}/messages/${messageId}/media`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(findMessageMedia).toHaveBeenCalledWith({
+      organizationId,
+      conversationId,
+      messageId,
+    })
+    expect(presignGet).toHaveBeenCalledWith({ key: objectKey, expiresIn: 300 })
+    expect(response.json()).toEqual({
+      url: "https://storage.example/audio.ogg?signature=abc",
+      expiresAt: "2026-08-02T12:05:00.000Z",
+      mimeType: "audio/ogg",
+      durationMs: 4200,
+    })
+    await app.close()
+  })
+
+  it("returns 404 when media is pending or belongs to another tenant", async () => {
+    findMessageMedia.mockResolvedValue(null)
+    const app = await createTestApp()
+    const response = await app.inject({
+      method: "GET",
+      url: `/v1/support-conversations/${conversationId}/messages/${messageId}/media`,
+    })
+
+    expect(response.statusCode).toBe(404)
+    expect(response.json()).toEqual({ error: "message_media_not_found" })
+    expect(presignGet).not.toHaveBeenCalled()
     await app.close()
   })
 

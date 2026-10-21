@@ -19,6 +19,10 @@ const gatewayEnvSchema = serverEnvSchema.extend({
   WA_COMPOSE_MS_PER_CHAR: z.coerce.number().int().min(0).default(30),
   WA_COMPOSE_MIN_MS: z.coerce.number().int().min(0).default(1_000),
   WA_COMPOSE_MAX_MS: z.coerce.number().int().min(0).default(6_000),
+  R2_ENDPOINT: z.url(),
+  R2_BUCKET_NAME: z.string().min(1),
+  R2_ACCESS_KEY_ID: z.string().min(1),
+  R2_SECRET_ACCESS_KEY: z.string().min(1),
   POD_NAME: z.string().min(1).optional(),
 })
 

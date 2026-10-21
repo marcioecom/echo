@@ -1,5 +1,10 @@
+import type { SessionLease } from "../ownership/lease"
+import type { SessionDirectory } from "../repositories/session-directory"
+import type { ConnectionRef } from "../types"
+
 import { waIngressJobNames } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
+import { createR2ObjectStore } from "@workspace/object-storage"
 
 import { env } from "@/config/env"
 import { jobs } from "@/lib/jobs"
@@ -7,26 +12,33 @@ import { redisConnection } from "@/lib/redis"
 
 import { openBaileysSocket } from "../adapters/baileys-socket"
 import { credentialsCipher } from "../adapters/credentials-cipher"
+import { createInboundMediaStore } from "../adapters/media-store"
 import { useEchoAuthState } from "../auth-state"
-import type { SessionLease } from "../ownership/lease"
-import { humanSendDelayMs } from "../traffic/pacing"
 import {
   publishChannelQr,
   publishChannelStatus,
   publishPairingCode,
 } from "../events/publish-channel-event"
+import { recallRecentMessage, rememberRecentMessage } from "../recent-messages"
 import { PostgresAuthKeysRepository } from "../repositories/postgres-auth-keys-repository"
-import type { SessionDirectory } from "../repositories/session-directory"
+import { BaileysSession } from "../session"
+import { humanSendDelayMs } from "../traffic/pacing"
 import {
   acquireSendSlot,
   claimInboundMessage,
   hasSeenInboundMessage,
 } from "../traffic/rate-limit"
-import { recallRecentMessage, rememberRecentMessage } from "../recent-messages"
-import { BaileysSession } from "../session"
-import type { ConnectionRef } from "../types"
 
 const logger = createLoggerWithContext("wa-gateway:session")
+
+const storeMedia = createInboundMediaStore({
+  store: createR2ObjectStore({
+    endpoint: env.R2_ENDPOINT,
+    bucket: env.R2_BUCKET_NAME,
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+  }),
+})
 
 export async function openSession(
   connection: ConnectionRef,
@@ -116,6 +128,6 @@ export async function openSession(
     enqueueStatus: async (update) => {
       await jobs.enqueue(waIngressJobNames.status, update)
     },
+    storeMedia,
   })
 }
-

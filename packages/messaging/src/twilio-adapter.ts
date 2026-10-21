@@ -3,14 +3,19 @@ import type {
   ConnectionContext,
   ConnectionHealth,
   DeliveryStatus,
+  MediaRef,
   OutboundContent,
   SendResult,
   StatusUpdate,
 } from "./channel-adapter"
+import type {
+  ITwilioChannelProvider,
+  TwilioMediaStream,
+} from "./twilio-channel-provider"
+
 import {
   isPermanentTwilioSendError,
   TwilioChannelProvider,
-  type ITwilioChannelProvider,
 } from "./twilio-channel-provider"
 
 const twilioDeliveryStatuses = {
@@ -24,7 +29,29 @@ const twilioDeliveryStatuses = {
 
 export type TwilioDeliveryMessageStatus = keyof typeof twilioDeliveryStatuses
 
-type WhatsAppTextSender = Pick<ITwilioChannelProvider, "sendWhatsAppTextMessage">
+type WhatsAppTextSender = Pick<
+  ITwilioChannelProvider,
+  "sendWhatsAppTextMessage"
+> &
+  Partial<Pick<ITwilioChannelProvider, "fetchMedia">>
+
+export type TwilioMediaRequestErrorReason =
+  | "missing_url"
+  | "missing_account"
+  | "missing_credentials"
+  | "provider_unavailable"
+
+export class TwilioMediaRequestError extends Error {
+  readonly retryable = false
+
+  constructor(
+    readonly reason: TwilioMediaRequestErrorReason,
+    options?: ErrorOptions
+  ) {
+    super("Twilio media request is missing required context", options)
+    this.name = "TwilioMediaRequestError"
+  }
+}
 
 export function twilioStatusCallbackUrl(publicApiUrl: string): string {
   return new URL("/webhooks/twilio/whatsapp/status", publicApiUrl).toString()
@@ -90,6 +117,22 @@ export class TwilioAdapter implements ChannelAdapter {
       return { state: "disconnected", reason: "missing_credentials" }
     }
     return { state: "connected" }
+  }
+
+  async fetchMedia(
+    ctx: ConnectionContext,
+    ref: MediaRef
+  ): Promise<TwilioMediaStream> {
+    if (!ref.url) throw new TwilioMediaRequestError("missing_url")
+    if (!ctx.externalAccountId)
+      throw new TwilioMediaRequestError("missing_account")
+    if (!ctx.authToken) throw new TwilioMediaRequestError("missing_credentials")
+
+    const sender = this.createSender(ctx.externalAccountId, ctx.authToken)
+    if (!sender.fetchMedia)
+      throw new TwilioMediaRequestError("provider_unavailable")
+
+    return sender.fetchMedia(ref.url)
   }
 }
 

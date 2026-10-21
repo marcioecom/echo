@@ -1,14 +1,16 @@
+import type { ConnectionContext } from "./channel-adapter"
+
 import { describe, expect, it, vi } from "vitest"
 
 import { createChannelAdapterRegistry } from "./channel-adapters"
-import type { ConnectionContext } from "./channel-adapter"
 import {
   statusUpdateFromTwilio,
   TwilioAdapter,
   twilioStatusCallbackUrl,
 } from "./twilio-adapter"
 
-const statusCallbackUrl = "https://api.example.test/webhooks/twilio/whatsapp/status"
+const statusCallbackUrl =
+  "https://api.example.test/webhooks/twilio/whatsapp/status"
 const context: ConnectionContext = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
   channelConnectionId: "01K1EDN9C8VT0N8WRM13RM6M55",
@@ -31,7 +33,10 @@ describe("TwilioAdapter", () => {
       ok: true,
       externalMessageId: "SM11111111111111111111111111111111",
     })
-    expect(createSender).toHaveBeenCalledWith(context.externalAccountId, "secret")
+    expect(createSender).toHaveBeenCalledWith(
+      context.externalAccountId,
+      "secret"
+    )
     expect(sendWhatsAppTextMessage).toHaveBeenCalledWith({
       from: context.fromAddress,
       to: "+5511888888888",
@@ -93,11 +98,10 @@ describe("TwilioAdapter", () => {
       code: "unsupported_content",
     })
     await expect(
-      adapter.send(
-        { ...context, externalAccountId: null },
-        "+5511888888888",
-        { type: "text", body: "Hello" }
-      )
+      adapter.send({ ...context, externalAccountId: null }, "+5511888888888", {
+        type: "text",
+        body: "Hello",
+      })
     ).resolves.toEqual({
       ok: false,
       retryable: false,
@@ -106,12 +110,71 @@ describe("TwilioAdapter", () => {
     expect(sendWhatsAppTextMessage).not.toHaveBeenCalled()
   })
 
+  it("fetches media through the Twilio provider with the connection credentials", async () => {
+    const stream = new ReadableStream()
+    const fetchMedia = vi.fn().mockResolvedValue({ stream, mime: "audio/ogg" })
+    const createSender = vi.fn(() => ({
+      sendWhatsAppTextMessage: vi.fn(),
+      fetchMedia,
+    }))
+    const adapter = new TwilioAdapter(statusCallbackUrl, createSender)
+
+    await expect(
+      adapter.fetchMedia(context, {
+        externalMessageId: "SM11111111111111111111111111111111",
+        url: "https://api.twilio.com/media/ME1",
+      })
+    ).resolves.toEqual({ stream, mime: "audio/ogg" })
+    expect(createSender).toHaveBeenCalledWith(
+      context.externalAccountId,
+      "secret"
+    )
+    expect(fetchMedia).toHaveBeenCalledWith("https://api.twilio.com/media/ME1")
+  })
+
+  it("throws a terminal request error when media context is incomplete", async () => {
+    const adapter = new TwilioAdapter(statusCallbackUrl, () => ({
+      sendWhatsAppTextMessage: vi.fn(),
+    }))
+
+    await expect(
+      adapter.fetchMedia(context, { externalMessageId: "SM1" })
+    ).rejects.toMatchObject({ reason: "missing_url", retryable: false })
+    await expect(
+      adapter.fetchMedia(
+        { ...context, externalAccountId: null },
+        { externalMessageId: "SM1", url: "https://api.twilio.com/media/ME1" }
+      )
+    ).rejects.toMatchObject({ reason: "missing_account" })
+    await expect(
+      adapter.fetchMedia(
+        { ...context, authToken: "" },
+        { externalMessageId: "SM1", url: "https://api.twilio.com/media/ME1" }
+      )
+    ).rejects.toMatchObject({ reason: "missing_credentials" })
+  })
+
+  it("throws a terminal request error when the provider cannot fetch media", async () => {
+    const adapter = new TwilioAdapter(statusCallbackUrl, () => ({
+      sendWhatsAppTextMessage: vi.fn(),
+    }))
+
+    await expect(
+      adapter.fetchMedia(context, {
+        externalMessageId: "SM1",
+        url: "https://api.twilio.com/media/ME1",
+      })
+    ).rejects.toMatchObject({ reason: "provider_unavailable" })
+  })
+
   it("reports webhook connections as connected when credentials are present", async () => {
     const adapter = new TwilioAdapter(statusCallbackUrl, () => ({
       sendWhatsAppTextMessage: vi.fn(),
     }))
 
-    await expect(adapter.health(context)).resolves.toEqual({ state: "connected" })
+    await expect(adapter.health(context)).resolves.toEqual({
+      state: "connected",
+    })
     await expect(
       adapter.health({ ...context, authToken: "" })
     ).resolves.toEqual({

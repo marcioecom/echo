@@ -3,7 +3,9 @@ import type {
   ChannelType,
   MessageContentType,
   MessageDirection,
+  MessageMediaDownloadStatus,
   MessageStatus,
+  MessageTranscriptionStatus,
   SupportConversationHandoffReason,
   SupportConversationStatus,
 } from "@workspace/domain"
@@ -26,6 +28,7 @@ export interface SupportInboxConversation {
     preview: string
     senderType: ActorType
     contentType: MessageContentType
+    transcriptStatus: MessageTranscriptionStatus | null
   } | null
 }
 
@@ -63,5 +66,13 @@ export interface SupportInboxConversationDetail {
     status: MessageStatus
     occurredAt: Date
     operatorName: string | null
+    media: SupportInboxMessageMedia | null
   }>
+}
+
+export interface SupportInboxMessageMedia {
+  mimeType: string
+  durationMs: number | null
+  downloadStatus: MessageMediaDownloadStatus
+  transcriptStatus: MessageTranscriptionStatus
 }

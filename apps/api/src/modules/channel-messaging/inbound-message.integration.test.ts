@@ -9,6 +9,7 @@ import {
   channelConnections,
   channelIdentities,
   contacts,
+  messageMedia,
   messages,
   organizations,
   supportConversations,
@@ -298,6 +299,65 @@ describe("inbound Message persistence", () => {
         )
       )
     expect(audit?.data).toEqual({ mediaKind: "audio" })
+  })
+
+  it("persists inbound audio media and enqueues the media download", async () => {
+    const tenant = await createTenant("inbound-audio", "+5511000000188")
+    const receivedAt = new Date("2026-07-30T12:00:00.000Z")
+    const providerMediaUrl =
+      "https://api.twilio.com/2010-04-01/Accounts/AC11111111111111111111111111111111/Messages/SMBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB/Media/ME11111111111111111111111111111111"
+    const input: NormalizedInboundMessage = {
+      ...inbound(tenant, "SMBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", receivedAt),
+      content: {
+        type: "audio",
+        media: {
+          mimeType: "audio/ogg; codecs=opus",
+          ref: { url: providerMediaUrl },
+        },
+      },
+    }
+    enqueue.mockReset()
+    enqueue.mockResolvedValue({ id: "fetch-inbound-media--test" })
+
+    const first = await ingestInboundMessage(input)
+    const duplicate = await ingestInboundMessage(input)
+
+    if (!first.ok) throw new Error("expected audio ingest to succeed")
+    if (!duplicate.ok) throw new Error("expected duplicate ingest to succeed")
+
+    expect(duplicate.value.messageId).toBe(first.value.messageId)
+    expect(duplicate.value.duplicate).toBe(true)
+    expect(enqueue).toHaveBeenCalledWith("fetch-inbound-media", {
+      organizationId: tenant.organizationId,
+      channelConnectionId: tenant.channelConnectionId,
+      supportConversationId: first.value.supportConversationId,
+      messageId: first.value.messageId,
+    })
+
+    const [message] = await database.db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, first.value.messageId))
+    expect(message).toMatchObject({
+      contentType: "audio",
+      body: null,
+      status: "received",
+      direction: "inbound",
+    })
+
+    const mediaRows = await database.db
+      .select()
+      .from(messageMedia)
+      .where(eq(messageMedia.messageId, first.value.messageId))
+    expect(mediaRows).toHaveLength(1)
+    expect(mediaRows[0]).toMatchObject({
+      organizationId: tenant.organizationId,
+      kind: "audio",
+      mimeType: "audio/ogg",
+      downloadStatus: "pending",
+      transcriptStatus: "pending",
+      providerRef: { url: providerMediaUrl },
+    })
   })
 
   it("commits before enqueue failure and repairs publication on Twilio retry", async () => {

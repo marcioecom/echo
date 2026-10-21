@@ -15,6 +15,11 @@ export interface SentWhatsAppMessage {
   externalMessageId: string
 }
 
+export interface TwilioMediaStream {
+  stream: ReadableStream
+  mime: string
+}
+
 export interface ITwilioChannelProvider {
   verifyWhatsAppSender: (input: {
     address: string
@@ -23,6 +28,26 @@ export interface ITwilioChannelProvider {
   sendWhatsAppTextMessage: (
     input: SendWhatsAppTextMessageInput
   ) => Promise<SentWhatsAppMessage>
+  fetchMedia: (url: string) => Promise<TwilioMediaStream>
+}
+
+export type TwilioMediaErrorReason =
+  | "media_request_failed"
+  | "media_unauthorized"
+  | "media_expired"
+  | "media_unsupported"
+  | "media_too_large"
+
+export class TwilioMediaError extends Error {
+  constructor(
+    readonly reason: TwilioMediaErrorReason,
+    readonly retryable: boolean,
+    readonly status?: number,
+    options?: ErrorOptions
+  ) {
+    super("Twilio media could not be fetched", options)
+    this.name = "TwilioMediaError"
+  }
 }
 
 interface SenderRecord {
@@ -39,20 +64,13 @@ interface AccountRecord {
 export const TWILIO_WHATSAPP_SANDBOX_ADDRESS = "+14155238886"
 
 export const TWILIO_PERMANENT_SEND_ERROR_CODES = new Set([
-  21211,
-  21610,
-  21612,
-  63003,
-  63007,
-  63016,
+  21211, 21610, 21612, 63003, 63007, 63016,
 ])
 
 export function isPermanentTwilioSendError(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false
   const code = (error as { code?: unknown }).code
-  return (
-    typeof code === "number" && TWILIO_PERMANENT_SEND_ERROR_CODES.has(code)
-  )
+  return typeof code === "number" && TWILIO_PERMANENT_SEND_ERROR_CODES.has(code)
 }
 
 export class TwilioConfigurationError extends Error {
@@ -72,9 +90,19 @@ export class TwilioConfigurationError extends Error {
 
 export class TwilioChannelProvider implements ITwilioChannelProvider {
   private readonly twilioClient: Twilio
+  private readonly accountSid: string
+  private readonly authToken: string
+  private readonly fetchImpl: typeof fetch
 
-  constructor(accountSid: string, authToken: string) {
+  constructor(
+    accountSid: string,
+    authToken: string,
+    fetchImpl: typeof fetch = fetch
+  ) {
     this.twilioClient = twilio(accountSid, authToken)
+    this.accountSid = accountSid
+    this.authToken = authToken
+    this.fetchImpl = fetchImpl
   }
 
   async listSenders() {
@@ -146,4 +174,53 @@ export class TwilioChannelProvider implements ITwilioChannelProvider {
 
     return { externalMessageId: message.sid }
   }
+
+  async fetchMedia(url: string): Promise<TwilioMediaStream> {
+    const authorization = Buffer.from(
+      `${this.accountSid}:${this.authToken}`
+    ).toString("base64")
+
+    let response: Response
+    try {
+      response = await this.fetchImpl(url, {
+        headers: { Authorization: `Basic ${authorization}` },
+      })
+    } catch (error) {
+      throw new TwilioMediaError("media_request_failed", true, undefined, {
+        cause: error,
+      })
+    }
+
+    if (!response.ok) {
+      throw twilioMediaResponseError(response.status)
+    }
+    if (!response.body) {
+      throw new TwilioMediaError("media_request_failed", true)
+    }
+
+    const mime =
+      response.headers.get("content-type")?.split(";")[0]?.trim() ||
+      "application/octet-stream"
+
+    return { stream: response.body, mime }
+  }
+}
+
+function twilioMediaResponseError(status: number): TwilioMediaError {
+  if (status === 401 || status === 403) {
+    return new TwilioMediaError("media_unauthorized", false, status)
+  }
+  if (status === 404 || status === 410) {
+    return new TwilioMediaError("media_expired", false, status)
+  }
+  if (status === 413) {
+    return new TwilioMediaError("media_too_large", false, status)
+  }
+  if (status === 415) {
+    return new TwilioMediaError("media_unsupported", false, status)
+  }
+  if (status === 429 || status >= 500) {
+    return new TwilioMediaError("media_request_failed", true, status)
+  }
+  return new TwilioMediaError("media_request_failed", false, status)
 }

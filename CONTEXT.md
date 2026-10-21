@@ -78,6 +78,9 @@ _Avoid_: Session token, transport ID, account
 An inbound or outbound communication within a Support Conversation, attributed to a Contact, AI, operator, or the system.
 _Avoid_: Audit event, job, provider callback
 
+**Transcript**:
+The normalized text of a Contact's audio Message, stored as that Message's text body. A Transcript is what the Support Inbox and AI read; the original audio remains an attachment.
+
 **Audit Event**:
 An immutable record of an operationally important action or state change, such as escalation, retry, failure, or resolution. It is not customer-facing communication.
 _Avoid_: Message, mutable log entry

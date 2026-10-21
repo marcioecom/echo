@@ -1,4 +1,5 @@
 import type { RawInboundMessage } from "./adapters/inbound-filter"
+import type { WaMediaDownloadResult } from "@workspace/jobs"
 
 export interface ConnectionRef {
   organizationId: string
@@ -10,6 +11,13 @@ export interface SessionLogger {
   warn: (message: string, data?: Record<string, unknown>) => void
   error: (message: string, data?: Record<string, unknown>) => void
 }
+
+export interface DownloadedMedia {
+  bytes: Uint8Array
+  mimeType: string
+}
+
+export type MediaDownloadResult = WaMediaDownloadResult
 
 export interface SessionSocket {
   ev: {
@@ -25,6 +33,10 @@ export interface SessionSocket {
     jid?: string
   ) => Promise<void>
   requestPairingCode: (phoneNumber: string) => Promise<string>
+  downloadMedia: (input: {
+    externalMessageId: string
+    senderAddress: string
+  }) => Promise<DownloadedMedia>
   logout: () => Promise<void>
   end: (error: Error | undefined) => Promise<void>
 }

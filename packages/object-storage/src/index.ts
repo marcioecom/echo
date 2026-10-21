@@ -34,6 +34,15 @@ export interface R2ObjectStore {
     contentType: string
     expiresIn: number
   }): Promise<{ url: string; headers: { "Content-Type": string } }>
+  presignGet(input: {
+    key: string
+    expiresIn: number
+  }): Promise<{ url: string; expiresAt: Date }>
+  put(input: {
+    key: string
+    body: Uint8Array
+    contentType: string
+  }): Promise<void>
   head(key: string): Promise<ObjectHead>
   copy(input: { sourceKey: string; destinationKey: string }): Promise<void>
   delete(key: string): Promise<void>
@@ -65,6 +74,24 @@ export function createR2ObjectStore(
         { expiresIn: input.expiresIn }
       )
       return { url, headers: { "Content-Type": input.contentType } }
+    },
+    async presignGet(input) {
+      const url = await getSignedUrl(
+        client,
+        new GetObjectCommand({ Bucket: config.bucket, Key: input.key }),
+        { expiresIn: input.expiresIn }
+      )
+      return { url, expiresAt: new Date(Date.now() + input.expiresIn * 1000) }
+    },
+    async put(input) {
+      await client.send(
+        new PutObjectCommand({
+          Bucket: config.bucket,
+          Key: input.key,
+          ContentType: input.contentType,
+          Body: input.body,
+        })
+      )
     },
     async head(key) {
       const result = await client.send(

@@ -1,3 +1,10 @@
+import type { InboundMessageContent } from "@workspace/domain"
+
+import {
+  isSupportedInboundAudioMimeType,
+  normalizeAudioMimeType,
+} from "@workspace/domain"
+
 export type InboundMediaKind =
   | "image"
   | "audio"
@@ -25,9 +32,7 @@ export type FilteredInbound =
       externalMessageId: string
       senderAddress: string
       senderDisplayName?: string
-      content:
-        | { type: "text"; body: string }
-        | { type: "unsupported"; mediaKind: InboundMediaKind }
+      content: InboundMessageContent
     }
 
 export function filterInboundUpsert(input: {
@@ -58,7 +63,7 @@ function filterMessage(message: RawInboundMessage): FilteredInbound {
     phoneFromJid(key.remoteJid) ?? phoneFromJid(key.remoteJidAlt)
   if (!senderAddress) return { action: "ignore" }
 
-  const content = contentFromMessage(message.message)
+  const content = contentFromMessage(message.message, key.id)
   if (!content) return { action: "ignore" }
 
   const senderDisplayName = message.pushName?.trim()
@@ -82,11 +87,9 @@ function isIgnoredChat(jid: string | null | undefined): boolean {
 }
 
 function contentFromMessage(
-  message: unknown
-):
-  | { type: "text"; body: string }
-  | { type: "unsupported"; mediaKind: InboundMediaKind }
-  | null {
+  message: unknown,
+  externalMessageId: string
+): InboundMessageContent | null {
   if (!message || typeof message !== "object") return null
   const record = message as Record<string, unknown>
   const text = textBody(record)
@@ -94,10 +97,76 @@ function contentFromMessage(
   if (record.imageMessage || record.stickerMessage) {
     return { type: "unsupported", mediaKind: "image" }
   }
-  if (record.audioMessage) return { type: "unsupported", mediaKind: "audio" }
+  if (record.audioMessage) {
+    return audioContent(record.audioMessage, externalMessageId)
+  }
   if (record.videoMessage) return { type: "unsupported", mediaKind: "video" }
   if (record.documentMessage) {
     return { type: "unsupported", mediaKind: "document" }
+  }
+  return null
+}
+
+function audioContent(
+  audioMessage: unknown,
+  externalMessageId: string
+): InboundMessageContent {
+  if (!audioMessage || typeof audioMessage !== "object") {
+    return { type: "unsupported", mediaKind: "audio" }
+  }
+  const record = audioMessage as Record<string, unknown>
+  const rawMimeType =
+    typeof record.mimetype === "string" ? record.mimetype.trim() : ""
+  if (!rawMimeType || !isSupportedInboundAudioMimeType(rawMimeType)) {
+    return { type: "unsupported", mediaKind: "audio" }
+  }
+  const mimeType = normalizeAudioMimeType(rawMimeType)
+  const seconds = positiveNumber(record.seconds)
+  const sizeBytes = positiveSafeInteger(record.fileLength)
+  const durationMs =
+    seconds === null ? null : Math.max(1, Math.round(seconds * 1000))
+  return {
+    type: "audio",
+    media: {
+      mimeType,
+      ...(sizeBytes === null ? {} : { sizeBytes }),
+      ...(durationMs === null ? {} : { durationMs }),
+      ref: { externalMessageId },
+    },
+  }
+}
+
+function positiveNumber(value: unknown): number | null {
+  const numeric = numericValue(value)
+  if (numeric === null) return null
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null
+}
+
+function positiveSafeInteger(value: unknown): number | null {
+  const numeric = numericValue(value)
+  if (numeric === null) return null
+  return Number.isSafeInteger(numeric) && numeric > 0 ? numeric : null
+}
+
+function numericValue(value: unknown): number | null {
+  if (typeof value === "number") return value
+  if (typeof value === "string" && value.trim()) return Number(value)
+  if (value && typeof value === "object") {
+    const convertible = value as {
+      toNumber?: unknown
+      low?: unknown
+      high?: unknown
+    }
+    if (typeof convertible.toNumber === "function") {
+      const converted = (convertible.toNumber as () => unknown)()
+      return numericValue(converted)
+    }
+    if (typeof convertible.low === "number") {
+      const high = typeof convertible.high === "number" ? convertible.high : 0
+      return high === 0
+        ? convertible.low
+        : high * 2 ** 32 + (convertible.low >>> 0)
+    }
   }
   return null
 }

@@ -1,10 +1,15 @@
 import type { Result } from "@/common/result"
 import type {
+  InboundMessageContent,
   NormalizedInboundMessage,
   UnsupportedMediaKind,
 } from "@workspace/domain"
 
-import { normalizedInboundMessageSchema } from "@workspace/domain"
+import {
+  isSupportedInboundAudioMimeType,
+  normalizeAudioMimeType,
+  normalizedInboundMessageSchema,
+} from "@workspace/domain"
 import twilio from "twilio"
 import { z } from "zod"
 
@@ -16,6 +21,10 @@ export const twilioWebhookRequestSchema = z.object({
   signature: z.string().min(1),
   form: z.record(z.string(), z.string()),
 })
+
+// Twilio uses SM for SMS and MM for media messages (for example inbound
+// WhatsApp voice notes), so both prefixes are valid inbound/status SIDs.
+const twilioMessageSidSchema = z.string().regex(/^(SM|MM)[a-fA-F0-9]{32}$/)
 
 const twilioWebhookRoutingSchema = z.object({
   AccountSid: twilioAccountSidSchema,
@@ -29,7 +38,7 @@ const twilioStatusWebhookRoutingSchema = z.object({
 
 export const twilioStatusWebhookSchema = z
   .object({
-    MessageSid: z.string().regex(/^SM[a-fA-F0-9]{32}$/),
+    MessageSid: twilioMessageSidSchema,
     MessageStatus: z.enum([
       "queued",
       "sent",
@@ -45,7 +54,7 @@ export const twilioStatusWebhookSchema = z
 
 const twilioInboundMessageSchema = z
   .object({
-    MessageSid: z.string().regex(/^SM[a-fA-F0-9]{32}$/),
+    MessageSid: twilioMessageSidSchema,
     AccountSid: twilioAccountSidSchema,
     From: whatsAppAddressSchema,
     To: whatsAppAddressSchema,
@@ -108,6 +117,9 @@ export function normalizeTwilioInboundMessage(input: {
 
   if (!body && parsed.NumMedia === 0) return err("malformed_event")
 
+  const content = normalizeContent(input.form, parsed.NumMedia, body)
+  if (!content) return err("malformed_event")
+
   const normalized = normalizedInboundMessageSchema.safeParse({
     organizationId: input.organizationId,
     channelConnectionId: input.channelConnectionId,
@@ -115,17 +127,42 @@ export function normalizeTwilioInboundMessage(input: {
     senderAddress: parsed.From,
     ...(senderDisplayName ? { senderDisplayName } : {}),
     externalMessageId: parsed.MessageSid,
-    content:
-      parsed.NumMedia > 0
-        ? {
-            type: "unsupported",
-            mediaKind: classifyMediaKind(input.form, parsed.NumMedia),
-          }
-        : { type: "text", body },
+    content,
     receivedAt: input.receivedAt,
   })
 
   return normalized.success ? ok(normalized.data) : err("malformed_event")
+}
+
+function normalizeContent(
+  form: Record<string, string>,
+  mediaCount: number,
+  body: string
+): InboundMessageContent | null {
+  if (mediaCount === 0) return { type: "text", body }
+
+  const audioMimeType =
+    mediaCount === 1 && body === "" && form.MediaContentType0
+      ? normalizeAudioMimeType(form.MediaContentType0)
+      : null
+
+  if (
+    audioMimeType?.startsWith("audio/") &&
+    isSupportedInboundAudioMimeType(audioMimeType)
+  ) {
+    const mediaUrl = z.url().safeParse(form.MediaUrl0)
+    if (!mediaUrl.success) return null
+
+    return {
+      type: "audio",
+      media: { mimeType: audioMimeType, ref: { url: mediaUrl.data } },
+    }
+  }
+
+  return {
+    type: "unsupported",
+    mediaKind: classifyMediaKind(form, mediaCount),
+  }
 }
 
 function classifyMediaKind(

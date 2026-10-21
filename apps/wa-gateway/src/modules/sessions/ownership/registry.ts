@@ -1,16 +1,16 @@
-import { waConnectionQueueName } from "@workspace/jobs"
-import type { SendResult } from "@workspace/messaging"
-import { Worker } from "bullmq"
-import type { Redis } from "ioredis"
-
-import { createLoggerWithContext } from "@workspace/logger"
-
-import { SessionUnavailableError } from "../errors"
-import { SessionLease } from "./lease"
 import type { SessionDirectory } from "../repositories/session-directory"
 import type { BaileysSession } from "../session"
-import type { ConnectionRef } from "../types"
+import type { ConnectionRef, MediaDownloadResult } from "../types"
+import type { SendResult } from "@workspace/messaging"
+import type { Redis } from "ioredis"
+
+import { waConnectionQueueName } from "@workspace/jobs"
+import { createLoggerWithContext } from "@workspace/logger"
+import { Worker } from "bullmq"
+
+import { SessionUnavailableError } from "../errors"
 import { handleWaConnectionJob } from "../use-cases/handle-connection-job"
+import { SessionLease } from "./lease"
 
 const logger = createLoggerWithContext("wa-gateway:registry")
 const reconcileMs = 5_000
@@ -105,6 +105,34 @@ export class SessionRegistry {
     return entry.session.sendText(input)
   }
 
+  async downloadMedia(
+    input: ConnectionRef & {
+      externalMessageId: string
+      senderAddress: string
+    }
+  ): Promise<MediaDownloadResult> {
+    const entry = this.entryFor(input)
+    if (!entry) {
+      logger.warn("Media download skipped; session not registered", {
+        organizationId: input.organizationId,
+        channelConnectionId: input.channelConnectionId,
+        externalMessageId: input.externalMessageId,
+        outcome: "session_unavailable",
+      })
+      return { ok: false, retryable: true, code: "session_unavailable" }
+    }
+    if (!(await this.ensureOwner(entry))) {
+      logger.warn("Media download skipped; ownership lost", {
+        organizationId: input.organizationId,
+        channelConnectionId: input.channelConnectionId,
+        externalMessageId: input.externalMessageId,
+        outcome: "session_unavailable",
+      })
+      return { ok: false, retryable: true, code: "session_unavailable" }
+    }
+    return entry.session.downloadMedia(input)
+  }
+
   async logout(connection: ConnectionRef): Promise<void> {
     const entry = this.entryFor(connection)
     if (!entry) return
@@ -188,7 +216,9 @@ export class SessionRegistry {
           } catch (stopError) {
             logger.warn("session stop after task failure failed", {
               error:
-                stopError instanceof Error ? stopError.message : String(stopError),
+                stopError instanceof Error
+                  ? stopError.message
+                  : String(stopError),
               channelConnectionId: id,
             })
           }
@@ -248,7 +278,9 @@ export class SessionRegistry {
           continue
         }
         if (!(await this.ensureOwner(entry))) {
-          await this.evict(connection.channelConnectionId, { ownershipLost: true })
+          await this.evict(connection.channelConnectionId, {
+            ownershipLost: true,
+          })
         }
       } catch (error) {
         logger.error("reconcile connect failed", {
@@ -320,7 +352,6 @@ export class SessionRegistry {
         })
       }
     }
-
   }
   private async shutdownEntry(channelConnectionId: string): Promise<void> {
     const entry = this.entries.get(channelConnectionId)

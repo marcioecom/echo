@@ -1,13 +1,22 @@
+import type { EchoAuthState } from "../auth-state"
+import type { DownloadedMedia, SessionSocket } from "../types"
+import type { proto } from "@whiskeysockets/baileys"
+
 import makeWASocket, {
   Browsers,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  type proto,
 } from "@whiskeysockets/baileys"
 
-import type { EchoAuthState } from "../auth-state"
-import type { SessionSocket } from "../types"
 import { createBaileysLogger } from "./baileys-logger"
+
+export class MediaUnavailableError extends Error {
+  constructor(reason: "socket_unavailable" | "message_unavailable") {
+    super(reason)
+    this.name = "MediaUnavailableError"
+  }
+}
 
 export async function openBaileysSocket(input: {
   auth: EchoAuthState
@@ -15,7 +24,7 @@ export async function openBaileysSocket(input: {
 }): Promise<SessionSocket> {
   const fetched = await fetchLatestBaileysVersion().catch(() => null)
   const logger = createBaileysLogger()
-  return makeWASocket({
+  const sock = makeWASocket({
     auth: {
       creds: input.auth.state.creds,
       keys: makeCacheableSignalKeyStore(input.auth.state.keys, logger),
@@ -33,4 +42,32 @@ export async function openBaileysSocket(input: {
       return input.getMessage(key.id)
     },
   })
+
+  const downloadMedia = async (media: {
+    externalMessageId: string
+    senderAddress: string
+  }): Promise<DownloadedMedia> => {
+    if (!sock.user?.id) throw new MediaUnavailableError("socket_unavailable")
+    const message = await input.getMessage(media.externalMessageId)
+    if (!message) throw new MediaUnavailableError("message_unavailable")
+    const remoteJid = `${media.senderAddress.slice(1)}@s.whatsapp.net`
+    const buffer = await downloadMediaMessage(
+      {
+        key: { id: media.externalMessageId, remoteJid },
+        message,
+      },
+      "buffer",
+      {},
+      {
+        logger,
+        reuploadRequest: (target) => sock.updateMediaMessage(target),
+      }
+    )
+    return {
+      bytes: new Uint8Array(buffer),
+      mimeType: message.audioMessage?.mimetype ?? "",
+    }
+  }
+
+  return Object.assign(sock, { downloadMedia })
 }

@@ -7,11 +7,12 @@ import {
   channelConnections,
   channelIdentities,
   contacts,
+  messageMedia,
   messages,
   organizations,
   supportConversations,
 } from "@workspace/db/schema"
-import { createId } from "@workspace/domain"
+import { createId, normalizeAudioMimeType } from "@workspace/domain"
 import { and, eq, isNull, sql } from "drizzle-orm"
 
 import { database } from "@/lib/db"
@@ -182,6 +183,30 @@ export class InboundMessageRepository {
         externalMessageId: input.externalMessageId,
         occurredAt: input.receivedAt,
       })
+
+      if (input.content.type === "audio") {
+        const { media } = input.content
+        await transaction
+          .insert(messageMedia)
+          .values({
+            id: createId(),
+            organizationId: input.organizationId,
+            messageId,
+            kind: "audio",
+            mimeType: normalizeAudioMimeType(media.mimeType),
+            sizeBytes: media.sizeBytes,
+            durationMs: media.durationMs,
+            downloadStatus: "pending",
+            transcriptStatus: "pending",
+            providerRef: {
+              ...(media.ref.url ? { url: media.ref.url } : {}),
+              ...(media.ref.externalMessageId
+                ? { externalMessageId: media.ref.externalMessageId }
+                : {}),
+            },
+          })
+          .onConflictDoNothing()
+      }
 
       await transaction
         .update(supportConversations)

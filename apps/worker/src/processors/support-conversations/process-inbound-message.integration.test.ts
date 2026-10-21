@@ -1,3 +1,6 @@
+import type { ProcessInboundMessageJob } from "@workspace/jobs"
+import type { Job } from "bullmq"
+
 import { resolve } from "node:path"
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql"
@@ -13,8 +16,6 @@ import {
   supportConversations,
 } from "@workspace/db/schema"
 import { createId } from "@workspace/domain"
-import type { ProcessInboundMessageJob } from "@workspace/jobs"
-import type { Job } from "bullmq"
 import { and, count, eq, sql } from "drizzle-orm"
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 import {
@@ -26,6 +27,9 @@ import {
   it,
   vi,
 } from "vitest"
+
+import { supportConversationsQueue } from "../../queues/support-conversations"
+import { handleProcessInboundMessage } from "./process-inbound-message"
 
 const {
   databaseRef,
@@ -66,9 +70,6 @@ vi.mock("../../queues/support-conversations", () => ({
   supportConversationsQueue: { add: vi.fn() },
 }))
 
-import { supportConversationsQueue } from "../../queues/support-conversations"
-import { handleProcessInboundMessage } from "./process-inbound-message"
-
 const customerMessage =
   "Vou chamar alguém da equipe pra continuar com você, tá?"
 const operatorSummary =
@@ -97,7 +98,8 @@ describe("process inbound Message", () => {
 
   async function createState(
     slug: string,
-    contentType: "text" | "unsupported"
+    contentType: "text" | "audio" | "unsupported",
+    body?: string
   ) {
     const organizationId = createId()
     const contactId = createId()
@@ -157,7 +159,7 @@ describe("process inbound Message", () => {
       direction: "inbound",
       senderType: "contact",
       contentType,
-      body: contentType === "text" ? "Help" : null,
+      body: body ?? (contentType === "text" ? "Help" : null),
       status: "received",
       occurredAt: new Date(),
     })
@@ -232,6 +234,74 @@ describe("process inbound Message", () => {
     expect(draftUnsupportedHandoffCopy).toHaveBeenCalledWith(
       expect.objectContaining({ mediaKind: "unknown" })
     )
+    expect(supportConversationsQueue.add).toHaveBeenCalledTimes(1)
+  })
+
+  it("hands untranscribed audio to a human as transcription_failed", async () => {
+    draftUnsupportedHandoffCopy.mockResolvedValue({
+      customerMessage,
+      summary: "Cliente enviou um áudio que não foi transcrito. Tom neutro.",
+    })
+    const payload = await createState("worker-audio-failed", "audio")
+
+    await processInboundMessage(payload)
+    await processInboundMessage(payload)
+
+    const [conversation] = await database.db
+      .select()
+      .from(supportConversations)
+      .where(eq(supportConversations.id, payload.supportConversationId))
+    const outbound = await outboundMessages(payload.supportConversationId)
+    expect(conversation?.status).toBe("human_required")
+    expect(conversation?.handoffReason).toBe("transcription_failed")
+    expect(draftUnsupportedHandoffCopy).toHaveBeenCalledTimes(1)
+    expect(draftUnsupportedHandoffCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaKind: "audio" })
+    )
+    expect(outbound).toHaveLength(1)
+    expect(outbound[0]).toMatchObject({
+      senderType: "ai",
+      body: customerMessage,
+      replyToMessageId: payload.messageId,
+    })
+    expect(supportAgentGraph.invoke).not.toHaveBeenCalled()
+  })
+
+  it("answers transcribed audio through the agent flow", async () => {
+    supportAgentGraph.invoke.mockResolvedValue({
+      decision: {
+        action: "reply",
+        replyType: "answer",
+        body: "Claro, posso ajudar com isso.",
+      },
+    })
+    const payload = await createState(
+      "worker-audio-reply",
+      "audio",
+      "Preciso de ajuda com a minha conta"
+    )
+
+    await processInboundMessage(payload)
+
+    expect(supportAgentGraph.invoke).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: payload.organizationId,
+        query: "Preciso de ajuda com a minha conta",
+      }),
+      expect.objectContaining({ runName: "support-agent" })
+    )
+    const [conversation] = await database.db
+      .select()
+      .from(supportConversations)
+      .where(eq(supportConversations.id, payload.supportConversationId))
+    const outbound = await outboundMessages(payload.supportConversationId)
+    expect(conversation?.status).toBe("ai_active")
+    expect(outbound).toHaveLength(1)
+    expect(outbound[0]).toMatchObject({
+      senderType: "ai",
+      body: "Claro, posso ajudar com isso.",
+      replyToMessageId: payload.messageId,
+    })
     expect(supportConversationsQueue.add).toHaveBeenCalledTimes(1)
   })
 

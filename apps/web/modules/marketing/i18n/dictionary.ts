@@ -102,7 +102,7 @@ const en = {
       },
       {
         title: "Echo answers, and hands off",
-        body: "Straightforward written questions get a reply. When it is unsure, or the customer sends audio, a person on your team continues.",
+        body: "Straightforward questions get a reply. Voice notes are transcribed so they can be answered too. When Echo is unsure, a person on your team continues.",
       },
     ],
   },
@@ -111,7 +111,7 @@ const en = {
     titleEm: "actually",
     titleAfter: " does",
     description:
-      "Four things, on purpose. Audio, photos, and stickers go to a human. There is no scheduling, no broadcasts, and no third-party integrations.",
+      "Four things, on purpose. Voice notes are transcribed and can be answered from your knowledge. Photos, stickers, and anything unclear go to a person. There is no scheduling, no broadcasts, and no third-party integrations.",
     items: [
       {
         title: "Answers from your knowledge base",
@@ -207,7 +207,7 @@ const en = {
     included: [
       "Answers from your knowledge base",
       "Clarifying questions when Echo is unsure",
-      "Human handoff, including audio, photos, and stickers",
+      "Voice notes transcribed; photos, stickers, and unclear cases go to a person",
       "One web inbox for your team",
     ],
     joinPilot: "Start free for 30 days",
@@ -234,7 +234,7 @@ const en = {
       {
         question: "What happens with audio, photos, or stickers?",
         answer:
-          "They go to a human. Echo answers written text from your knowledge base. Media is a handoff, not something it tries to interpret.",
+          "Voice notes are transcribed, and Echo can answer them from your knowledge base. When the audio is unclear or Echo is not sure, the conversation goes to a person. Photos and stickers still go to a person — Echo does not try to interpret images.",
       },
       {
         question: "Can Echo book appointments or send campaigns?",
@@ -351,7 +351,7 @@ const ptBR: typeof en = {
       },
       {
         title: "O Echo responde e, se precisar, passa adiante",
-        body: "Pergunta simples por escrito recebe resposta. Se ficar na dúvida, ou se vier áudio, alguém do time continua.",
+        body: "Pergunta simples recebe resposta. Áudio é transcrito para também poder ser respondido. Se ficar na dúvida, alguém do time continua.",
       },
     ],
   },
@@ -360,7 +360,7 @@ const ptBR: typeof en = {
     titleEm: "de fato",
     titleAfter: " faz",
     description:
-      "Quatro coisas, de propósito. Áudio, foto e figurinha vão para uma pessoa. Sem agenda, sem disparo em massa, sem integração com outro sistema.",
+      "Quatro coisas, de propósito. Áudio é transcrito e pode ser respondido com a sua base. Foto, figurinha e o que ficar em dúvida vão para uma pessoa. Sem agenda, sem disparo em massa, sem integração com outro sistema.",
     items: [
       {
         title: "Responde com a sua base de conhecimento",
@@ -456,7 +456,7 @@ const ptBR: typeof en = {
     included: [
       "Respostas com a sua base de conhecimento",
       "Pergunta de esclarecimento quando o Echo não tem certeza",
-      "Handoff para uma pessoa, inclusive áudio, foto e figurinha",
+      "Áudio transcrito; foto, figurinha e o que ficar em dúvida vão para uma pessoa",
       "Uma inbox web para o time",
     ],
     joinPilot: "Começar 30 dias grátis",
@@ -483,7 +483,7 @@ const ptBR: typeof en = {
       {
         question: "E áudio, foto ou figurinha?",
         answer:
-          "Vai para uma pessoa. O Echo responde texto da sua base. Mídia não é coisa que ele tenta adivinhar.",
+          "Áudio é transcrito, e a Echo pode responder com a sua base. Quando o áudio não fica claro ou a Echo não tem certeza, a conversa vai para uma pessoa. Foto e figurinha continuam indo para uma pessoa — a Echo não tenta interpretar imagem.",
       },
       {
         question: "Dá para agendar horário ou disparar campanha?",

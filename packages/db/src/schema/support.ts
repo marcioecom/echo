@@ -7,7 +7,10 @@ import {
 	createId,
 	type MessageContentType,
 	type MessageDirection,
+	type MessageMediaDownloadStatus,
+	type MessageMediaKind,
 	type MessageStatus,
+	type MessageTranscriptionStatus,
 	type SupportConversationHandoffReason,
 	type SupportConversationStatus,
 } from "@workspace/domain";
@@ -307,7 +310,7 @@ export const supportConversations = pgTable(
 		),
 		check(
 			"support_conversations_handoff_reason_check",
-			sql`${table.handoffReason} is null or ${table.handoffReason} in ('human_requested', 'low_confidence', 'unsupported_policy', 'ai_failure', 'unsupported_content', 'operator_takeover')`
+			sql`${table.handoffReason} is null or ${table.handoffReason} in ('human_requested', 'low_confidence', 'unsupported_policy', 'ai_failure', 'unsupported_content', 'transcription_failed', 'operator_takeover')`
 		),
 		check(
 			"support_conversations_handoff_summary_check",
@@ -394,11 +397,15 @@ export const messages = pgTable(
 		),
 		check(
 			"messages_content_type_check",
-			sql`${table.contentType} in ('text', 'unsupported')`
+			sql`${table.contentType} in ('text', 'audio', 'unsupported')`
 		),
 		check(
 			"messages_content_body_check",
-			sql`(${table.contentType} = 'text' and ${table.body} is not null and length(btrim(${table.body})) > 0) or (${table.contentType} = 'unsupported' and ${table.body} is null)`
+			sql`(${table.contentType} = 'text' and ${table.body} is not null and length(btrim(${table.body})) > 0) or (${table.contentType} = 'audio' and (${table.body} is null or length(btrim(${table.body})) > 0)) or (${table.contentType} = 'unsupported' and ${table.body} is null)`
+		),
+		check(
+			"messages_audio_inbound_only_check",
+			sql`${table.contentType} <> 'audio' or ${table.direction} = 'inbound'`
 		),
 		check(
 			"messages_unsupported_inbound_check",
@@ -415,6 +422,78 @@ export const messages = pgTable(
 		check(
 			"messages_ai_reply_to_message_check",
 			sql`(${table.senderType} = 'ai' and ${table.direction} = 'outbound' and ${table.replyToMessageId} is not null) or (${table.senderType} <> 'ai' and ${table.replyToMessageId} is null)`
+		),
+	]
+);
+
+export const messageMedia = pgTable(
+	"message_media",
+	{
+		id: text("id").primaryKey().$defaultFn(createId),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "restrict" }),
+		messageId: text("message_id")
+			.notNull()
+			.references(() => messages.id, { onDelete: "restrict" }),
+		kind: text("kind").$type<MessageMediaKind>().notNull(),
+		mimeType: text("mime_type").notNull(),
+		sizeBytes: integer("size_bytes"),
+		durationMs: integer("duration_ms"),
+		downloadStatus: text("download_status")
+			.$type<MessageMediaDownloadStatus>()
+			.default("pending")
+			.notNull(),
+		objectKey: text("object_key"),
+		providerRef: jsonb("provider_ref")
+			.$type<Record<string, string>>()
+			.default({})
+			.notNull(),
+		transcriptStatus: text("transcript_status")
+			.$type<MessageTranscriptionStatus>()
+			.default("pending")
+			.notNull(),
+		transcriptModel: text("transcript_model"),
+		transcriptLanguage: text("transcript_language"),
+		transcriptionError: text("transcription_error"),
+		...timestamps,
+	},
+	(table) => [
+		unique("message_media_organization_message_unique").on(
+			table.organizationId,
+			table.messageId
+		),
+		index("message_media_organization_download_status_idx").on(
+			table.organizationId,
+			table.downloadStatus
+		),
+		index("message_media_organization_transcript_status_idx").on(
+			table.organizationId,
+			table.transcriptStatus
+		),
+		check(
+			"message_media_kind_check",
+			sql`${table.kind} in ('audio')`
+		),
+		check(
+			"message_media_download_status_check",
+			sql`${table.downloadStatus} in ('pending', 'stored', 'failed')`
+		),
+		check(
+			"message_media_transcript_status_check",
+			sql`${table.transcriptStatus} in ('pending', 'transcribing', 'completed', 'failed')`
+		),
+		check(
+			"message_media_object_key_check",
+			sql`${table.downloadStatus} <> 'stored' or ${table.objectKey} is not null`
+		),
+		check(
+			"message_media_size_check",
+			sql`${table.sizeBytes} is null or ${table.sizeBytes} > 0`
+		),
+		check(
+			"message_media_duration_check",
+			sql`${table.durationMs} is null or ${table.durationMs} > 0`
 		),
 	]
 );

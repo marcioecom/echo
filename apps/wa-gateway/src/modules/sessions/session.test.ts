@@ -1,10 +1,13 @@
-import type { AuthenticationCreds } from "@whiskeysockets/baileys"
-import { describe, expect, it, vi } from "vitest"
-
+import type { StoreInboundMedia } from "./adapters/media-store"
 import type { EchoAuthState } from "./auth-state"
 import type { SessionDirectory } from "./repositories/session-directory"
-import { BaileysSession } from "./session"
 import type { SessionEvents, SessionSocket } from "./types"
+import type { AuthenticationCreds } from "@whiskeysockets/baileys"
+
+import { maxInboundAudioBytes } from "@workspace/domain"
+import { describe, expect, it, vi } from "vitest"
+
+import { BaileysSession } from "./session"
 
 const organizationId = "01K1EDN69NFBWCG42B2H99V2C1"
 const channelConnectionId = "01K1EDN9C8VT0N8WRM13RM6M55"
@@ -22,6 +25,10 @@ function fakeSocket() {
     sendMessage: vi.fn(async () => ({ key: { id: "wamid.out" } })),
     sendPresenceUpdate: vi.fn(async () => undefined),
     requestPairingCode: vi.fn(async () => "ABCD1234"),
+    downloadMedia: vi.fn(async () => ({
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/ogg",
+    })),
     logout: vi.fn(async () => undefined),
     end: vi.fn(async () => undefined),
   }
@@ -52,6 +59,11 @@ function harness(options?: {
   const publishPairingCode = vi.fn(async () => undefined)
   const enqueueInbound = vi.fn(async () => undefined)
   const enqueueStatus = vi.fn(async () => undefined)
+  const storeMedia = vi.fn<StoreInboundMedia>(async (media) => ({
+    objectKey: "media-key",
+    mimeType: media.mimeType,
+    sizeBytes: media.bytes.byteLength,
+  }))
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
   const clear = vi.fn(async () => undefined)
   const discard = vi.fn(async () => undefined)
@@ -85,6 +97,7 @@ function harness(options?: {
     enqueueInbound,
     rememberMessage: vi.fn(async () => undefined),
     enqueueStatus,
+    storeMedia,
     hasSeenInbound: options?.hasSeenInbound ?? (async () => false),
     claimInbound: options?.claim ?? (async () => true),
     acquireSendSlot: async () => "ok",
@@ -103,6 +116,7 @@ function harness(options?: {
     publishPairingCode,
     enqueueInbound,
     enqueueStatus,
+    storeMedia,
     logger,
     clear,
   }
@@ -418,5 +432,122 @@ describe("BaileysSession", () => {
       "Skipping state write; connection gone",
       expect.objectContaining({ state: "logged_out" })
     )
+  })
+
+  it("downloads and stores audio while connected", async () => {
+    const setup = harness({ registered: true })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    setup.opened[0]!.socket.user = { id: "5511999999999@s.whatsapp.net" }
+    await setup.opened[0]?.emit({ "connection.update": { connection: "open" } })
+    const socket = setup.opened[0]!.socket
+    vi.mocked(socket.downloadMedia).mockResolvedValueOnce({
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: "Audio/OGG; codecs=opus",
+    })
+
+    await expect(
+      setup.session.downloadMedia({
+        externalMessageId: "wamid.audio",
+        senderAddress: "+5511888888888",
+      })
+    ).resolves.toEqual({
+      ok: true,
+      media: {
+        objectKey: "media-key",
+        mimeType: "audio/ogg",
+        sizeBytes: 3,
+      },
+    })
+
+    expect(socket.downloadMedia).toHaveBeenCalledWith({
+      externalMessageId: "wamid.audio",
+      senderAddress: "+5511888888888",
+    })
+    expect(setup.storeMedia).toHaveBeenCalledWith({
+      organizationId,
+      channelConnectionId,
+      externalMessageId: "wamid.audio",
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/ogg",
+    })
+    expect(setup.logger.info).toHaveBeenCalledWith(
+      "Media stored",
+      expect.objectContaining({
+        externalMessageId: "wamid.audio",
+        sizeBytes: 3,
+        outcome: "stored",
+      })
+    )
+    await setup.session.stop()
+    await running
+  })
+
+  it("reports a disconnected session as retryable", async () => {
+    const setup = harness()
+
+    await expect(
+      setup.session.downloadMedia({
+        externalMessageId: "wamid.audio",
+        senderAddress: "+5511888888888",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      retryable: true,
+      code: "session_unavailable",
+    })
+    expect(setup.storeMedia).not.toHaveBeenCalled()
+  })
+
+  it("rejects oversized audio without retrying", async () => {
+    const setup = harness({ registered: true })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    setup.opened[0]!.socket.user = { id: "5511999999999@s.whatsapp.net" }
+    await setup.opened[0]?.emit({ "connection.update": { connection: "open" } })
+    vi.mocked(setup.opened[0]!.socket.downloadMedia).mockResolvedValueOnce({
+      bytes: new Uint8Array(maxInboundAudioBytes + 1),
+      mimeType: "audio/ogg",
+    })
+
+    await expect(
+      setup.session.downloadMedia({
+        externalMessageId: "wamid.audio",
+        senderAddress: "+5511888888888",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      retryable: false,
+      code: "unsupported_media",
+    })
+    expect(setup.storeMedia).not.toHaveBeenCalled()
+    await setup.session.stop()
+    await running
+  })
+
+  it("rejects unsupported audio mime without retrying", async () => {
+    const setup = harness({ registered: true })
+    const running = setup.session.run()
+    await vi.waitFor(() => expect(setup.opened[0]?.ready()).toBe(true))
+    setup.opened[0]!.socket.user = { id: "5511999999999@s.whatsapp.net" }
+    await setup.opened[0]?.emit({ "connection.update": { connection: "open" } })
+    vi.mocked(setup.opened[0]!.socket.downloadMedia).mockResolvedValueOnce({
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/aac",
+    })
+
+    await expect(
+      setup.session.downloadMedia({
+        externalMessageId: "wamid.audio",
+        senderAddress: "+5511888888888",
+      })
+    ).resolves.toEqual({
+      ok: false,
+      retryable: false,
+      code: "unsupported_media",
+    })
+    expect(setup.storeMedia).not.toHaveBeenCalled()
+    await setup.session.stop()
+    await running
   })
 })

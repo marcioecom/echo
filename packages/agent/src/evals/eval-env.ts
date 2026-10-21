@@ -1,4 +1,4 @@
-const defaultChatModel = "openai/gpt-5.6-luna"
+const defaultChatModel = "openai/gpt-6-luna"
 
 const required = ["AI_GATEWAY_API_KEY", "LANGSMITH_API_KEY"] as const
 

@@ -89,6 +89,179 @@ describe("filterInboundUpsert", () => {
       },
     ])
   })
+
+  it("accepts a supported audio message with duration and size", () => {
+    expect(
+      filterInboundUpsert({
+        type: "notify",
+        messages: [
+          {
+            key: {
+              id: "wamid.audio",
+              fromMe: false,
+              remoteJid: "5511888888888@s.whatsapp.net",
+            },
+            message: {
+              audioMessage: {
+                mimetype: "audio/ogg; codecs=opus",
+                seconds: 3.2,
+                fileLength: 15_234,
+              },
+            },
+          },
+        ],
+      })
+    ).toEqual([
+      {
+        action: "accept",
+        externalMessageId: "wamid.audio",
+        senderAddress: "+5511888888888",
+        content: {
+          type: "audio",
+          media: {
+            mimeType: "audio/ogg",
+            sizeBytes: 15_234,
+            durationMs: 3_200,
+            ref: { externalMessageId: "wamid.audio" },
+          },
+        },
+      },
+    ])
+  })
+
+  it("reads protobuf-style audio integers", () => {
+    const [filtered] = filterInboundUpsert({
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "wamid.audio.proto",
+            fromMe: false,
+            remoteJid: "5511888888888@s.whatsapp.net",
+          },
+          message: {
+            audioMessage: {
+              mimetype: "audio/mpeg",
+              seconds: { toNumber: () => 4 },
+              fileLength: { low: 9_000 },
+            },
+          },
+        },
+      ],
+    })
+
+    expect(filtered).toEqual({
+      action: "accept",
+      externalMessageId: "wamid.audio.proto",
+      senderAddress: "+5511888888888",
+      content: {
+        type: "audio",
+        media: {
+          mimeType: "audio/mpeg",
+          sizeBytes: 9_000,
+          durationMs: 4_000,
+          ref: { externalMessageId: "wamid.audio.proto" },
+        },
+      },
+    })
+  })
+
+  it("keeps audio without a supported mime as unsupported", () => {
+    const unsupported = [{ mimetype: "audio/aac", seconds: 2 }, { seconds: 2 }]
+
+    for (const audioMessage of unsupported) {
+      const [filtered] = filterInboundUpsert({
+        type: "notify",
+        messages: [
+          {
+            key: {
+              id: "wamid.audio.unsupported",
+              fromMe: false,
+              remoteJid: "5511888888888@s.whatsapp.net",
+            },
+            message: { audioMessage },
+          },
+        ],
+      })
+      expect(filtered).toEqual({
+        action: "accept",
+        externalMessageId: "wamid.audio.unsupported",
+        senderAddress: "+5511888888888",
+        content: { type: "unsupported", mediaKind: "audio" },
+      })
+    }
+  })
+
+  it("omits non-positive audio duration and size", () => {
+    const [filtered] = filterInboundUpsert({
+      type: "notify",
+      messages: [
+        {
+          key: {
+            id: "wamid.audio.empty",
+            fromMe: false,
+            remoteJid: "5511888888888@s.whatsapp.net",
+          },
+          message: {
+            audioMessage: {
+              mimetype: "audio/ogg",
+              seconds: 0,
+              fileLength: -1,
+            },
+          },
+        },
+      ],
+    })
+
+    expect(filtered).toEqual({
+      action: "accept",
+      externalMessageId: "wamid.audio.empty",
+      senderAddress: "+5511888888888",
+      content: {
+        type: "audio",
+        media: {
+          mimeType: "audio/ogg",
+          ref: { externalMessageId: "wamid.audio.empty" },
+        },
+      },
+    })
+  })
+
+  it("keeps video, document and sticker media unsupported", () => {
+    const cases = [
+      { message: { videoMessage: { mimetype: "video/mp4" } }, kind: "video" },
+      {
+        message: { documentMessage: { mimetype: "application/pdf" } },
+        kind: "document",
+      },
+      {
+        message: { stickerMessage: { mimetype: "image/webp" } },
+        kind: "image",
+      },
+    ]
+
+    for (const entry of cases) {
+      const [filtered] = filterInboundUpsert({
+        type: "notify",
+        messages: [
+          {
+            key: {
+              id: `wamid.${entry.kind}`,
+              fromMe: false,
+              remoteJid: "5511888888888@s.whatsapp.net",
+            },
+            message: entry.message,
+          },
+        ],
+      })
+      expect(filtered).toEqual({
+        action: "accept",
+        externalMessageId: `wamid.${entry.kind}`,
+        senderAddress: "+5511888888888",
+        content: { type: "unsupported", mediaKind: entry.kind },
+      })
+    }
+  })
 })
 
 describe("phoneFromJid", () => {

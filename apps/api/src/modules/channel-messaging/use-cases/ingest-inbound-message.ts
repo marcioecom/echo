@@ -2,6 +2,7 @@ import type { IngestedInboundMessage } from "../types"
 import type { Result } from "@/common/result"
 import type { NormalizedInboundMessage } from "@workspace/domain"
 
+import { supportConversationJobNames } from "@workspace/jobs"
 import { createLoggerWithContext } from "@workspace/logger"
 
 import { err, ok } from "@/common/result"
@@ -31,12 +32,23 @@ export async function ingestInboundMessage(
   })
 
   try {
-    const job = await jobs.enqueue("process-inbound-message", {
-      organizationId: ingested.organizationId,
-      channelIdentityId: ingested.channelIdentityId,
-      supportConversationId: ingested.supportConversationId,
-      messageId: ingested.messageId,
-    })
+    const job =
+      input.content.type === "audio"
+        ? await jobs.enqueue(supportConversationJobNames.fetchInboundMedia, {
+            organizationId: ingested.organizationId,
+            channelConnectionId: ingested.channelConnectionId,
+            supportConversationId: ingested.supportConversationId,
+            messageId: ingested.messageId,
+          })
+        : await jobs.enqueue(
+            supportConversationJobNames.processInboundMessage,
+            {
+              organizationId: ingested.organizationId,
+              channelIdentityId: ingested.channelIdentityId,
+              supportConversationId: ingested.supportConversationId,
+              messageId: ingested.messageId,
+            }
+          )
     const result = { ...ingested, jobId: job.id }
     logger.info("Inbound Message ingested", {
       eventType: "inbound_message.ingested",

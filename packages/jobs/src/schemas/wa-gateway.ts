@@ -12,6 +12,7 @@ export const waGatewayJobNames = {
   connect: "wa-connect",
   pairingCode: "wa-pairing-code",
   send: "wa-send",
+  media: "wa-media",
   logout: "wa-logout",
 } as const
 
@@ -42,6 +43,30 @@ export const waSendJobSchema = connectionJobSchema.extend({
   body: z.string().min(1),
 })
 export type WaSendJob = z.infer<typeof waSendJobSchema>
+
+export const waMediaJobSchema = connectionJobSchema.extend({
+  externalMessageId: z.string().min(1),
+  senderAddress: z.string().regex(/^\+[1-9]\d{1,14}$/),
+})
+export type WaMediaJob = z.infer<typeof waMediaJobSchema>
+
+export const waMediaResultSchema = z.object({
+  objectKey: z.string().min(1),
+  mimeType: z.string().trim().min(1),
+  sizeBytes: z.number().int().positive().optional(),
+  durationMs: z.number().int().positive().optional(),
+})
+export type WaMediaResult = z.infer<typeof waMediaResultSchema>
+
+export const waMediaDownloadResultSchema = z.discriminatedUnion("ok", [
+  z.object({ ok: z.literal(true), media: waMediaResultSchema }),
+  z.object({
+    ok: z.literal(false),
+    retryable: z.boolean(),
+    code: z.string().min(1),
+  }),
+])
+export type WaMediaDownloadResult = z.infer<typeof waMediaDownloadResultSchema>
 
 export const waInboundJobSchema = connectionJobSchema.extend({
   senderAddress: z.string().regex(/^\+[1-9]\d{1,14}$/),

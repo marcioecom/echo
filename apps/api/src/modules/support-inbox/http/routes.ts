@@ -9,9 +9,11 @@ import { supportInboxEventBroker } from "../events/support-inbox-event-broker"
 import {
   createOperatorReplyBodySchema,
   listSupportConversationsQuerySchema,
+  supportConversationMessageParamsSchema,
   supportConversationParamsSchema,
 } from "../schemas"
 import { createOperatorReply } from "../use-cases/create-operator-reply"
+import { getMessageMediaUrl } from "../use-cases/get-message-media-url"
 import { getSupportConversationDetail } from "../use-cases/get-support-conversation-detail"
 import { listSupportConversations } from "../use-cases/list-support-conversations"
 
@@ -76,6 +78,27 @@ export function registerSupportInboxRoutes(app: AppInstance): void {
               }),
           }),
         ok: (value) => reply.code(201).send({ messageId: value.messageId }),
+      })
+    }
+  )
+
+  app.get(
+    "/v1/support-conversations/:conversationId/messages/:messageId/media",
+    {
+      preHandler,
+      schema: { params: supportConversationMessageParamsSchema },
+    },
+    async (request, reply) => {
+      const auth = organizationAuth(request)
+      const result = await getMessageMediaUrl({
+        organizationId: auth.organization.id,
+        conversationId: request.params.conversationId,
+        messageId: request.params.messageId,
+      })
+
+      return matchResult(result, {
+        err: () => reply.code(404).send({ error: "message_media_not_found" }),
+        ok: (value) => reply.send(value),
       })
     }
   )

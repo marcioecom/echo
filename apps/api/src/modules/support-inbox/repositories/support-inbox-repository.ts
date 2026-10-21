@@ -7,6 +7,7 @@ import type { Database } from "@workspace/db"
 import type {
   ActorType,
   MessageContentType,
+  MessageTranscriptionStatus,
   SupportConversationHandoffReason,
   SupportConversationStatus,
 } from "@workspace/domain"
@@ -16,6 +17,7 @@ import {
   channelConnections,
   channelIdentities,
   contacts,
+  messageMedia,
   messages,
   supportConversations,
   users,
@@ -82,6 +84,17 @@ export class SupportInboxRepository {
           order by inbox_message.occurred_at desc, inbox_message.id desc
           limit 1
         )`,
+        lastMessageTranscriptStatus: sql<MessageTranscriptionStatus | null>`(
+          select inbox_media.transcript_status
+          from messages as inbox_message
+          inner join message_media as inbox_media
+            on inbox_media.organization_id = inbox_message.organization_id
+            and inbox_media.message_id = inbox_message.id
+          where inbox_message.organization_id = ${input.organizationId}
+            and inbox_message.support_conversation_id = ${supportConversations.id}
+          order by inbox_message.occurred_at desc, inbox_message.id desc
+          limit 1
+        )`,
       })
       .from(supportConversations)
       .innerJoin(
@@ -136,6 +149,7 @@ export class SupportInboxRepository {
                     : (row.lastMessageBody ?? ""),
                 senderType: row.lastMessageSenderType,
                 contentType: row.lastMessageContentType,
+                transcriptStatus: row.lastMessageTranscriptStatus,
               }
             : null,
       })),
@@ -210,9 +224,20 @@ export class SupportInboxRepository {
         status: messages.status,
         occurredAt: messages.occurredAt,
         operatorName: users.name,
+        mediaMimeType: messageMedia.mimeType,
+        mediaDurationMs: messageMedia.durationMs,
+        mediaDownloadStatus: messageMedia.downloadStatus,
+        mediaTranscriptStatus: messageMedia.transcriptStatus,
       })
       .from(messages)
       .leftJoin(users, eq(users.id, messages.operatorUserId))
+      .leftJoin(
+        messageMedia,
+        and(
+          eq(messageMedia.organizationId, messages.organizationId),
+          eq(messageMedia.messageId, messages.id)
+        )
+      )
       .where(
         and(
           eq(messages.organizationId, input.organizationId),
@@ -270,7 +295,69 @@ export class SupportInboxRepository {
           },
         ]
       }),
-      messages: timeline,
+      messages: timeline.map(
+        ({
+          mediaMimeType,
+          mediaDurationMs,
+          mediaDownloadStatus,
+          mediaTranscriptStatus,
+          ...message
+        }) => ({
+          ...message,
+          media:
+            mediaMimeType && mediaDownloadStatus && mediaTranscriptStatus
+              ? {
+                  mimeType: mediaMimeType,
+                  durationMs: mediaDurationMs,
+                  downloadStatus: mediaDownloadStatus,
+                  transcriptStatus: mediaTranscriptStatus,
+                }
+              : null,
+        })
+      ),
+    }
+  }
+
+  async findMessageMedia(input: {
+    organizationId: string
+    conversationId: string
+    messageId: string
+  }): Promise<{
+    objectKey: string
+    mimeType: string
+    durationMs: number | null
+  } | null> {
+    const [row] = await this.db
+      .select({
+        objectKey: messageMedia.objectKey,
+        downloadStatus: messageMedia.downloadStatus,
+        mimeType: messageMedia.mimeType,
+        durationMs: messageMedia.durationMs,
+      })
+      .from(messages)
+      .innerJoin(
+        messageMedia,
+        and(
+          eq(messageMedia.organizationId, messages.organizationId),
+          eq(messageMedia.messageId, messages.id)
+        )
+      )
+      .where(
+        and(
+          eq(messages.organizationId, input.organizationId),
+          eq(messages.supportConversationId, input.conversationId),
+          eq(messages.id, input.messageId),
+          eq(messages.contentType, "audio")
+        )
+      )
+      .limit(1)
+
+    if (!row || row.downloadStatus !== "stored" || !row.objectKey) return null
+
+    return {
+      objectKey: row.objectKey,
+      mimeType: row.mimeType,
+      durationMs: row.durationMs,
     }
   }
 

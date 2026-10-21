@@ -15,6 +15,11 @@ export const supportConversationParamsSchema = z.object({
   conversationId: ulidSchema,
 })
 
+export const supportConversationMessageParamsSchema = z.object({
+  conversationId: ulidSchema,
+  messageId: ulidSchema,
+})
+
 export const createOperatorReplyBodySchema = z.object({
   body: z.string().trim().min(1).max(1600),
 })

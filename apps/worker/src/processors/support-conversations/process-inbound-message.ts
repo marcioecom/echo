@@ -1,3 +1,10 @@
+import type {
+  SupportConversationHandoffReason,
+  SupportConversationStatus,
+} from "@workspace/domain"
+import type { Job } from "bullmq"
+
+import { createSupportAgent } from "@workspace/agent"
 import {
   auditEvents,
   channelConnectionProviderBindings,
@@ -5,17 +12,11 @@ import {
   messages,
   supportConversations,
 } from "@workspace/db/schema"
-import {
-  createId,
-  type SupportConversationHandoffReason,
-  type SupportConversationStatus,
-} from "@workspace/domain"
+import { createId } from "@workspace/domain"
 import {
   processInboundMessageJobSchema,
   supportConversationJobNames,
 } from "@workspace/jobs"
-import { createSupportAgent } from "@workspace/agent"
-import type { Job } from "bullmq"
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm"
 
 import { env } from "../../config/env"
@@ -38,7 +39,7 @@ type AgentDecision = NonNullable<
 >
 
 type InboundMessageState = {
-  contentType: "text" | "unsupported"
+  contentType: "text" | "audio" | "unsupported"
   body: string | null
   channelConnectionId: string
   status: SupportConversationStatus
@@ -52,8 +53,18 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
     throw new Error("Inbound Message job IDs do not identify one tenant state")
   if (state.status === "human_required" || state.status === "resolved") return
 
-  if (state.contentType !== "text") {
-    await handoffUnsupported(job, payload, state)
+  if (state.contentType === "unsupported") {
+    await handoffUnsupported(job, payload, state, "unsupported_content")
+    return
+  }
+  if (state.contentType === "audio" && !state.body) {
+    await handoffUnsupported(
+      job,
+      payload,
+      state,
+      "transcription_failed",
+      "audio"
+    )
     return
   }
 
@@ -118,10 +129,12 @@ async function handoffUnsupported(
     supportConversationId: string
     messageId: string
   },
-  state: InboundMessageState
+  state: InboundMessageState,
+  reason: "unsupported_content" | "transcription_failed",
+  mediaKindOverride?: string
 ): Promise<void> {
   const history = await loadHistory(payload)
-  const mediaKind = await loadMediaKind(payload)
+  const mediaKind = mediaKindOverride ?? (await loadMediaKind(payload))
   let notice: { customerMessage: string; summary: string | null }
   try {
     notice = await draftUnsupportedHandoffCopy({ history, mediaKind })
@@ -132,7 +145,7 @@ async function handoffUnsupported(
       summary: null,
     }
   }
-  await handoff(payload, state, "unsupported_content", "system", notice)
+  await handoff(payload, state, reason, "system", notice)
 }
 
 function isFinalAttempt(job: Job): boolean {
@@ -146,6 +159,7 @@ async function loadHistory(input: {
   const history = await database.db
     .select({
       senderType: messages.senderType,
+      contentType: messages.contentType,
       body: messages.body,
     })
     .from(messages)
@@ -157,9 +171,11 @@ async function loadHistory(input: {
     )
     .orderBy(desc(messages.occurredAt), desc(messages.id))
     .limit(20)
-  return history
-    .reverse()
-    .map((message) => `${message.senderType}: ${message.body ?? ""}`)
+  return history.reverse().map((message) => {
+    const body =
+      message.body ?? (message.contentType === "audio" ? "[audio]" : "")
+    return `${message.senderType}: ${body}`
+  })
 }
 
 async function loadMediaKind(input: {

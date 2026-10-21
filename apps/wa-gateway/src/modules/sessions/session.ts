@@ -1,24 +1,29 @@
-import type { SendResult, StatusUpdate } from "@workspace/messaging"
-import type { ChannelSessionState } from "@workspace/domain"
-
+import type { FilteredInbound } from "./adapters/inbound-filter"
+import type { StoreInboundMedia } from "./adapters/media-store"
 import type { EchoAuthState } from "./auth-state"
-import { statusUpdatesFromBaileys } from "./adapters/delivery-status"
-import { classifyDisconnect, disconnectStatusCode } from "./policies/disconnect"
-import { PairingUnavailableError, RoutingConflictError } from "./errors"
-import {
-  filterInboundUpsert,
-  phoneFromJid,
-  type FilteredInbound,
-} from "./adapters/inbound-filter"
-import { nextReconnect } from "./policies/reconnect"
+import type { CloseOutcome, LifecycleEvent, LifecycleState } from "./lifecycle"
 import type { SessionDirectory } from "./repositories/session-directory"
-import type { SessionEvents, SessionLogger, SessionSocket } from "./types"
+import type {
+  MediaDownloadResult,
+  SessionEvents,
+  SessionLogger,
+  SessionSocket,
+} from "./types"
+import type { ChannelSessionState } from "@workspace/domain"
+import type { SendResult, StatusUpdate } from "@workspace/messaging"
+
 import {
-  transitionLifecycle,
-  type CloseOutcome,
-  type LifecycleEvent,
-  type LifecycleState,
-} from "./lifecycle"
+  isSupportedInboundAudioMimeType,
+  maxInboundAudioBytes,
+  normalizeAudioMimeType,
+} from "@workspace/domain"
+
+import { statusUpdatesFromBaileys } from "./adapters/delivery-status"
+import { filterInboundUpsert, phoneFromJid } from "./adapters/inbound-filter"
+import { PairingUnavailableError, RoutingConflictError } from "./errors"
+import { transitionLifecycle } from "./lifecycle"
+import { classifyDisconnect, disconnectStatusCode } from "./policies/disconnect"
+import { nextReconnect } from "./policies/reconnect"
 
 export class BaileysSession {
   private lifecycle: LifecycleState = { phase: "unowned" }
@@ -46,6 +51,7 @@ export class BaileysSession {
         message: unknown
       ) => Promise<void>
       enqueueStatus: (update: StatusUpdate) => Promise<void>
+      storeMedia: StoreInboundMedia
       hasSeenInbound: (externalMessageId: string) => Promise<boolean>
       claimInbound: (externalMessageId: string) => Promise<boolean>
       acquireSendSlot: (to: string) => Promise<"ok" | "connection" | "contact">
@@ -72,13 +78,21 @@ export class BaileysSession {
         break
       }
       if (step.type === "exhausted") {
-        await this.recordState("disconnected", "reconnect_exhausted", step.attempt)
+        await this.recordState(
+          "disconnected",
+          "reconnect_exhausted",
+          step.attempt
+        )
         this.transition({ type: "stopped" })
         break
       }
       attempt = step.attempt
       if (step.type === "backoff") {
-        this.transition({ type: "backoff", attempt: step.attempt, delayMs: step.delayMs })
+        this.transition({
+          type: "backoff",
+          attempt: step.attempt,
+          delayMs: step.delayMs,
+        })
         await this.deps.delay(step.delayMs)
       }
     }
@@ -148,6 +162,79 @@ export class BaileysSession {
       return { ok: true, externalMessageId }
     } finally {
       await this.socket.sendPresenceUpdate("paused", jid).catch(() => undefined)
+    }
+  }
+
+  async downloadMedia(input: {
+    externalMessageId: string
+    senderAddress: string
+  }): Promise<MediaDownloadResult> {
+    const context = {
+      organizationId: this.deps.organizationId,
+      channelConnectionId: this.deps.channelConnectionId,
+      externalMessageId: input.externalMessageId,
+    }
+    if (this.lifecycle.phase !== "connected" || !this.socket) {
+      this.deps.logger.warn("Media download skipped; session unavailable", {
+        ...context,
+        outcome: "session_unavailable",
+      })
+      return { ok: false, retryable: true, code: "session_unavailable" }
+    }
+
+    const socket = this.socket
+    let bytes: Uint8Array
+    let mimeType: string
+    try {
+      const downloaded = await socket.downloadMedia(input)
+      bytes = downloaded.bytes
+      mimeType = normalizeAudioMimeType(downloaded.mimeType)
+    } catch (error) {
+      this.deps.logger.warn("Media download failed", {
+        ...context,
+        outcome: "media_unavailable",
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, retryable: true, code: "media_unavailable" }
+    }
+
+    if (
+      bytes.byteLength === 0 ||
+      bytes.byteLength > maxInboundAudioBytes ||
+      !isSupportedInboundAudioMimeType(mimeType)
+    ) {
+      this.deps.logger.warn("Media rejected as unsupported", {
+        ...context,
+        sizeBytes: bytes.byteLength,
+        mimeType,
+        outcome: "unsupported_media",
+      })
+      return { ok: false, retryable: false, code: "unsupported_media" }
+    }
+
+    try {
+      const media = await this.deps.storeMedia({
+        organizationId: this.deps.organizationId,
+        channelConnectionId: this.deps.channelConnectionId,
+        externalMessageId: input.externalMessageId,
+        bytes,
+        mimeType,
+      })
+      this.deps.logger.info("Media stored", {
+        ...context,
+        sizeBytes: media.sizeBytes,
+        durationMs: media.durationMs,
+        outcome: "stored",
+      })
+      return { ok: true, media }
+    } catch (error) {
+      this.deps.logger.warn("Media upload failed", {
+        ...context,
+        sizeBytes: bytes.byteLength,
+        outcome: "media_store_failed",
+        error: error instanceof Error ? error.message : String(error),
+      })
+      return { ok: false, retryable: true, code: "media_store_failed" }
     }
   }
 
@@ -325,7 +412,11 @@ export class BaileysSession {
   }
 
   private async onPairingTimeout(): Promise<void> {
-    if (this.deps.auth.state.creds.registered || this.hasOpened() || this.isStopping()) {
+    if (
+      this.deps.auth.state.creds.registered ||
+      this.hasOpened() ||
+      this.isStopping()
+    ) {
       return
     }
     this.transition({ type: "stop" })
@@ -400,7 +491,9 @@ export class BaileysSession {
   }
 
   private isStopping(): boolean {
-    return this.lifecycle.phase === "stopping" || this.lifecycle.phase === "stopped"
+    return (
+      this.lifecycle.phase === "stopping" || this.lifecycle.phase === "stopped"
+    )
   }
 
   private hasOpened(): boolean {
@@ -422,7 +515,6 @@ export class BaileysSession {
     this.releaseQrWaiters(false)
     resolve(outcome)
   }
-
 }
 function isMissingConnection(error: unknown): boolean {
   if (!error || typeof error !== "object") return false

@@ -7,6 +7,7 @@ import {
   channelConnections,
   channelIdentities,
   contacts,
+  messageMedia,
   messages,
   organizations,
   supportConversations,
@@ -184,6 +185,141 @@ describe("Support Inbox projections", () => {
     expect(detail?.events).toEqual([])
     expect(detail?.conversation.handoffReason).toBeNull()
     expect(crossTenant).toBeNull()
+  })
+
+  it("projects audio media metadata on the conversation timeline", async () => {
+    const acme = await createConversationFixture({
+      slug: "inbox-audio",
+      displayName: "Nina",
+      address: "+5511444444444",
+    })
+    const messageId = createId()
+    await database.db.insert(messages).values({
+      id: messageId,
+      organizationId: acme.organizationId,
+      supportConversationId: acme.conversationId,
+      channelConnectionId: acme.channelConnectionId,
+      direction: "inbound",
+      senderType: "contact",
+      contentType: "audio",
+      body: null,
+      status: "received",
+      occurredAt: new Date("2026-08-02T12:06:00.000Z"),
+    })
+    await database.db.insert(messageMedia).values({
+      id: createId(),
+      organizationId: acme.organizationId,
+      messageId,
+      kind: "audio",
+      mimeType: "audio/ogg",
+      durationMs: 4200,
+      downloadStatus: "stored",
+      objectKey: `organizations/${acme.organizationId}/inbound/audio.ogg`,
+    })
+    const repository = new SupportInboxRepository(database.db)
+
+    const detail = await repository.findDetail(acme)
+
+    expect(
+      detail?.messages.find((message) => message.id === messageId)?.media
+    ).toEqual({
+      mimeType: "audio/ogg",
+      durationMs: 4200,
+      downloadStatus: "stored",
+      transcriptStatus: "pending",
+    })
+    expect(
+      detail?.messages.find((message) => message.contentType === "text")?.media
+    ).toBeNull()
+  })
+
+  it("returns stored message media only within the owning Organization", async () => {
+    const acme = await createConversationFixture({
+      slug: "inbox-media-acme",
+      displayName: "Rui",
+      address: "+5511333333333",
+    })
+    const other = await createConversationFixture({
+      slug: "inbox-media-other",
+      displayName: "Sara",
+      address: "+5511222222222",
+    })
+    const storedMessageId = createId()
+    const pendingMessageId = createId()
+    const objectKey = `organizations/${acme.organizationId}/inbound/audio.ogg`
+    await database.db.insert(messages).values([
+      {
+        id: storedMessageId,
+        organizationId: acme.organizationId,
+        supportConversationId: acme.conversationId,
+        channelConnectionId: acme.channelConnectionId,
+        direction: "inbound",
+        senderType: "contact",
+        contentType: "audio",
+        body: null,
+        status: "received",
+        occurredAt: new Date("2026-08-02T12:06:00.000Z"),
+      },
+      {
+        id: pendingMessageId,
+        organizationId: acme.organizationId,
+        supportConversationId: acme.conversationId,
+        channelConnectionId: acme.channelConnectionId,
+        direction: "inbound",
+        senderType: "contact",
+        contentType: "audio",
+        body: null,
+        status: "received",
+        occurredAt: new Date("2026-08-02T12:07:00.000Z"),
+      },
+    ])
+    await database.db.insert(messageMedia).values([
+      {
+        id: createId(),
+        organizationId: acme.organizationId,
+        messageId: storedMessageId,
+        kind: "audio",
+        mimeType: "audio/ogg",
+        durationMs: 4200,
+        downloadStatus: "stored",
+        objectKey,
+      },
+      {
+        id: createId(),
+        organizationId: acme.organizationId,
+        messageId: pendingMessageId,
+        kind: "audio",
+        mimeType: "audio/ogg",
+        downloadStatus: "pending",
+      },
+    ])
+    const repository = new SupportInboxRepository(database.db)
+
+    await expect(
+      repository.findMessageMedia({
+        organizationId: acme.organizationId,
+        conversationId: acme.conversationId,
+        messageId: storedMessageId,
+      })
+    ).resolves.toEqual({
+      objectKey,
+      mimeType: "audio/ogg",
+      durationMs: 4200,
+    })
+    await expect(
+      repository.findMessageMedia({
+        organizationId: acme.organizationId,
+        conversationId: acme.conversationId,
+        messageId: pendingMessageId,
+      })
+    ).resolves.toBeNull()
+    await expect(
+      repository.findMessageMedia({
+        organizationId: other.organizationId,
+        conversationId: acme.conversationId,
+        messageId: storedMessageId,
+      })
+    ).resolves.toBeNull()
   })
 
   it("projects the handoff summary and AI escalation event", async () => {
