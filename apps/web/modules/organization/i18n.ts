@@ -107,3 +107,45 @@ export const membersMessages = {
   en,
   "pt-BR": ptBR,
 }
+
+const organizationEn = {
+  slugHint: "Lowercase letters, numbers, and hyphens.",
+  checking: "Checking {slug}...",
+  available: "{slug} is available",
+  taken: "{slug} is taken. Try another one",
+  checkError: "Could not check availability. It will be verified on submit",
+  validation: {
+    name: "Enter an organization name",
+    slug: "Enter a slug",
+    slugMax: "Keep it under 48 characters",
+    slugPattern: "Lowercase letters, numbers, and hyphens only",
+    slugTaken: "This slug is taken. Try another one",
+    slugCheck: "Could not check availability. Try again",
+    create: "Could not create the organization",
+  },
+}
+
+const organizationPtBR = {
+  slugHint: "Minúsculas, números e hífens.",
+  checking: "Verificando {slug}...",
+  available: "{slug} está disponível",
+  taken: "{slug} já está em uso. Tente outro",
+  checkError:
+    "Não foi possível verificar a disponibilidade. A conferência acontece ao enviar",
+  validation: {
+    name: "Informe o nome da organização",
+    slug: "Informe o slug",
+    slugMax: "Use no máximo 48 caracteres",
+    slugPattern: "Só letras minúsculas, números e hífens",
+    slugTaken: "Esse slug já está em uso. Tente outro",
+    slugCheck: "Não foi possível verificar a disponibilidade. Tente de novo",
+    create: "Não foi possível criar a organização",
+  },
+} satisfies typeof organizationEn
+
+export type OrganizationMessages = typeof organizationEn
+
+export const organizationMessages = {
+  en: organizationEn,
+  "pt-BR": organizationPtBR,
+}

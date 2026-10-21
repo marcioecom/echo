@@ -2,7 +2,10 @@ import type { AuthMessages } from "@/modules/auth/i18n"
 import type { ChannelsMessages } from "@/modules/channels/i18n"
 import type { InboxMessages } from "@/modules/inbox/i18n"
 import type { KnowledgeMessages } from "@/modules/knowledge-base/i18n"
-import type { MembersMessages } from "@/modules/organization/i18n"
+import type {
+  MembersMessages,
+  OrganizationMessages,
+} from "@/modules/organization/i18n"
 import type { ShellMessages } from "@/modules/shell/i18n"
 
 import { authMessages } from "@/modules/auth/i18n"
@@ -14,7 +17,10 @@ import {
   prefersPortuguese,
   readLanguageCookie,
 } from "@/modules/marketing/i18n/negotiation"
-import { membersMessages } from "@/modules/organization/i18n"
+import {
+  membersMessages,
+  organizationMessages,
+} from "@/modules/organization/i18n"
 import { shellMessages } from "@/modules/shell/i18n"
 
 export type AppLocale = "en" | "pt-BR"
@@ -25,6 +31,7 @@ type Catalog = {
   inbox: InboxMessages
   knowledge: KnowledgeMessages
   members: MembersMessages
+  organization: OrganizationMessages
   shell: ShellMessages
 }
 
@@ -45,6 +52,7 @@ const catalogs: Record<AppLocale, Catalog> = {
     inbox: inboxMessages.en,
     knowledge: knowledgeMessages.en,
     members: membersMessages.en,
+    organization: organizationMessages.en,
     shell: shellMessages.en,
   },
   "pt-BR": {
@@ -53,6 +61,7 @@ const catalogs: Record<AppLocale, Catalog> = {
     inbox: inboxMessages["pt-BR"],
     knowledge: knowledgeMessages["pt-BR"],
     members: membersMessages["pt-BR"],
+    organization: organizationMessages["pt-BR"],
     shell: shellMessages["pt-BR"],
   },
 }

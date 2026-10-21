@@ -1,7 +1,9 @@
 "use client"
 
+import type { CreatedOrganization } from "@/modules/organization/hooks/use-create-organization-form"
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useNavigate, useRouter } from "@tanstack/react-router"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -17,6 +19,7 @@ export type OrganizationOption = {
 
 export function useOrganizationSwitcher(activeOrganizationId: string) {
   const navigate = useNavigate()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [switchingOrganizationId, setSwitchingOrganizationId] = useState<
     string | null
@@ -62,6 +65,15 @@ export function useOrganizationSwitcher(activeOrganizationId: string) {
     }
   }
 
+  async function organizationCreated(organization: CreatedOrganization) {
+    toast.success(t("shell.organizationCreated", { name: organization.name }))
+    await queryClient.invalidateQueries({ queryKey: ["organizations"] })
+    await queryClient.invalidateQueries({ queryKey: ["organization"] })
+    await queryClient.invalidateQueries({ queryKey: workspaceQueryKey })
+    await router.invalidate()
+    await navigate({ to: "/inbox" })
+  }
+
   return {
     organizations: organizationsQuery.data ?? [],
     isLoading: organizationsQuery.isLoading,
@@ -70,5 +82,6 @@ export function useOrganizationSwitcher(activeOrganizationId: string) {
     switchingOrganizationId,
     refetch: organizationsQuery.refetch,
     switchOrganization,
+    organizationCreated,
   }
 }

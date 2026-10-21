@@ -1,13 +1,5 @@
 "use client"
 
-import type { MessageKey } from "@/lib/i18n"
-
-import {
-  Alert02Icon,
-  CheckmarkCircle02Icon,
-  Loading03Icon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 import { Button } from "@workspace/ui/components/button"
 import {
   Card,
@@ -24,53 +16,16 @@ import {
   FormLabel,
 } from "@workspace/ui/components/form"
 import { Input } from "@workspace/ui/components/input"
-import { cn } from "@workspace/ui/lib/utils"
 
 import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { useOnboardingForm } from "@/modules/auth/hooks/use-onboarding-form"
-
-const AVAILABILITY_STATUS = {
-  checking: {
-    icon: Loading03Icon,
-    className: "text-muted-foreground",
-    spin: true,
-    message: "auth.onboarding.checking",
-  },
-  available: {
-    icon: CheckmarkCircle02Icon,
-    className: "text-primary",
-    spin: false,
-    message: "auth.onboarding.available",
-  },
-  taken: {
-    icon: Alert02Icon,
-    className: "text-destructive",
-    spin: false,
-    message: "auth.onboarding.taken",
-  },
-  error: {
-    icon: Alert02Icon,
-    className: "text-muted-foreground",
-    spin: false,
-    message: "auth.onboarding.checkError",
-  },
-} as const satisfies Record<
-  string,
-  {
-    icon: typeof Loading03Icon
-    className: string
-    spin: boolean
-    message: MessageKey
-  }
->
+import { SlugAvailabilityStatus } from "@/modules/organization/ui/components/slug-availability"
 
 export function OnboardingView() {
   const { form, onSubmit, slug, availability, markSlugTouched } =
     useOnboardingForm()
   const isPending = form.formState.isSubmitting
-  const status =
-    availability === "idle" ? null : AVAILABILITY_STATUS[availability]
 
   return (
     <Card>
@@ -117,27 +72,12 @@ export function OnboardingView() {
                       }}
                     />
                   </FormControl>
-                  <p
-                    aria-live="polite"
-                    className={cn(
-                      "flex items-center gap-1.5 text-xs/relaxed",
-                      status ? status.className : "text-muted-foreground"
-                    )}
-                  >
-                    {status ? (
-                      <>
-                        <HugeiconsIcon
-                          icon={status.icon}
-                          size={13}
-                          strokeWidth={1.8}
-                          className={status.spin ? "animate-spin" : undefined}
-                        />
-                        {t(status.message, { slug })}
-                      </>
-                    ) : (
-                      t("auth.onboarding.slugHint")
-                    )}
-                  </p>
+                  {form.formState.errors.slug ? null : (
+                    <SlugAvailabilityStatus
+                      availability={availability}
+                      slug={slug}
+                    />
+                  )}
                   <TranslatedFormMessage />
                 </FormItem>
               )}

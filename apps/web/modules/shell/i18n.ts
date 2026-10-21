@@ -13,9 +13,19 @@ const en = {
   organizationsError: "Couldn't load organizations.",
   tryAgain: "Try again",
   organizationsEmpty: "No organizations found.",
+  createOrganization: "Create organization",
+  newOrganization: "New organization",
+  backToOrganizations: "Back to organizations",
+  organizationName: "Name",
+  organizationNamePlaceholder: "Acme Support",
+  organizationSlug: "Slug",
+  organizationSlugPlaceholder: "acme-support",
+  creatingOrganization: "Creating...",
+  organizationCreated: "Organization created: {name}",
   switchLabel: "Switch organization. Current organization: {name}",
   errors: {
     switch: "Could not switch organization",
+    create: "Could not create the organization",
   },
 }
 
@@ -34,9 +44,19 @@ const ptBR = {
   organizationsError: "Não foi possível carregar as organizações.",
   tryAgain: "Tentar de novo",
   organizationsEmpty: "Nenhuma organização encontrada.",
+  createOrganization: "Criar organização",
+  newOrganization: "Nova organização",
+  backToOrganizations: "Voltar para as organizações",
+  organizationName: "Nome",
+  organizationNamePlaceholder: "Suporte Acme",
+  organizationSlug: "Slug",
+  organizationSlugPlaceholder: "suporte-acme",
+  creatingOrganization: "Criando...",
+  organizationCreated: "Organização criada: {name}",
   switchLabel: "Trocar de organização. Organização atual: {name}",
   errors: {
     switch: "Não foi possível trocar de organização",
+    create: "Não foi possível criar a organização",
   },
 } satisfies typeof en
 
