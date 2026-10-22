@@ -41,11 +41,11 @@ const en = {
     portuguese: "PT",
   },
   hero: {
-    before: "Answer your customers on ",
-    em: "WhatsApp",
-    after: ", even while you sleep",
+    before: "Your business WhatsApp answers with what ",
+    em: "it already knows",
+    after: "",
     subtext:
-      "For local businesses that already live on WhatsApp. Echo answers the written repeats from your knowledge, and hands off to a human when it needs to.",
+      "For local businesses that already live on WhatsApp. Echo answers the repeated questions from what your business has written down, after hours too, and brings in a teammate when it doesn't know.",
     joinPilot: "Start free for 30 days",
     openInbox: "Open inbox",
     clickTrigger: "Limited pilot spots · No sales call",
@@ -125,7 +125,7 @@ const en = {
     titleEm: "No extra tools.",
     titleAfter: "",
     description:
-      "You do not need a new helpdesk stack. Knowledge in, WhatsApp connected, conversations in one inbox.",
+      "You do not need a new system or anything to install. Knowledge in, WhatsApp connected, conversations in one inbox.",
     steps: [
       {
         title: "You send your business knowledge",
@@ -137,16 +137,16 @@ const en = {
       },
       {
         title: "Echo answers, and hands off",
-        body: "Straightforward questions get a reply. Voice notes are transcribed so they can be answered too. When Echo is unsure, a person on your team continues.",
+        body: "Questions covered by your knowledge get a reply. Voice notes are transcribed so they can be answered too. When Echo is unsure, a person on your team continues.",
       },
     ],
   },
   features: {
     titleBefore: "What Echo ",
-    titleEm: "actually",
-    titleAfter: " does",
+    titleEm: "does",
+    titleAfter: "",
     description:
-      "Four things, on purpose. Voice notes are transcribed and can be answered from your knowledge. Photos, stickers, and anything unclear go to a person. There is no scheduling, no broadcasts, and no third-party integrations.",
+      "Four things, on purpose. Voice notes are transcribed and can be answered from your knowledge. Photos and stickers go to a person, and so does anything Echo is unsure about.",
     items: [
       {
         title: "Answers from your knowledge base",
@@ -167,11 +167,11 @@ const en = {
     ],
   },
   demo: {
-    titleBefore: "A conversation, not a ",
-    titleEm: "widget",
-    titleAfter: "",
+    titleBefore: "It asks before it ",
+    titleEm: "answers",
+    titleAfter: ". A person steps in when it doesn't know.",
     description:
-      "Customers stay on WhatsApp. Echo reads the thread, answers what it can, and brings in a teammate when the request leaves the knowledge base.",
+      "Your customer stays on the WhatsApp they already use. Echo answers from your documents, and when the question falls outside them, brings in a teammate with the thread so far.",
     business: "Harbor Goods",
     channel: "WhatsApp",
     messages: [
@@ -238,8 +238,8 @@ const en = {
       "Echo is early. The pilot is free for 30 days, with a limited number of spots, so we can stay close to each business.",
     afterPilot: "After the pilot",
     amount: "R$297",
-    period: "/mês",
-    body: "First 30 days free. Then from R$297/mês. No extra product tiers, and no “talk to sales” maze.",
+    period: "/month",
+    body: "First 30 days free. Then R$297/month. No extra product tiers, and no “talk to sales” maze.",
     included: [
       "Answers from your knowledge base",
       "Clarifying questions when Echo is unsure",
@@ -266,6 +266,11 @@ const en = {
         question: "Does the AI get things wrong?",
         answer:
           "Yes. Language models make mistakes. That is why Echo hands off to a human instead of guessing — and why it asks a clarifying question when the request is unclear.",
+      },
+      {
+        question: "Can the customer ask for a person?",
+        answer:
+          "Yes. When the customer asks, Echo hands the conversation over right away, with the thread so far, and says a teammate will continue.",
       },
       {
         question: "What happens with audio, photos, or stickers?",
@@ -317,7 +322,7 @@ const ptBR: typeof en = {
     signIn: "Entrar",
     dashboard: "Painel",
     getStarted: "Começar grátis",
-    openInbox: "Abrir a inbox",
+    openInbox: "Abrir as conversas",
     openMenu: "Abrir o menu",
     closeMenu: "Fechar o menu",
     primary: "Principal",
@@ -327,14 +332,14 @@ const ptBR: typeof en = {
     portuguese: "PT",
   },
   hero: {
-    before: "Responda seus clientes no ",
-    em: "WhatsApp",
-    after: ", mesmo dormindo",
+    before: "O WhatsApp da sua empresa responde com o que ela ",
+    em: "já sabe",
+    after: "",
     subtext:
-      "Para negócio local que já vive no WhatsApp. O Echo responde as perguntas repetidas com o que a empresa já sabe, e passa para uma pessoa quando precisa.",
+      "Para negócio local que já vive no WhatsApp. O Echo responde as perguntas repetidas com o que a empresa já tem escrito, inclusive depois do expediente, e chama alguém do time quando não sabe.",
     joinPilot: "Começar 30 dias grátis",
-    openInbox: "Abrir a inbox",
-    clickTrigger: "Vagas limitadas · Sem call comercial",
+    openInbox: "Abrir as conversas",
+    clickTrigger: "Vagas limitadas · Sem ligação de vendedor",
     scene: {
       sr: "O cliente pergunta o horário de sábado. O Echo lê o documento de horários, responde com ele e passa uma troca de endereço para a Ana do time.",
       knowledge: {
@@ -368,7 +373,7 @@ const ptBR: typeof en = {
       },
       handoff: {
         name: "Ana",
-        note: "entrou pela inbox do time",
+        note: "entrou pela caixa de entrada do time",
       },
       status: {
         listening: "Ouvindo no WhatsApp",
@@ -389,7 +394,7 @@ const ptBR: typeof en = {
   problem: {
     titleBefore: "As mesmas perguntas, ",
     titleEm: "o dia inteiro",
-    titleAfter: ". Depois, silêncio de noite.",
+    titleAfter: ". Depois, silêncio até de manhã.",
     description:
       "O cliente já fala no WhatsApp. O trabalho é aguentar o volume sem transformar a noite em plantão.",
     cards: [
@@ -400,7 +405,7 @@ const ptBR: typeof en = {
       },
       {
         quote: "Mandei mensagem ontem à noite.",
-        title: "Fora do horário, o chat some",
+        title: "Fora do horário, ninguém responde",
         body: "Quem escreve às 21h espera até de manhã. Muita gente não espera. Escreve para o próximo que responder.",
       },
     ],
@@ -410,7 +415,7 @@ const ptBR: typeof en = {
     titleEm: "Sem ferramenta extra.",
     titleAfter: "",
     description:
-      "Você não precisa de um helpdesk novo. Entra o conhecimento, conecta o WhatsApp, as conversas ficam numa inbox.",
+      "Você não troca de sistema nem instala nada. Entra o conhecimento, conecta o WhatsApp, as conversas ficam numa caixa de entrada.",
     steps: [
       {
         title: "Você manda o que a empresa já sabe",
@@ -422,16 +427,16 @@ const ptBR: typeof en = {
       },
       {
         title: "O Echo responde e, se precisar, passa adiante",
-        body: "Pergunta simples recebe resposta. Áudio é transcrito para também poder ser respondido. Se ficar na dúvida, alguém do time continua.",
+        body: "Pergunta que está na base recebe resposta. Áudio é transcrito para também poder ser respondido. Se ficar na dúvida, alguém do time continua.",
       },
     ],
   },
   features: {
     titleBefore: "O que o Echo ",
-    titleEm: "de fato",
-    titleAfter: " faz",
+    titleEm: "faz",
+    titleAfter: "",
     description:
-      "Quatro coisas, de propósito. Áudio é transcrito e pode ser respondido com a sua base. Foto, figurinha e o que ficar em dúvida vão para uma pessoa. Sem agenda, sem disparo em massa, sem integração com outro sistema.",
+      "Quatro coisas, de propósito. Áudio é transcrito e pode ser respondido com a sua base. Foto, figurinha e qualquer coisa que deixe o Echo em dúvida vão para uma pessoa.",
     items: [
       {
         title: "Responde com a sua base de conhecimento",
@@ -446,17 +451,17 @@ const ptBR: typeof en = {
         body: "Cuidado, exceção e o que o Echo não deve responder vão para alguém do time — com o histórico à vista.",
       },
       {
-        title: "Uma inbox web para o time",
-        body: "As conversas do WhatsApp caem numa inbox compartilhada. A próxima pessoa lê o que aconteceu e segue.",
+        title: "Uma caixa de entrada para o time",
+        body: "As conversas do WhatsApp caem numa caixa de entrada compartilhada. A próxima pessoa lê o que aconteceu e segue.",
       },
     ],
   },
   demo: {
-    titleBefore: "Uma conversa, não um ",
-    titleEm: "widget",
-    titleAfter: "",
+    titleBefore: "Pergunta antes de ",
+    titleEm: "responder",
+    titleAfter: ". Chama uma pessoa quando não sabe.",
     description:
-      "O cliente continua no WhatsApp. O Echo lê o fio, responde o que dá e chama alguém do time quando o pedido sai da base.",
+      "Seu cliente continua no WhatsApp de sempre. O Echo responde com o que está nos seus documentos e, quando a pergunta sai deles, passa para alguém do time com o histórico.",
     business: "Casa do Porto",
     channel: "WhatsApp",
     messages: [
@@ -516,24 +521,24 @@ const ptBR: typeof en = {
     ],
   },
   pricing: {
-    titleBefore: "Comece pelo ",
-    titleEm: "piloto",
-    titleAfter: "",
+    titleBefore: "Comece com ",
+    titleEm: "30 dias",
+    titleAfter: " grátis",
     description:
-      "O Echo ainda é cedo. O piloto é grátis por 30 dias, com vagas limitadas, para a gente acompanhar de perto cada negócio.",
-    afterPilot: "Depois do piloto",
+      "São 30 dias grátis, com vagas limitadas, para a gente acompanhar de perto cada negócio.",
+    afterPilot: "Depois dos 30 dias",
     amount: "R$297",
     period: "/mês",
-    body: "30 dias grátis. Depois, a partir de R$297/mês. Sem plano extra e sem essa de “fala com o comercial”.",
+    body: "Preço único, na página. Sem passar por vendedor.",
     included: [
       "Respostas com a sua base de conhecimento",
       "Pergunta de esclarecimento quando o Echo não tem certeza",
       "Áudio transcrito; foto, figurinha e o que ficar em dúvida vão para uma pessoa",
-      "Uma inbox web para o time",
+      "Uma caixa de entrada para o time",
     ],
     joinPilot: "Começar 30 dias grátis",
-    openInbox: "Abrir a inbox",
-    clickTrigger: "Vagas limitadas · Cancele quando quiser no piloto",
+    openInbox: "Abrir as conversas",
+    clickTrigger: "Vagas limitadas · Cancele quando quiser",
   },
   faq: {
     titleBefore: "Resposta reta, ",
@@ -545,7 +550,7 @@ const ptBR: typeof en = {
       {
         question: "É um número de WhatsApp só da empresa?",
         answer:
-          "É. O Echo usa um número dedicado pela API oficial do WhatsApp. Não é a caixa do celular de alguém.",
+          "É. O Echo usa um número dedicado pela API oficial do WhatsApp. Não é o WhatsApp pessoal de alguém.",
       },
       {
         question: "A inteligência artificial erra?",
@@ -553,9 +558,14 @@ const ptBR: typeof en = {
           "Erra. Modelo de linguagem erra. Por isso o Echo passa para uma pessoa em vez de chutar — e pergunta de novo quando a mensagem não está clara.",
       },
       {
+        question: "O cliente pode pedir para falar com uma pessoa?",
+        answer:
+          "Pode. Quando ele pede, o Echo passa a conversa na hora, com o histórico, e avisa que alguém do time vai continuar.",
+      },
+      {
         question: "E áudio, foto ou figurinha?",
         answer:
-          "Áudio é transcrito, e a Echo pode responder com a sua base. Quando o áudio não fica claro ou a Echo não tem certeza, a conversa vai para uma pessoa. Foto e figurinha continuam indo para uma pessoa — a Echo não tenta interpretar imagem.",
+          "Áudio é transcrito, e o Echo pode responder com a sua base. Quando o áudio não fica claro ou o Echo não tem certeza, a conversa vai para uma pessoa. Foto e figurinha continuam indo para uma pessoa — o Echo não tenta interpretar imagem.",
       },
       {
         question: "Dá para agendar horário ou disparar campanha?",
@@ -563,9 +573,9 @@ const ptBR: typeof en = {
           "Não. Sem agenda, sem disparo, sem mensagem em massa. Isso fica com alguém do time.",
       },
       {
-        question: "Preciso ligar em outro sistema?",
+        question: "Preciso integrar com outro sistema?",
         answer:
-          "Não. Hoje o Echo é WhatsApp, a sua base e uma inbox web. Integração não entra no piloto.",
+          "Não. Hoje o Echo é WhatsApp, a sua base e uma caixa de entrada web. Integração não está incluída.",
       },
     ],
   },
@@ -573,17 +583,17 @@ const ptBR: typeof en = {
     titleBefore: "Responda o próximo WhatsApp ",
     titleEm: "sem",
     titleAfter: " virar a noite por causa dele",
-    body: "Comece o piloto de 30 dias. O Echo responde com o que a empresa já sabe e chama uma pessoa quando precisa.",
+    body: "Comece com 30 dias grátis. O Echo responde com o que a empresa já sabe e chama uma pessoa quando precisa.",
     joinPilot: "Começar 30 dias grátis",
-    openInbox: "Abrir a inbox",
-    clickTrigger: "Vagas limitadas · Sem call comercial",
+    openInbox: "Abrir as conversas",
+    clickTrigger: "Vagas limitadas · Sem ligação de vendedor",
   },
   footer: {
     blurb:
       "Atendimento no WhatsApp que responde com o que a empresa já sabe e chama uma pessoa quando precisa.",
     signIn: "Entrar",
     label: "Rodapé",
-    note: "O Echo está em piloto fechado. Se você não reconhece o Echo, não preenche dado nenhum.",
+    note: "O Echo está em fase de testes, com poucas vagas. Se você não reconhece o Echo, não preenche dado nenhum.",
   },
 }
 
