@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { track } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
 import { translateMessage } from "@/lib/i18n"
 import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
@@ -43,6 +44,8 @@ export function useSignUpForm() {
   })
 
   async function onSubmit(values: SignUpFormValues) {
+    void track("signup_started", { method: "email" })
+
     const { error } = await authClient.signUp.email({
       name: values.name,
       email: values.email,

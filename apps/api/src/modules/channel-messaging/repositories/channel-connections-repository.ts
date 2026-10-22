@@ -85,7 +85,7 @@ export class ChannelConnectionsRepository {
     encryptCredentials: (
       channelConnectionId: string
     ) => EncryptedChannelCredentials
-  }): Promise<{ channelConnectionId: string }> {
+  }): Promise<{ channelConnectionId: string; created: boolean }> {
     return this.db.transaction(async (transaction) => {
       await transaction.execute(
         sql`select pg_advisory_xact_lock(hashtextextended(${`channel-connection-provision:${input.organizationId}:whatsapp`}, 0))`
@@ -210,7 +210,7 @@ export class ChannelConnectionsRepository {
         },
       })
 
-      return { channelConnectionId }
+      return { channelConnectionId, created: !existingConnection }
     })
   }
 
@@ -272,7 +272,7 @@ export class ChannelConnectionsRepository {
     encryptCredentials: (
       channelConnectionId: string
     ) => EncryptedChannelCredentials
-  }): Promise<{ channelConnectionId: string }> {
+  }): Promise<{ channelConnectionId: string; created: boolean }> {
     try {
       return await this.db.transaction(async (transaction) => {
         await transaction.execute(
@@ -382,7 +382,7 @@ export class ChannelConnectionsRepository {
           },
         })
 
-        return { channelConnectionId }
+        return { channelConnectionId, created: !existingConnection }
       })
     } catch (error) {
       if (error instanceof OrganizationNotActiveError) throw error
@@ -401,7 +401,7 @@ export class ChannelConnectionsRepository {
     encryptCredentials: (
       channelConnectionId: string
     ) => EncryptedChannelCredentials
-  }): Promise<{ channelConnectionId: string }> {
+  }): Promise<{ channelConnectionId: string; created: boolean }> {
     try {
       return await this.db.transaction(async (transaction) => {
         const [organization] = await transaction
@@ -456,7 +456,7 @@ export class ChannelConnectionsRepository {
             inboxId: input.inboxId,
           },
         })
-        return { channelConnectionId }
+        return { channelConnectionId, created: true }
       })
     } catch (error) {
       if (error instanceof OrganizationNotActiveError) throw error

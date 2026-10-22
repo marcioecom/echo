@@ -15,9 +15,11 @@ export const Route = createFileRoute("/_dashboard/settings/knowledge")({
 })
 
 function KnowledgePage() {
+  const { workspace } = Route.useRouteContext()
+
   return (
     <div className="mx-auto max-w-3xl">
-      <KnowledgeBaseView />
+      <KnowledgeBaseView organizationId={workspace.organization.id} />
     </div>
   )
 }

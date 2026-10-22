@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 
+import { resetAnalytics } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
 
 export function useSignOut() {
@@ -13,6 +14,7 @@ export function useSignOut() {
     authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
+          void resetAnalytics()
           queryClient.clear()
           navigate({ to: "/login" })
         },

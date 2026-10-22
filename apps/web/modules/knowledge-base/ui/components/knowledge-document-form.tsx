@@ -21,13 +21,16 @@ import { useKnowledgeDocumentForm } from "../../hooks/use-knowledge-document-for
 import { KnowledgeFilePicker } from "./knowledge-file-picker"
 
 export function KnowledgeDocumentForm({
+  organizationId,
   onCancel,
   onDone,
 }: {
+  organizationId: string
   onCancel: () => void
   onDone: () => void
 }) {
   const { form, createMutation } = useKnowledgeDocumentForm({
+    organizationId,
     onSuccess: onDone,
   })
   const sourceType = form.watch("sourceType")

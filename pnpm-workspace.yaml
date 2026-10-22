@@ -17,6 +17,7 @@ allowBuilds:
   "@prisma/client": false
   "@whiskeysockets/baileys": true
   better-sqlite3: false
+  core-js: false
   cpu-features: false
   esbuild: false
   msgpackr-extract: false

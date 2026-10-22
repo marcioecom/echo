@@ -61,6 +61,7 @@ export function registerSupportInboxRoutes(app: AppInstance): void {
         organizationId: auth.organization.id,
         conversationId: params.data.conversationId,
         operatorUserId: auth.user.id,
+        operatorRole: auth.member.role,
         body: body.data.body,
       })
 

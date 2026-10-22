@@ -6,6 +6,7 @@ import { createLoggerWithContext } from "@workspace/logger"
 import { Worker } from "bullmq"
 import { createApp } from "./app"
 import { env } from "./config/env"
+import { shutdownAnalytics } from "./lib/analytics"
 import { database } from "./lib/db"
 import { jobs } from "./lib/jobs-client"
 import { pingRedis, redisConnection } from "./lib/redis"
@@ -88,6 +89,7 @@ async function main(): Promise<void> {
       ["jobs.close", () => jobs.close()],
       ["redis.quit", () => redisConnection.quit()],
       ["database.close", () => database.close()],
+      ["analytics.shutdown", () => shutdownAnalytics()],
     ]
 
     let failed = false

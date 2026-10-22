@@ -20,6 +20,7 @@ import { registerKnowledgeBaseRoutes } from "./modules/knowledge-base/http/route
 import { registerSupportInboxRoutes } from "./modules/support-inbox/http/routes"
 import { registerAuthRoutes } from "./plugins/auth"
 import { registerHealthRoutes } from "./plugins/health"
+import { registerMetrics } from "./plugins/metrics"
 import { registerRequestLogging } from "./plugins/request-logging"
 
 export function createApp() {
@@ -37,6 +38,7 @@ export function createApp() {
     }
     throw error
   })
+  registerMetrics(app)
   registerRequestLogging(app, env.NODE_ENV === "development")
 
   app.register(formbody)

@@ -2,6 +2,7 @@ import { createLoggerWithContext } from "@workspace/logger"
 
 import { createApp } from "./app"
 import { env } from "./config/env"
+import { shutdownAnalytics } from "./lib/analytics"
 import { database } from "./lib/db"
 import { jobs } from "./lib/jobs-client"
 import { redisConnection } from "./lib/redis"
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
       ["inboxEventBridge.quit", () => inboxEventBridge.quit()],
       ["redis.quit", () => redisConnection.quit()],
       ["database.close", () => database.close()],
+      ["analytics.shutdown", () => shutdownAnalytics()],
     ]
 
     const failures: Array<{ step: string; error: unknown }> = []

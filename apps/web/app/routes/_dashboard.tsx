@@ -2,6 +2,7 @@ import { useSuspenseQuery } from "@tanstack/react-query"
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router"
 
 import { t } from "@/lib/i18n"
+import { useAnalyticsIdentity } from "@/modules/auth/hooks/use-analytics-identity"
 import {
   loadSession,
   loadWorkspace,
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/_dashboard")({
 
 function DashboardLayout() {
   const { data: workspace } = useSuspenseQuery(workspaceQueryOptions())
+  useAnalyticsIdentity(workspace)
   if (!workspace) return null
 
   return (

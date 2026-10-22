@@ -1,18 +1,23 @@
+import type {
+  IndexableKnowledgeDocument,
+  ServingChunkSet,
+} from "@workspace/knowledge"
+import type { Job } from "bullmq"
+
 import { TextDecoder } from "node:util"
 
 import { OpenAIEmbeddings } from "@langchain/openai"
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters"
-import {
-  runKnowledgeIndexAttempt,
-  type IndexableKnowledgeDocument,
-  type ServingChunkSet,
-} from "@workspace/knowledge"
 import { indexKnowledgeDocumentJobSchema } from "@workspace/jobs"
+import {
+  getKnowledgeDocument,
+  runKnowledgeIndexAttempt,
+} from "@workspace/knowledge"
 import mammoth from "mammoth"
-import type { Job } from "bullmq"
 import { extractText, getDocumentProxy } from "unpdf"
 
 import { env } from "../../config/env"
+import { capture } from "../../lib/analytics"
 import { database } from "../../lib/db"
 import { objectStore } from "../../lib/object-store"
 
@@ -29,6 +34,8 @@ const embeddings = new OpenAIEmbeddings({
 
 export async function handleIndexKnowledgeDocument(job: Job): Promise<void> {
   const payload = indexKnowledgeDocumentJobSchema.parse(job.data)
+  let indexed: { contentType: string; chunkCount: number } | null = null
+
   await runKnowledgeIndexAttempt(
     database.db,
     {
@@ -37,8 +44,37 @@ export async function handleIndexKnowledgeDocument(job: Job): Promise<void> {
       revision: payload.revision,
       attemptsExhausted: job.attemptsMade + 1 >= (job.opts.attempts ?? 1),
     },
-    (document) => buildServingChunkSet(document)
+    async (document) => {
+      const set = await buildServingChunkSet(document)
+      indexed = {
+        contentType:
+          document.sourceType === "file"
+            ? (document.mimeType ?? "application/octet-stream")
+            : "text/plain",
+        chunkCount: set.chunks.length,
+      }
+      return set
+    }
   )
+
+  if (!indexed) return
+
+  const detail = await getKnowledgeDocument(database.db, {
+    organizationId: payload.organizationId,
+    documentId: payload.documentId,
+  })
+  if (
+    !detail ||
+    detail.document.status !== "ready" ||
+    detail.document.revision !== payload.revision
+  ) {
+    return
+  }
+
+  capture("knowledge_document_indexed", {
+    organizationId: payload.organizationId,
+    properties: indexed,
+  })
 }
 
 async function buildServingChunkSet(

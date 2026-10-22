@@ -15,6 +15,7 @@ import { useEffect } from "react"
 import { DefaultError } from "@/components/default-error"
 import { NotFound } from "@/components/not-found"
 import { documentLang } from "@/lib/i18n"
+import { useAnalyticsRouteTracking } from "@/lib/use-analytics"
 import { htmlLang } from "@/modules/marketing/i18n/dictionary"
 
 import appCss from "../styles.css?url"
@@ -69,6 +70,7 @@ function RootComponent() {
 function RootDocument({ children }: { children: ReactNode }) {
   const pathname = useLocation({ select: (location) => location.pathname })
   const lang = htmlLang(documentLang(pathname))
+  useAnalyticsRouteTracking(pathname)
 
   useEffect(() => {
     document.documentElement.lang = lang

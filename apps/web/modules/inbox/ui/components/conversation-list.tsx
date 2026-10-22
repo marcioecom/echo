@@ -11,7 +11,7 @@ import {
   WhatsappIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Link, useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Button } from "@workspace/ui/components/button"
 import { cn } from "@workspace/ui/lib/utils"
 
@@ -81,6 +81,7 @@ export function ConversationList({
   isError,
   isFetchingNextPage,
   hasNextPage,
+  onFilterChange,
   onRetry,
   onLoadMore,
 }: {
@@ -91,10 +92,10 @@ export function ConversationList({
   isError: boolean
   isFetchingNextPage: boolean
   hasNextPage: boolean
+  onFilterChange: (filter: InboxStatusFilter) => void
   onRetry: () => void
   onLoadMore: () => void
 }) {
-  const navigate = useNavigate()
   const showCount = !isLoading && !isError && conversations.length > 0
 
   return (
@@ -131,10 +132,8 @@ export function ConversationList({
                 )}
                 key={filter.value}
                 onClick={() => {
-                  navigate({
-                    to: ".",
-                    search: { status: filter.value },
-                  })
+                  if (active) return
+                  onFilterChange(filter.value)
                 }}
                 type="button"
               >
@@ -178,7 +177,7 @@ export function ConversationList({
         {!isLoading && !isError && conversations.length === 0 ? (
           <FilterEmptyState
             status={status}
-            onShowAll={() => navigate({ to: ".", search: { status: "all" } })}
+            onShowAll={() => onFilterChange("all")}
           />
         ) : null}
         <ul className="divide-y divide-border">

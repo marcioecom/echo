@@ -18,6 +18,10 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
     alias: {
+      "@workspace/analytics": path.resolve(
+        appRoot,
+        "../../packages/analytics/src/index.ts"
+      ),
       "@workspace/auth": path.resolve(
         appRoot,
         "../../packages/auth/src/index.ts"
@@ -44,6 +48,11 @@ export default defineConfig({
       : []),
   ],
   ssr: {
-    noExternal: ["@workspace/ui", "@workspace/auth", "@workspace/domain"],
+    noExternal: [
+      "@workspace/analytics",
+      "@workspace/ui",
+      "@workspace/auth",
+      "@workspace/domain",
+    ],
   },
 })

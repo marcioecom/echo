@@ -1,4 +1,5 @@
 import type {
+  ChannelType,
   SupportConversationHandoffReason,
   SupportConversationStatus,
 } from "@workspace/domain"
@@ -20,6 +21,7 @@ import {
 import { and, desc, eq, isNull, ne, sql } from "drizzle-orm"
 
 import { env } from "../../config/env"
+import { capture } from "../../lib/analytics"
 import { database } from "../../lib/db"
 import { supportConversationsQueue } from "../../queues/support-conversations"
 
@@ -42,8 +44,10 @@ type InboundMessageState = {
   contentType: "text" | "audio" | "unsupported"
   body: string | null
   channelConnectionId: string
+  channelType: ChannelType
   status: SupportConversationStatus
   channelProvider: string | null
+  isNewConversation: boolean
 }
 
 export async function handleProcessInboundMessage(job: Job): Promise<void> {
@@ -51,6 +55,17 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
   const state = await loadInboundState(payload)
   if (!state)
     throw new Error("Inbound Message job IDs do not identify one tenant state")
+
+  // Postgres now() is transaction start time, so the new-conversation check runs in SQL.
+  capture("message_received", {
+    organizationId: payload.organizationId,
+    properties: {
+      channelType: state.channelType,
+      contentType: state.contentType,
+      isNewConversation: state.isNewConversation,
+    },
+  })
+
   if (state.status === "human_required" || state.status === "resolved") return
 
   if (state.contentType === "unsupported") {
@@ -114,6 +129,12 @@ export async function handleProcessInboundMessage(job: Job): Promise<void> {
 
   const created = await createAiReply(payload, state, decision.body)
   if (!created) return
+
+  capture("ai_reply_sent", {
+    organizationId: payload.organizationId,
+    properties: { channelType: state.channelType, automated: true },
+  })
+
   await enqueueOutboundMessage({
     organizationId: payload.organizationId,
     channelConnectionId: state.channelConnectionId,
@@ -211,8 +232,10 @@ async function loadInboundState(input: {
       contentType: messages.contentType,
       body: messages.body,
       channelConnectionId: messages.channelConnectionId,
+      channelType: channelIdentities.channelType,
       status: supportConversations.status,
       channelProvider: channelConnectionProviderBindings.provider,
+      isNewConversation: sql<boolean>`${supportConversations.createdAt} = ${messages.createdAt}`,
     })
     .from(messages)
     .innerJoin(
@@ -432,6 +455,16 @@ async function handoff(
     return message ?? null
   })
   if (!created) return
+
+  capture("ai_reply_sent", {
+    organizationId: input.organizationId,
+    properties: { channelType: state.channelType, automated: false },
+  })
+  capture("handoff_requested", {
+    organizationId: input.organizationId,
+    properties: { channelType: state.channelType, reason },
+  })
+
   await enqueueOutboundMessage({
     organizationId: input.organizationId,
     channelConnectionId: state.channelConnectionId,

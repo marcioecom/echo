@@ -86,6 +86,7 @@ const { enqueue } = vi.hoisted(() => ({
 }))
 
 vi.mock("@/lib/jobs-client", () => ({ jobs: { enqueue } }))
+vi.mock("@/lib/analytics", () => ({ capture: vi.fn() }))
 vi.mock("../twilio-inbound-webhook-url", () => ({
   twilioInboundWebhookUrl: () =>
     "http://localhost:3001/webhooks/twilio/whatsapp/inbound",

@@ -30,6 +30,8 @@ const workerEnvSchema = serverEnvSchema.extend({
   LANGSMITH_TRACING: z.enum(["true", "false"]).optional(),
   LANGSMITH_API_KEY: z.string().min(1).optional(),
   LANGSMITH_PROJECT: z.string().min(1).optional(),
+  POSTHOG_API_KEY: z.string().min(1).optional(),
+  POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 })
 
 export type WorkerEnv = z.output<typeof workerEnvSchema>

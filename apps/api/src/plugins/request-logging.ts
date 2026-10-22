@@ -11,6 +11,9 @@ export function registerRequestLogging(
   })
 
   app.addHook("onResponse", async (request, reply) => {
+    const path = request.url.split("?", 1)[0]
+    if (path === "/metrics") return
+
     const statusCode = reply.statusCode
     const level =
       statusCode >= 500

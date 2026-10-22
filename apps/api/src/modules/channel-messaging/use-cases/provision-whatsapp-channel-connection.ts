@@ -1,5 +1,7 @@
 import type { ProvisionTwilioWhatsAppInput } from "../schemas"
 
+import { capture } from "@/lib/analytics"
+
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
 import {
   TwilioChannelProvider,
@@ -66,6 +68,13 @@ export async function provisionWhatsAppChannelConnection(
           provider: "twilio",
         }),
     })
+
+  if (result.created) {
+    capture("channel_connection_created", {
+      organizationId: input.organizationId,
+      properties: { channelType: "whatsapp" },
+    })
+  }
 
   return {
     organizationId: input.organizationId,

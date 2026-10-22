@@ -11,6 +11,7 @@ const { enqueue, publish, repositoryCreate } = vi.hoisted(() => ({
 vi.mock("@/lib/jobs-client", () => ({
   jobs: { enqueue },
 }))
+vi.mock("@/lib/analytics", () => ({ capture: vi.fn() }))
 vi.mock("@workspace/logger", () => ({
   createLoggerWithContext: () => ({ warn: vi.fn() }),
 }))
@@ -25,6 +26,7 @@ const input = {
   organizationId: "01K1EDN69NFBWCG42B2H99V2C1",
   conversationId: "01K1EDN69NFBWCG42B2H99V2C2",
   operatorUserId: "01K1EDN69NFBWCG42B2H99V2C3",
+  operatorRole: "operator",
   body: "I can help with that.",
 }
 const created = {
@@ -49,7 +51,12 @@ describe("createOperatorReply", () => {
       value: { type: "created", messageId: created.messageId },
     })
     expect(repositoryCreate).toHaveBeenCalledWith(
-      expect.objectContaining(input)
+      expect.objectContaining({
+        organizationId: input.organizationId,
+        conversationId: input.conversationId,
+        operatorUserId: input.operatorUserId,
+        body: input.body,
+      })
     )
     expect(publish).toHaveBeenCalledWith({
       organizationId: input.organizationId,

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { track } from "@/lib/analytics"
 import { t } from "@/lib/i18n"
 
 import {
@@ -42,7 +43,10 @@ const knowledgeDocumentSchema = z
 
 type KnowledgeDocumentFormValues = z.infer<typeof knowledgeDocumentSchema>
 
-export function useKnowledgeDocumentForm(options?: { onSuccess?: () => void }) {
+export function useKnowledgeDocumentForm(options: {
+  organizationId: string
+  onSuccess?: () => void
+}) {
   const queryClient = useQueryClient()
   const form = useForm<KnowledgeDocumentFormValues>({
     resolver: zodResolver(knowledgeDocumentSchema),
@@ -50,6 +54,10 @@ export function useKnowledgeDocumentForm(options?: { onSuccess?: () => void }) {
   })
   const createMutation = useMutation({
     mutationFn: async (values: KnowledgeDocumentFormValues) => {
+      track("knowledge_upload_started", {
+        organizationId: options.organizationId,
+      })
+
       if (values.sourceType === "text") {
         return createTextKnowledgeDocument({
           title: values.title,

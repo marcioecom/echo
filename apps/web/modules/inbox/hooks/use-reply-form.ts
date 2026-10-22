@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { track } from "@/lib/analytics"
 import { translateMessage } from "@/lib/i18n"
 
 import { inboxApiRequest } from "./api"
@@ -28,11 +29,16 @@ export function useReplyForm(input: {
   })
 
   const replyMutation = useMutation({
-    mutationFn: (values: ReplyFormValues) =>
-      inboxApiRequest<{ messageId: string }>(
+    mutationFn: (values: ReplyFormValues) => {
+      void track("operator_reply_started", {
+        organizationId: input.organizationId,
+      })
+
+      return inboxApiRequest<{ messageId: string }>(
         `/v1/support-conversations/${input.conversationId}/messages`,
         { method: "POST", body: values }
-      ),
+      )
+    },
     onSuccess: async () => {
       form.reset()
       await Promise.all([

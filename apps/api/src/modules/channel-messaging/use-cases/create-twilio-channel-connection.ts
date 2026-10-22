@@ -2,6 +2,7 @@ import type { ChannelConnectionView } from "../channel-connection-view"
 import type { Result } from "@/common/result"
 
 import { err, ok } from "@/common/result"
+import { capture } from "@/lib/analytics"
 
 import { credentialsCipher } from "../adapters/channel-credentials-cipher"
 import {
@@ -63,7 +64,7 @@ export async function createTwilioChannelConnection(input: {
     return err({ type: "verification_failed", reason })
   }
 
-  let saved: { channelConnectionId: string }
+  let saved: { channelConnectionId: string; created: boolean }
   try {
     saved = await channelConnectionsRepository.saveManagedTwilioConnection({
       organizationId: input.organizationId,
@@ -95,6 +96,14 @@ export async function createTwilioChannelConnection(input: {
     saved.channelConnectionId
   )
   if (!connection) return err({ type: "organization_unavailable" })
+
+  if (saved.created) {
+    capture("channel_connection_created", {
+      organizationId: input.organizationId,
+      distinctId: input.operatorUserId,
+      properties: { channelType: connection.channelType },
+    })
+  }
 
   await publishChannelStatusChanged({
     organizationId: input.organizationId,

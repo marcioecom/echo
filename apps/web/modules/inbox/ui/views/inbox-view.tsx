@@ -5,11 +5,13 @@ import type { InboxStatusFilter } from "../../types"
 import { t } from "@/lib/i18n"
 import { PageHeader } from "@/modules/shell/ui/page-header"
 
+import { useConversationOpened } from "../../hooks/use-conversation-opened"
 import {
   useInboxConversation,
   useInboxConversations,
 } from "../../hooks/use-inbox-conversations"
 import { useInboxEvents } from "../../hooks/use-inbox-events"
+import { useInboxFilter } from "../../hooks/use-inbox-filter"
 import {
   ConversationDetail,
   EmptyConversationDetail,
@@ -31,6 +33,8 @@ export function InboxView({
     selectedConversationId
   )
   useInboxEvents(organizationId)
+  const applyFilter = useInboxFilter(organizationId)
+  useConversationOpened(organizationId, detailQuery.data?.conversation)
 
   const conversations =
     conversationsQuery.data?.pages.flatMap((page) => page.items) ?? []
@@ -54,6 +58,7 @@ export function InboxView({
             isError={conversationsQuery.isError}
             isFetchingNextPage={conversationsQuery.isFetchingNextPage}
             hasNextPage={conversationsQuery.hasNextPage}
+            onFilterChange={applyFilter}
             onRetry={() => conversationsQuery.refetch()}
             onLoadMore={() => conversationsQuery.fetchNextPage()}
           />

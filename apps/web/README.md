@@ -16,6 +16,8 @@ pnpm --filter web dev
 | `VITE_API_URL`    | Auth proxy, React Query, WebSocket       | `http://localhost:3001`   |
 | `VITE_APP_URL`    | Public site origin (SEO / absolute URLs) | `http://localhost:3000`   |
 | `VITE_SENTRY_DSN` | Client + Worker Sentry init              | see `.env.example`        |
+| `VITE_POSTHOG_KEY` | Browser PostHog project API key          | `phc_...`                 |
+| `VITE_POSTHOG_HOST` | PostHog ingestion host                   | `https://us.i.posthog.com` |
 
 `VITE_*` values are public and inlined at build time. Do not put secrets in them.
 
@@ -40,7 +42,7 @@ Dashboard values:
 | Root directory | `apps/web` |
 | Build command | `pnpm build` |
 | Deploy command | `pnpm run deploy` or `npx wrangler deploy` |
-| Build variables | `VITE_API_URL`, `VITE_APP_URL`, `VITE_SENTRY_DSN` |
+| Build variables | `VITE_API_URL`, `VITE_APP_URL`, `VITE_SENTRY_DSN`, `VITE_POSTHOG_KEY`, `VITE_POSTHOG_HOST` |
 | Secrets | `SENTRY_AUTH_TOKEN` (optional, source maps only) |
 
 Do not leave root as `/` with `npx wrangler deploy` — Wrangler then runs at the monorepo root and fails (`application detection logic has been run in the root of a workspace`).
@@ -54,3 +56,5 @@ VITE_SENTRY_DSN=https://a48c60a1446c5ffe3c044b222d8b7af10@o4511162787561472.inge
 ```
 
 To upload source maps, also set `SENTRY_AUTH_TOKEN` as a build secret. The Vite plugin is only enabled when that token is present, so `pnpm build` succeeds without it.
+
+PostHog product analytics is browser-only and uses Cloud US. Create the project at <https://us.posthog.com>, then set `VITE_POSTHOG_KEY` (the public `phc_...` project key) and `VITE_POSTHOG_HOST=https://us.i.posthog.com` as Workers Builds build variables. Leaving the key empty disables analytics completely, including session replay. The host must match the project region; if you later add a reverse proxy subdomain, only this variable changes.

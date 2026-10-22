@@ -14,6 +14,7 @@ import { organization } from "better-auth/plugins/organization"
 import { asc, eq } from "drizzle-orm"
 
 import { env } from "@/config/env"
+import { capture } from "@/lib/analytics"
 import { database } from "@/lib/db"
 import { jobs } from "@/lib/jobs-client"
 
@@ -72,6 +73,16 @@ export function createAuth(options: CreateAuthOptions) {
       },
     },
     databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            capture("signup_completed", {
+              distinctId: user.id,
+              properties: { method: "email" },
+            })
+          },
+        },
+      },
       session: {
         create: {
           before: async (session) => {
@@ -104,6 +115,15 @@ export function createAuth(options: CreateAuthOptions) {
           admin,
           operator,
         },
+        organizationHooks: {
+          afterCreateOrganization: async ({ organization, user, member }) => {
+            capture("organization_created", {
+              organizationId: organization.id,
+              distinctId: user.id,
+              properties: { role: member.role },
+            })
+          },
+        },
         async sendInvitationEmail(data) {
           const request: SendInvitationEmailJob = {
             invitationId: data.id,
@@ -118,6 +138,11 @@ export function createAuth(options: CreateAuthOptions) {
           }
           try {
             await options.deliverInvitationEmail(request)
+            capture("invitation_sent", {
+              organizationId: data.organization.id,
+              distinctId: data.inviter.user.id,
+              properties: { role: data.role },
+            })
           } catch (error) {
             options.onDeliveryError?.(error, request)
           }

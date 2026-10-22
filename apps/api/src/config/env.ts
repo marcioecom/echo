@@ -32,6 +32,8 @@ const apiEnvSchema = serverEnvSchema.extend({
     .string()
     .min(1)
     .default("openai/text-embedding-3-small"),
+  POSTHOG_API_KEY: z.string().min(1).optional(),
+  POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 })
 
 export type ApiEnv = z.output<typeof apiEnvSchema>

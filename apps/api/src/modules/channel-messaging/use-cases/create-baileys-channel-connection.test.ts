@@ -26,6 +26,9 @@ vi.mock("../adapters/channel-credentials-cipher", () => ({
 vi.mock("@/lib/jobs-client", () => ({
   jobs: { enqueue },
 }))
+vi.mock("@/lib/analytics", () => ({
+  capture: vi.fn(),
+}))
 vi.mock("../events/publish-channel-status-changed", () => ({
   publishChannelStatusChanged: publish,
 }))

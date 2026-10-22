@@ -18,7 +18,11 @@ import { KnowledgeDocumentForm } from "../components/knowledge-document-form"
 import { KnowledgeDocumentList } from "../components/knowledge-document-list"
 import { KnowledgeTestPanel } from "../components/knowledge-test-panel"
 
-export function KnowledgeBaseView() {
+export function KnowledgeBaseView({
+  organizationId,
+}: {
+  organizationId: string
+}) {
   const [composing, setComposing] = useState(false)
   const [activeTab, setActiveTab] = useState("documents")
 
@@ -60,6 +64,7 @@ export function KnowledgeBaseView() {
         >
           {composing ? (
             <KnowledgeDocumentForm
+              organizationId={organizationId}
               onCancel={() => setComposing(false)}
               onDone={() => setComposing(false)}
             />
