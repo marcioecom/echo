@@ -16,21 +16,21 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
   const ctaLabel = signedIn ? copy.hero.openInbox : copy.hero.joinPilot
 
   return (
-    <section className="relative isolate min-h-svh overflow-hidden">
+    <section className="relative isolate overflow-hidden">
       <div className="landing-sky" aria-hidden />
-      <div className="relative z-10 flex min-h-svh flex-col">
-        <div className="mx-auto flex max-w-3xl flex-col items-center px-5 pt-28 text-center sm:pt-36 lg:flex-1">
-          <h1 className="max-w-4xl text-[2.35rem] leading-[1.15] font-bold tracking-tight text-balance text-neutral-950 sm:text-[3.4rem] md:text-[4rem]">
+      <div className="relative z-10 flex flex-col pb-16">
+        <div className="mx-auto flex max-w-3xl flex-col items-center px-5 pt-20 text-center sm:pt-28">
+          <h1 className="max-w-4xl text-[2.35rem] leading-[1.15] font-bold tracking-tight text-balance text-neutral-950 sm:text-[3.4rem] md:text-[4rem] lg:leading-[1.08]">
             {copy.hero.before}
             <em className="font-instrument-serif font-normal italic">
               {copy.hero.em}
             </em>
             {copy.hero.after}
           </h1>
-          <p className="mt-6 max-w-[42ch] text-base leading-7 text-pretty text-neutral-700 sm:text-lg">
+          <p className="mt-5 max-w-[42ch] text-base leading-7 text-pretty text-neutral-700 sm:text-lg">
             {copy.hero.subtext}
           </p>
-          <div className="mt-8 flex flex-col items-center gap-2.5">
+          <div className="mt-7 flex flex-col items-center gap-2">
             <Link
               to={ctaHref}
               className="landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"

@@ -2,7 +2,7 @@
 
 import { useLanding } from "@/modules/marketing/i18n/landing-context"
 
-import { PhoneMockup } from "./phone-mockups"
+import { ConversationThread } from "./conversation-thread"
 import { SectionHeading } from "./section-heading"
 
 export function DemoSection() {
@@ -15,8 +15,10 @@ export function DemoSection() {
     >
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:py-28">
         <div className="flex justify-center lg:justify-start">
-          <PhoneMockup
+          <ConversationThread
+            variant="panel"
             business={copy.demo.business}
+            channel={copy.demo.channel}
             messages={copy.demo.messages}
           />
         </div>

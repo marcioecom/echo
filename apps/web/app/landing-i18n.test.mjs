@@ -1,8 +1,9 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { describe, it } from "vitest"
 import { fileURLToPath } from "node:url"
+
+import { describe, it } from "vitest"
 
 const appDir = dirname(fileURLToPath(import.meta.url))
 const webDir = join(appDir, "..")
@@ -91,13 +92,30 @@ describe("landing palette", () => {
   })
 })
 
-describe("hero chips", () => {
-  it("places chips in side columns instead of overlapping the phones", () => {
+describe("hero scene", () => {
+  it("shows where answers come from instead of stacking phone mockups", () => {
     const scene = read("modules/marketing/ui/components/hero-scene.tsx")
+    const demo = read("modules/marketing/ui/components/demo-section.tsx")
+
+    assert.match(scene, /ConversationThread/)
+    assert.match(scene, /hero-rail/)
     assert.match(scene, /lg:grid-cols-/)
-    assert.match(scene, /z-20/)
-    assert.doesNotMatch(scene, /lg:top-40 lg:right-0/)
-    assert.match(scene, /lg:hidden/)
+    assert.match(demo, /ConversationThread/)
+    assert.doesNotMatch(scene, /PhoneMockup|parallax/)
+    assert.doesNotMatch(demo, /PhoneMockup/)
+  })
+
+  it("keeps the sequence readable and controllable without motion", () => {
+    const scene = read("modules/marketing/ui/components/hero-scene.tsx")
+    const hook = read("modules/marketing/hooks/use-hero-sequence.ts")
+    const css = read("modules/marketing/ui/hero.css")
+
+    assert.match(scene, /aria-hidden/)
+    assert.match(scene, /sr-only/)
+    assert.match(scene, /type="button"/)
+    assert.match(hook, /prefers-reduced-motion/)
+    assert.match(css, /\.hero-sweep/)
+    assert.match(css, /prefers-reduced-motion: reduce/)
   })
 })
 

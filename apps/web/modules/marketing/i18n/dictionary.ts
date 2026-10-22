@@ -49,22 +49,57 @@ const en = {
     joinPilot: "Start free for 30 days",
     openInbox: "Open inbox",
     clickTrigger: "Limited pilot spots · No sales call",
-    chips: [
-      "Answers from your own knowledge base",
-      "Hands off to a human when needed",
-      "One web inbox for your team",
-    ],
-    phonesSr:
-      "Three WhatsApp conversations. Echo answers from the shop knowledge base, then hands a delivery-address change to Ana from the team.",
-    business: "Harbor Goods",
-    hoursIn: "What time do you close on Saturday?",
-    hoursOut:
-      "Saturday we are open 10am–6pm. Pickup is available until 5:30pm.",
-    shippingIn: "Do you ship to Porto Alegre?",
-    shippingOut:
-      "Yes. Orders to Porto Alegre usually arrive in 3–5 business days.",
-    handoffIn: "I need to change my delivery address.",
-    handoffOut: "Passing you to Ana from the team.",
+    scene: {
+      sr: "The customer asks what time the shop closes on Saturday. Echo reads the opening-hours document, answers from it, then passes an address change to Ana from the team.",
+      knowledge: {
+        title: "Harbor Goods · Knowledge",
+        meta: "3 documents",
+        source: "Source",
+        footer: "Answers stay inside these documents.",
+        noMatch: "No document covers address changes.",
+      },
+      documents: [
+        {
+          title: "Opening hours",
+          body: "Sat 10am–6pm · Pickup until 5:30pm",
+        },
+        {
+          title: "Delivery",
+          body: "Porto Alegre: 3–5 business days",
+        },
+        {
+          title: "Payment",
+          body: "Pix, card, or cash on pickup",
+        },
+      ],
+      conversation: {
+        business: "Harbor Goods",
+        channel: "WhatsApp",
+        questionOne: "What time do you close on Saturday?",
+        answerOne:
+          "Saturday we are open 10am–6pm. Pickup is available until 5:30pm.",
+        questionTwo: "I need to change my delivery address.",
+        answerTwo: "Passing you to Ana from the team.",
+      },
+      handoff: {
+        name: "Ana",
+        note: "joined from the Support Inbox",
+      },
+      status: {
+        listening: "Listening on WhatsApp",
+        reading: "Reading your knowledge",
+        answering: "Answering from your knowledge",
+        answered: "Answered automatically",
+        noMatch: "Nothing matches. Not guessing.",
+        handingOff: "Handing off to Ana",
+        done: "Answered, then handed off",
+      },
+      controls: {
+        pause: "Pause",
+        play: "Continue",
+        replay: "Replay",
+      },
+    },
   },
   problem: {
     titleBefore: "The same questions, ",
@@ -138,6 +173,7 @@ const en = {
     description:
       "Customers stay on WhatsApp. Echo reads the thread, answers what it can, and brings in a teammate when the request leaves the knowledge base.",
     business: "Harbor Goods",
+    channel: "WhatsApp",
     messages: [
       { from: "customer" as const, text: "How much is a haircut?" },
       {
@@ -299,21 +335,56 @@ const ptBR: typeof en = {
     joinPilot: "Começar 30 dias grátis",
     openInbox: "Abrir a inbox",
     clickTrigger: "Vagas limitadas · Sem call comercial",
-    chips: [
-      "Responde com a sua própria base de conhecimento",
-      "Passa para uma pessoa quando precisa",
-      "Uma inbox web para o time",
-    ],
-    phonesSr:
-      "Três conversas no WhatsApp. O Echo responde com o que a loja já sabe e, no fim, passa uma troca de endereço para a Ana do time.",
-    business: "Casa do Porto",
-    hoursIn: "Que horas vocês fecham no sábado?",
-    hoursOut: "Sábado a gente abre das 10h às 18h. Retirada até as 17h30.",
-    shippingIn: "Vocês entregam em Porto Alegre?",
-    shippingOut:
-      "Sim. Pedido para Porto Alegre costuma chegar em 3 a 5 dias úteis.",
-    handoffIn: "Preciso trocar o endereço da entrega.",
-    handoffOut: "Vou te passar para a Ana do time.",
+    scene: {
+      sr: "O cliente pergunta o horário de sábado. O Echo lê o documento de horários, responde com ele e passa uma troca de endereço para a Ana do time.",
+      knowledge: {
+        title: "Casa do Porto · Base",
+        meta: "3 documentos",
+        source: "Fonte",
+        footer: "As respostas ficam nestes documentos.",
+        noMatch: "Nenhum documento cobre troca de endereço.",
+      },
+      documents: [
+        {
+          title: "Horários",
+          body: "Sáb 10h–18h · Retirada até 17h30",
+        },
+        {
+          title: "Entrega",
+          body: "Porto Alegre: 3 a 5 dias úteis",
+        },
+        {
+          title: "Pagamento",
+          body: "Pix, cartão ou dinheiro na retirada",
+        },
+      ],
+      conversation: {
+        business: "Casa do Porto",
+        channel: "WhatsApp",
+        questionOne: "Que horas vocês fecham no sábado?",
+        answerOne: "Sábado a gente abre das 10h às 18h. Retirada até as 17h30.",
+        questionTwo: "Preciso trocar o endereço da entrega.",
+        answerTwo: "Vou te passar para a Ana do time.",
+      },
+      handoff: {
+        name: "Ana",
+        note: "entrou pela inbox do time",
+      },
+      status: {
+        listening: "Ouvindo no WhatsApp",
+        reading: "Lendo a sua base",
+        answering: "Respondendo com a sua base",
+        answered: "Respondeu sozinho",
+        noMatch: "Nada na base. Não inventa.",
+        handingOff: "Passando para a Ana",
+        done: "Respondeu e passou para uma pessoa",
+      },
+      controls: {
+        pause: "Pausar",
+        play: "Continuar",
+        replay: "Repetir",
+      },
+    },
   },
   problem: {
     titleBefore: "As mesmas perguntas, ",
@@ -387,6 +458,7 @@ const ptBR: typeof en = {
     description:
       "O cliente continua no WhatsApp. O Echo lê o fio, responde o que dá e chama alguém do time quando o pedido sai da base.",
     business: "Casa do Porto",
+    channel: "WhatsApp",
     messages: [
       { from: "customer" as const, text: "Quanto custa o corte?" },
       {
