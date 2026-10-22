@@ -24,13 +24,14 @@ describe("landing locale helpers", () => {
     )
   })
 
-  it("keeps the pilot price in BRL in both dictionaries", () => {
+  it("keeps the price in BRL with a localized period in both dictionaries", () => {
     const amounts = source.match(/amount: "R\$297"/g) ?? []
-    const periods = source.match(/period: "\/mês"/g) ?? []
+    const periods = source.match(/period: "\/(?:mês|month)"/g) ?? []
     assert.equal(amounts.length, 2)
     assert.equal(periods.length, 2)
-    assert.match(source, /Then from R\$297\/mês/)
-    assert.match(source, /a partir de R\$297\/mês/)
+    assert.match(source, /period: "\/mês"/)
+    assert.match(source, /period: "\/month"/)
+    assert.doesNotMatch(source, /(?:from|a partir de) R\$297/)
   })
 })
 
