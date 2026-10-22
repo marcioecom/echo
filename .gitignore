@@ -30,6 +30,8 @@ dist
 
 # misc
 .DS_Store
+.omp/
+.impeccable/
 *.pem
 
 # debug
