@@ -17,7 +17,9 @@ describe("analytics event contract", () => {
   })
 
   it("keeps intent events on the browser", () => {
+    expect(analyticsEventOwners.signup_viewed).toBe("web")
     expect(analyticsEventOwners.signup_started).toBe("web")
+    expect(analyticsEventOwners.signup_failed).toBe("web")
     expect(analyticsEventOwners.operator_reply_started).toBe("web")
     expect(analyticsEventOwners.inbox_filter_applied).toBe("web")
   })

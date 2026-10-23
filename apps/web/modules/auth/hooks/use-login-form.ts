@@ -28,7 +28,7 @@ export function useLoginForm() {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      email: typeof search.email === "string" ? search.email : "",
       password: "",
     },
   })
