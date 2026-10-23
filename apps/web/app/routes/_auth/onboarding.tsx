@@ -1,28 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 
-import { onboardingHead } from "@/modules/auth/head"
-import { loadSession, loadWorkspace } from "@/modules/auth/queries"
-import { OnboardingView } from "@/modules/auth/ui/views/onboarding-view"
-
 export const Route = createFileRoute("/_auth/onboarding")({
-  head: () => onboardingHead(),
-  beforeLoad: async ({ context, location }) => {
-    const session = await loadSession(context.queryClient)
-    if (!session) {
-      throw redirect({
-        to: "/login",
-        search: { redirect: location.pathname },
-      })
-    }
-
-    const workspace = await loadWorkspace(context.queryClient)
-    if (workspace) {
-      throw redirect({ to: "/inbox" })
-    }
+  // Setup moved out of the auth layout: an Organization is created inside the
+  // first-run flow, not next to a sign-in pitch. Keep the path as a redirect so
+  // older links and stored redirect params still resolve.
+  beforeLoad: () => {
+    throw redirect({ to: "/setup" })
   },
-  component: OnboardingPage,
 })
-
-function OnboardingPage() {
-  return <OnboardingView />
-}

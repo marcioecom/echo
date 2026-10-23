@@ -29,6 +29,12 @@ const en = {
   qrScan: "On the phone, open WhatsApp, Linked devices, and scan this code.",
   qrRisk:
     "This path uses WhatsApp Web. Keep the phone nearby until it connects.",
+  qrConnectedTitle: "WhatsApp connected",
+  qrConnectedBody:
+    "Connected to {address}. New messages already land in the Support Inbox.",
+  qrConnectedBodyNoAddress:
+    "WhatsApp is connected. New messages already land in the Support Inbox.",
+  qrContinue: "Continue",
   pairingPhone: "Phone number",
   pairingRequest: "Or pair with a code",
   pairingWaiting: "Enter this code in WhatsApp under Linked devices.",
@@ -175,6 +181,12 @@ const ptBR = {
     "No celular, abra o WhatsApp, Aparelhos conectados, e escaneie este código.",
   qrRisk:
     "Este caminho usa o WhatsApp Web. Deixe o celular por perto até conectar.",
+  qrConnectedTitle: "WhatsApp conectado",
+  qrConnectedBody:
+    "Conectado a {address}. As novas mensagens já caem no Inbox de suporte.",
+  qrConnectedBodyNoAddress:
+    "O WhatsApp está conectado. As novas mensagens já caem no Inbox de suporte.",
+  qrContinue: "Continuar",
   pairingPhone: "Número",
   pairingRequest: "Ou parear com um código",
   pairingWaiting: "Digite este código no WhatsApp, em Aparelhos conectados.",

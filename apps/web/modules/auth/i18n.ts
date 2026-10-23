@@ -76,18 +76,6 @@ const en = {
     submit: "Reset password",
     success: "Password reset. Sign in with your new password.",
   },
-  onboarding: {
-    metaTitle: "Create organization | Echo",
-    title: "Create your organization",
-    description:
-      "Your organization is the tenant that holds your support workspace. To join an existing one instead, open the link from your invitation email.",
-    name: "Organization name",
-    namePlaceholder: "Acme Support",
-    slug: "Slug",
-    slugPlaceholder: "acme-support",
-    submitting: "Creating...",
-    submit: "Create organization",
-  },
   layout: {
     eyebrow: "WhatsApp customer support",
     title: "Keep every customer conversation in reach.",
@@ -185,18 +173,6 @@ const ptBR = {
     submitting: "Redefinindo senha...",
     submit: "Redefinir senha",
     success: "Senha redefinida. Entre com a nova senha.",
-  },
-  onboarding: {
-    metaTitle: "Criar organização | Echo",
-    title: "Crie sua organização",
-    description:
-      "Sua organização é o espaço do atendimento. Para entrar em uma que já existe, abra o link do convite.",
-    name: "Nome da organização",
-    namePlaceholder: "Suporte Acme",
-    slug: "Slug",
-    slugPlaceholder: "suporte-acme",
-    submitting: "Criando...",
-    submit: "Criar organização",
   },
   layout: {
     eyebrow: "Atendimento no WhatsApp",

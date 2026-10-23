@@ -31,7 +31,7 @@ export function useSignUpForm() {
   const redirectTo =
     typeof search.redirect === "string" && search.redirect.startsWith("/")
       ? search.redirect
-      : "/onboarding"
+      : "/setup"
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),

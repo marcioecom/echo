@@ -5,6 +5,7 @@ import { authMessages } from "@/modules/auth/i18n"
 import { inboxMessages } from "@/modules/inbox/i18n"
 import { knowledgeMessages } from "@/modules/knowledge-base/i18n"
 import { membersMessages } from "@/modules/organization/i18n"
+import { setupMessages } from "@/modules/setup/i18n"
 import { shellMessages } from "@/modules/shell/i18n"
 
 import {
@@ -21,6 +22,7 @@ const catalogs = [
   knowledgeMessages,
   membersMessages,
   shellMessages,
+  setupMessages,
 ]
 
 describe("app i18n", () => {

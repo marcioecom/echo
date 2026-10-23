@@ -19,17 +19,22 @@ import { TwilioConnectForm } from "./twilio-connect-form"
 export function ConnectChannelWizard({
   organizationId,
   onClose,
+  showProgress = true,
 }: {
   organizationId: string
   onClose: () => void
+  showProgress?: boolean
 }) {
   const [step, setStep] = useState<"choose" | "twilio" | "baileys">("choose")
   const currentStep = step === "choose" ? 1 : 2
+  const progress = showProgress ? (
+    <WizardProgress current={currentStep} />
+  ) : null
 
   if (step === "twilio") {
     return (
       <div className="space-y-3">
-        <WizardProgress current={currentStep} />
+        {progress}
         <TwilioConnectForm
           onBack={() => setStep("choose")}
           onDone={onClose}
@@ -42,7 +47,7 @@ export function ConnectChannelWizard({
   if (step === "baileys") {
     return (
       <div className="space-y-3">
-        <WizardProgress current={currentStep} />
+        {progress}
         <BaileysPairingForm
           onBack={() => setStep("choose")}
           onDone={onClose}
@@ -54,7 +59,7 @@ export function ConnectChannelWizard({
 
   return (
     <div className="space-y-3">
-      <WizardProgress current={currentStep} />
+      {progress}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium">

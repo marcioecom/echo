@@ -6,6 +6,7 @@ import type {
   MembersMessages,
   OrganizationMessages,
 } from "@/modules/organization/i18n"
+import type { SetupMessages } from "@/modules/setup/i18n"
 import type { ShellMessages } from "@/modules/shell/i18n"
 
 import { authMessages } from "@/modules/auth/i18n"
@@ -21,6 +22,7 @@ import {
   membersMessages,
   organizationMessages,
 } from "@/modules/organization/i18n"
+import { setupMessages } from "@/modules/setup/i18n"
 import { shellMessages } from "@/modules/shell/i18n"
 
 export type AppLocale = "en" | "pt-BR"
@@ -33,6 +35,7 @@ type Catalog = {
   members: MembersMessages
   organization: OrganizationMessages
   shell: ShellMessages
+  setup: SetupMessages
 }
 
 type LeafPaths<T, Prefix extends string = ""> = {
@@ -54,6 +57,7 @@ const catalogs: Record<AppLocale, Catalog> = {
     members: membersMessages.en,
     organization: organizationMessages.en,
     shell: shellMessages.en,
+    setup: setupMessages.en,
   },
   "pt-BR": {
     auth: authMessages["pt-BR"],
@@ -63,6 +67,7 @@ const catalogs: Record<AppLocale, Catalog> = {
     members: membersMessages["pt-BR"],
     organization: organizationMessages["pt-BR"],
     shell: shellMessages["pt-BR"],
+    setup: setupMessages["pt-BR"],
   },
 }
 
