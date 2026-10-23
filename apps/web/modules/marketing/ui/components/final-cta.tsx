@@ -10,8 +10,9 @@ type FinalCtaProps = {
 
 export function FinalCta({ signedIn }: FinalCtaProps) {
   const { copy } = useLanding()
-  const href = signedIn ? "/inbox" : "/sign-up"
   const label = signedIn ? copy.finalCta.openInbox : copy.finalCta.joinPilot
+  const ctaClassName =
+    "landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
 
   return (
     <section className="landing-section landing-deep px-5 py-20 text-center sm:px-8 md:py-28">
@@ -27,12 +28,19 @@ export function FinalCta({ signedIn }: FinalCtaProps) {
           {copy.finalCta.body}
         </p>
         <div className="mt-8 flex flex-col items-center gap-2.5">
-          <Link
-            to={href}
-            className="landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-          >
-            {label}
-          </Link>
+          {signedIn ? (
+            <Link to="/inbox" className={ctaClassName}>
+              {label}
+            </Link>
+          ) : (
+            <Link
+              to="/sign-up"
+              search={{ source: "final" }}
+              className={ctaClassName}
+            >
+              {label}
+            </Link>
+          )}
           {signedIn ? null : (
             <p className="text-sm text-white/70">
               {copy.finalCta.clickTrigger}

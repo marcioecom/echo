@@ -12,8 +12,9 @@ type LandingHeroProps = {
 
 export function LandingHero({ signedIn }: LandingHeroProps) {
   const { copy } = useLanding()
-  const ctaHref = signedIn ? "/inbox" : "/sign-up"
   const ctaLabel = signedIn ? copy.hero.openInbox : copy.hero.joinPilot
+  const ctaClassName =
+    "landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
 
   return (
     <section className="relative isolate overflow-hidden">
@@ -31,12 +32,19 @@ export function LandingHero({ signedIn }: LandingHeroProps) {
             {copy.hero.subtext}
           </p>
           <div className="mt-7 flex flex-col items-center gap-2">
-            <Link
-              to={ctaHref}
-              className="landing-cta inline-flex h-12 items-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
-            >
-              {ctaLabel}
-            </Link>
+            {signedIn ? (
+              <Link to="/inbox" className={ctaClassName}>
+                {ctaLabel}
+              </Link>
+            ) : (
+              <Link
+                to="/sign-up"
+                search={{ source: "hero" }}
+                className={ctaClassName}
+              >
+                {ctaLabel}
+              </Link>
+            )}
             {signedIn ? null : (
               <p className="text-sm text-neutral-600">
                 {copy.hero.clickTrigger}
