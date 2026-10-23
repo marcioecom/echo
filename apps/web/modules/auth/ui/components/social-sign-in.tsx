@@ -6,7 +6,7 @@ import { toast } from "sonner"
 
 import { track } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
-import { getAppUrl, isGoogleAuthEnabled } from "@/lib/env"
+import { getAppUrl } from "@/lib/env"
 import { t } from "@/lib/i18n"
 import { buildSocialCallbackUrl } from "@/modules/auth/social-callback-url"
 import { GoogleMark } from "@/modules/auth/ui/components/google-mark"
@@ -28,8 +28,6 @@ export function SocialSignIn({
   variant = "login",
 }: SocialSignInProps) {
   const [isRedirecting, setIsRedirecting] = useState(false)
-
-  if (!isGoogleAuthEnabled()) return null
 
   async function handleClick() {
     if (variant === "signup") {
