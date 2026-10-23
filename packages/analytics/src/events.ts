@@ -22,8 +22,8 @@ export const analyticsEventOwners = {
 export type AnalyticsEventName = keyof typeof analyticsEventOwners
 
 export type AnalyticsEventProperties = {
-  signup_started: { method: "email" }
-  signup_completed: { method: "email" }
+  signup_started: { method: "email" | "google" }
+  signup_completed: { method: "email" | "google" }
   organization_created: { organizationId: string; role: string }
   invitation_sent: { organizationId: string; role: string }
   whatsapp_connection_started: { organizationId: string }

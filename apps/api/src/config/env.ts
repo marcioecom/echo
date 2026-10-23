@@ -14,6 +14,8 @@ const apiEnvSchema = serverEnvSchema.extend({
   PUBLIC_API_URL: z.url(),
   BETTER_AUTH_COOKIE_DOMAIN: z.string().min(1).optional(),
   BETTER_AUTH_SECRET: z.string().min(1),
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
   CHANNEL_CREDENTIALS_ENCRYPTION_KEY: encryptionKeySchema,
   CHANNEL_CREDENTIALS_KEY_VERSION: z.string().min(1),
   R2_ENDPOINT: z.url(),

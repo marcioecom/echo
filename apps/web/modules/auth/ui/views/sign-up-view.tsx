@@ -15,9 +15,10 @@ import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { useSignUpForm } from "@/modules/auth/hooks/use-sign-up-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
+import { SocialSignIn } from "@/modules/auth/ui/components/social-sign-in"
 
 export function SignUpView() {
-  const { form, onSubmit } = useSignUpForm()
+  const { form, onSubmit, redirectTo } = useSignUpForm()
   const isPending = form.formState.isSubmitting
 
   return (
@@ -30,6 +31,7 @@ export function SignUpView() {
           {t("auth.signUp.description")}
         </p>
       </header>
+      <SocialSignIn redirectTo={redirectTo} variant="signup" />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
