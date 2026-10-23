@@ -10,10 +10,12 @@ import { z } from "zod"
 import { track } from "@/lib/analytics"
 import { authClient } from "@/lib/auth-client"
 import { t } from "@/lib/i18n"
+import { displayNameFromEmail } from "@/modules/auth/display-name"
 import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
+import { createOrganization } from "@/modules/setup/lib/create-organization"
 
 const signUpSchema = z.object({
-  name: z.string().min(1, "auth.validation.name"),
+  organizationName: z.string().min(1, "auth.validation.organizationName"),
   email: z.email("auth.validation.email"),
   password: z.string().min(8, "auth.validation.passwordMin"),
 })
@@ -46,7 +48,7 @@ export function useSignUpForm() {
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      name: "",
+      organizationName: "",
       email: "",
       password: "",
     },
@@ -63,7 +65,7 @@ export function useSignUpForm() {
 
   async function onSubmit(values: SignUpFormValues) {
     const { error } = await authClient.signUp.email({
-      name: values.name,
+      name: displayNameFromEmail(values.email),
       email: values.email,
       password: values.password,
     })
@@ -82,6 +84,16 @@ export function useSignUpForm() {
       toast.error(t("auth.errors.signUp"))
       return
     }
+
+    // An invitation creates the Membership, not an Organization of its own.
+    if (!redirectTo.startsWith("/accept-invitation")) {
+      try {
+        await createOrganization(values.organizationName)
+      } catch {
+        // Signup never blocks on the Organization; /setup can create it later.
+      }
+    }
+
     await navigateAfterAuth(redirectTo)
   }
 
