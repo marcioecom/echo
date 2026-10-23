@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
+import { Route as SetupRouteImport } from './routes/_setup'
 import { Route as PtBrRouteImport } from './routes/pt-br'
 import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -19,6 +20,7 @@ import { Route as AuthOnboardingRouteImport } from './routes/_auth/onboarding'
 import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
 import { Route as AuthSignUpRouteImport } from './routes/_auth/sign-up'
 import { Route as DashboardInboxRouteImport } from './routes/_dashboard/inbox'
+import { Route as SetupSetupRouteImport } from './routes/_setup/setup'
 import { Route as AcceptInvitationIdRouteImport } from './routes/accept-invitation.$id'
 import { Route as DashboardInboxIndexRouteImport } from './routes/_dashboard/inbox.index'
 import { Route as DashboardInboxConversationIdRouteImport } from './routes/_dashboard/inbox.$conversationId'
@@ -38,6 +40,10 @@ const AuthRoute = AuthRouteImport.update({
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/_dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetupRoute = SetupRouteImport.update({
+  id: '/_setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PtBrRoute = PtBrRouteImport.update({
@@ -74,6 +80,11 @@ const DashboardInboxRoute = DashboardInboxRouteImport.update({
   id: '/inbox',
   path: '/inbox',
   getParentRoute: () => DashboardRoute,
+} as any)
+const SetupSetupRoute = SetupSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => SetupRoute,
 } as any)
 const AcceptInvitationIdRoute = AcceptInvitationIdRouteImport.update({
   id: '/accept-invitation/$id',
@@ -124,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof AuthResetPasswordRoute
   '/sign-up': typeof AuthSignUpRoute
   '/inbox': typeof DashboardInboxRouteWithChildren
+  '/setup': typeof SetupSetupRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
   '/settings/channels': typeof DashboardSettingsChannelsRoute
@@ -140,6 +152,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthOnboardingRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/sign-up': typeof AuthSignUpRoute
+  '/setup': typeof SetupSetupRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
   '/settings/channels': typeof DashboardSettingsChannelsRoute
@@ -153,6 +166,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_auth': typeof AuthRouteWithChildren
   '/_dashboard': typeof DashboardRouteWithChildren
+  '/_setup': typeof SetupRouteWithChildren
   '/pt-br': typeof PtBrRoute
   '/_auth/forgot-password': typeof AuthForgotPasswordRoute
   '/_auth/login': typeof AuthLoginRoute
@@ -160,6 +174,7 @@ export interface FileRoutesById {
   '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_auth/sign-up': typeof AuthSignUpRoute
   '/_dashboard/inbox': typeof DashboardInboxRouteWithChildren
+  '/_setup/setup': typeof SetupSetupRoute
   '/accept-invitation/$id': typeof AcceptInvitationIdRoute
   '/_dashboard/inbox/$conversationId': typeof DashboardInboxConversationIdRoute
   '/_dashboard/settings/channels': typeof DashboardSettingsChannelsRoute
@@ -179,6 +194,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/sign-up'
     | '/inbox'
+    | '/setup'
     | '/accept-invitation/$id'
     | '/inbox/$conversationId'
     | '/settings/channels'
@@ -195,6 +211,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/reset-password'
     | '/sign-up'
+    | '/setup'
     | '/accept-invitation/$id'
     | '/inbox/$conversationId'
     | '/settings/channels'
@@ -207,6 +224,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_auth'
     | '/_dashboard'
+    | '/_setup'
     | '/pt-br'
     | '/_auth/forgot-password'
     | '/_auth/login'
@@ -214,6 +232,7 @@ export interface FileRouteTypes {
     | '/_auth/reset-password'
     | '/_auth/sign-up'
     | '/_dashboard/inbox'
+    | '/_setup/setup'
     | '/accept-invitation/$id'
     | '/_dashboard/inbox/$conversationId'
     | '/_dashboard/settings/channels'
@@ -227,6 +246,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRouteWithChildren
+  SetupRoute: typeof SetupRouteWithChildren
   PtBrRoute: typeof PtBrRoute
   AcceptInvitationIdRoute: typeof AcceptInvitationIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -253,6 +273,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_setup': {
+      id: '/_setup'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pt-br': {
@@ -303,6 +330,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/inbox'
       preLoaderRoute: typeof DashboardInboxRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/_setup/setup': {
+      id: '/_setup/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupSetupRouteImport
+      parentRoute: typeof SetupRoute
     }
     '/accept-invitation/$id': {
       id: '/accept-invitation/$id'
@@ -406,10 +440,21 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
   DashboardRouteChildren,
 )
 
+interface SetupRouteChildren {
+  SetupSetupRoute: typeof SetupSetupRoute
+}
+
+const SetupRouteChildren: SetupRouteChildren = {
+  SetupSetupRoute: SetupSetupRoute,
+}
+
+const SetupRouteWithChildren = SetupRoute._addFileChildren(SetupRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRouteWithChildren,
+  SetupRoute: SetupRouteWithChildren,
   PtBrRoute: PtBrRoute,
   AcceptInvitationIdRoute: AcceptInvitationIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

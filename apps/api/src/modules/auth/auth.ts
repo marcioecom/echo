@@ -32,10 +32,28 @@ export interface CreateAuthOptions {
 }
 
 export function createAuth(options: CreateAuthOptions) {
+  const googleProvider =
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
+        }
+      : undefined
+
   return betterAuth({
     baseURL: options.baseURL,
     secret: options.secret,
     trustedOrigins: [options.webAppUrl],
+    socialProviders: googleProvider ? { google: googleProvider } : undefined,
+    // Implicit account linking stays off. Local emails are unverified, so
+    // linking would let someone who registers a victim's email take over the
+    // account on the victim's first Google login.
+    //
+    // OAuth failures land on the login page, which explains how to sign in
+    // with the password instead.
+    onAPIError: {
+      errorURL: new URL("/login", options.webAppUrl).toString(),
+    },
     database: drizzleAdapter(options.db, {
       provider: "pg",
       usePlural: true,
@@ -76,9 +94,18 @@ export function createAuth(options: CreateAuthOptions) {
       user: {
         create: {
           after: async (user) => {
+            // OAuth accounts are created in the same transaction as the user and
+            // this hook runs after it commits, so the account row is visible.
+            const [account] = await options.db
+              .select({ providerId: schema.accounts.providerId })
+              .from(schema.accounts)
+              .where(eq(schema.accounts.userId, user.id))
+              .limit(1)
             capture("signup_completed", {
               distinctId: user.id,
-              properties: { method: "email" },
+              properties: {
+                method: account?.providerId === "google" ? "google" : "email",
+              },
             })
           },
         },

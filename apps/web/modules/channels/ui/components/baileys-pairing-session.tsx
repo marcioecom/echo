@@ -17,23 +17,33 @@ import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { channelErrorMessage, updateChannel } from "../../hooks/api"
 import { useBaileysQrWait } from "../../hooks/use-baileys-qr-wait"
 import { useChannelLive } from "../../hooks/use-channel-events"
-import { channelQueryKeys } from "../../hooks/use-channels"
+import {
+  channelQueryKeys,
+  isChannelConnected,
+  useChannels,
+} from "../../hooks/use-channels"
 import { usePairingCodeForm } from "../../hooks/use-pairing-code-form"
 import { BaileysQrPanel } from "./baileys-qr-panel"
+import { ChannelConnectedPanel } from "./channel-connected-panel"
 
 export function BaileysPairingSession({
   channelId,
   organizationId,
   phoneNumber,
+  intro,
   onDone,
 }: {
   channelId: string
   organizationId: string
   phoneNumber: string | null
+  intro?: string
   onDone: () => void
 }) {
   const queryClient = useQueryClient()
   const live = useChannelLive()
+  const channels = useChannels(organizationId)
+  const channel =
+    channels.data?.items.find((item) => item.id === channelId) ?? null
   const { form, mutation } = usePairingCodeForm(channelId, phoneNumber)
   const wait = useBaileysQrWait({ organizationId, channelId })
   const pairingCode = live.pairingCodeByChannelId[channelId] ?? null
@@ -46,9 +56,15 @@ export function BaileysPairingSession({
       }),
   })
 
+  if (channel && isChannelConnected(channel)) {
+    return (
+      <ChannelConnectedPanel address={channel.address} onContinue={onDone} />
+    )
+  }
+
   return (
     <div className="space-y-3 rounded-md border bg-background p-3 text-foreground">
-      <p className="text-sm">{t("channels.errors.pairingRequired")}</p>
+      <p className="text-sm">{intro ?? t("channels.errors.pairingRequired")}</p>
       <p className="text-sm text-muted-foreground">{t("channels.qrRisk")}</p>
       <BaileysQrPanel
         onRetry={() => retryMutation.mutate()}

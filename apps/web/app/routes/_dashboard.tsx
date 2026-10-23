@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_dashboard")({
 
     const workspace = await loadWorkspace(context.queryClient)
     if (!workspace) {
-      throw redirect({ to: "/onboarding" })
+      throw redirect({ to: "/setup" })
     }
 
     return { workspace }

@@ -9,6 +9,7 @@ import type {
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 
 import { inboxApiRequest } from "./api"
+import { conversationListPath } from "./conversation-list-path"
 
 export const inboxQueryKeys = {
   all: (organizationId: string) => ["support-inbox", organizationId] as const,
@@ -29,14 +30,10 @@ export function useInboxConversations(
   return useInfiniteQuery({
     queryKey: inboxQueryKeys.list(organizationId, status),
     initialPageParam: null as string | null,
-    queryFn: ({ pageParam }) => {
-      const params = new URLSearchParams()
-      if (status !== "all") params.set("status", status)
-      if (pageParam) params.set("cursor", pageParam)
-      return inboxApiRequest<InboxConversationPage>(
-        `/v1/support-conversations?${params.toString()}`
-      )
-    },
+    queryFn: ({ pageParam }) =>
+      inboxApiRequest<InboxConversationPage>(
+        conversationListPath({ status, cursor: pageParam })
+      ),
     getNextPageParam: (page) => page.nextCursor,
   })
 }
@@ -52,5 +49,28 @@ export function useInboxConversation(
         `/v1/support-conversations/${conversationId}`
       ),
     enabled: conversationId !== null,
+  })
+}
+
+/**
+ * An empty queue has two meanings: nothing needs a person right now, or nothing
+ * ever arrived. A one-row probe distinguishes them without loading the whole
+ * list.
+ */
+export function useInboxHasConversations(
+  organizationId: string,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: [...inboxQueryKeys.lists(organizationId), "any"] as const,
+    queryFn: () =>
+      inboxApiRequest<InboxConversationPage>(
+        conversationListPath({ limit: 1 })
+      ),
+    enabled,
+    // While the queue is empty this is the only thing watching for the first
+    // message, so it has to keep asking instead of trusting one response.
+    refetchInterval: (query) =>
+      (query.state.data?.items.length ?? 0) > 0 ? false : 5_000,
   })
 }

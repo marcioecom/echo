@@ -1,8 +1,9 @@
 import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { describe, it } from "vitest"
 import { fileURLToPath } from "node:url"
+
+import { describe, it } from "vitest"
 
 const here = dirname(fileURLToPath(import.meta.url))
 const webDir = dirname(dirname(here))
@@ -32,12 +33,16 @@ describe("organization switcher", () => {
     assert.match(hook, /invalidateQueries\(\{ queryKey: workspaceQueryKey \}\)/)
   })
 
-  it("shares organization creation with the onboarding flow", () => {
+  it("creates the first Organization without asking for a slug", () => {
     const createForm = read(
       "modules/organization/hooks/use-create-organization-form.ts"
     )
-    const onboardingHook = read("modules/auth/hooks/use-onboarding-form.ts")
-    const onboardingView = read("modules/auth/ui/views/onboarding-view.tsx")
+    const setupHook = read("modules/setup/hooks/use-organization-form.ts")
+    const organizationCreate = read(
+      "modules/organization/lib/create-organization.ts"
+    )
+    const setupRoute = read("app/routes/_setup/setup.tsx")
+    const setupForm = read("modules/setup/ui/components/organization-form.tsx")
     const availability = read(
       "modules/organization/ui/components/slug-availability.tsx"
     )
@@ -45,11 +50,17 @@ describe("organization switcher", () => {
     assert.match(createForm, /authClient\.organization\.checkSlug/)
     assert.match(createForm, /authClient\.organization\.create/)
     assert.match(createForm, /deriveSlug/)
-    assert.match(onboardingHook, /useCreateOrganizationForm/)
-    assert.match(onboardingView, /SlugAvailabilityStatus/)
-    assert.doesNotMatch(onboardingView, /AVAILABILITY_STATUS/)
     assert.match(availability, /organization\.slugHint/)
     assert.match(availability, /aria-live="polite"/)
+
+    // The first Organization is created from one field: the slug is an internal
+    // address, so it is derived and retried on collision instead of asked.
+    assert.match(setupHook, /createOrganization\(/)
+    assert.match(organizationCreate, /deriveSlug/)
+    assert.match(organizationCreate, /authClient\.organization\.create/)
+    assert.doesNotMatch(organizationCreate, /checkSlug/)
+    assert.doesNotMatch(setupForm, /slug/i)
+    assert.match(setupRoute, /<OrganizationForm \/>/)
   })
 
   it("translates the create flow", () => {

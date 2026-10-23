@@ -80,7 +80,7 @@ export function AppSidebar({
 
   return (
     <div className="flex h-full flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex h-13 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4">
+      <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-sidebar-border px-4">
         <BrandLogo
           variant="mark"
           className="rounded-md"
@@ -100,7 +100,7 @@ export function AppSidebar({
         {navSections.map((section, index) => (
           <div key={section.label ?? index} className="space-y-0.5">
             {section.label ? (
-              <p className="px-2 pb-1 text-[11px] font-medium text-muted-foreground">
+              <p className="px-2 pb-1.5 text-xs font-medium text-muted-foreground">
                 {section.label}
               </p>
             ) : null}
@@ -121,7 +121,7 @@ export function AppSidebar({
                   }
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "group flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] transition-colors duration-150 outline-none",
+                    "group flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors duration-150 outline-none",
                     "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     "focus-visible:bg-sidebar-accent focus-visible:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
                     active &&
@@ -130,7 +130,7 @@ export function AppSidebar({
                 >
                   <HugeiconsIcon
                     icon={item.icon}
-                    size={15}
+                    size={16}
                     strokeWidth={1.8}
                     className={cn(
                       "shrink-0",

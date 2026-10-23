@@ -13,6 +13,7 @@ import {
 import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { usePasswordResetForm } from "@/modules/auth/hooks/use-password-reset-form"
+import { AuthHeader } from "@/modules/auth/ui/components/auth-header"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
 
 export function PasswordResetView() {
@@ -22,17 +23,13 @@ export function PasswordResetView() {
   if (!hasValidToken) {
     return (
       <div>
-        <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {t("auth.reset.invalidTitle")}
-          </h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            {t("auth.reset.invalidBody")}
-          </p>
-        </header>
+        <AuthHeader
+          title={t("auth.reset.invalidTitle")}
+          description={t("auth.reset.invalidBody")}
+        />
         <Link
           to="/forgot-password"
-          className="text-sm font-medium text-foreground underline underline-offset-4"
+          className="inline-flex h-11 items-center text-sm font-medium text-foreground underline underline-offset-4"
         >
           {t("auth.reset.requestNew")}
         </Link>
@@ -42,22 +39,20 @@ export function PasswordResetView() {
 
   return (
     <div>
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("auth.reset.title")}
-        </h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          {t("auth.reset.description")}
-        </p>
-      </header>
+      <AuthHeader
+        title={t("auth.reset.title")}
+        description={t("auth.reset.description")}
+      />
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-5">
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("auth.reset.password")}</FormLabel>
+                <FormLabel className="text-base">
+                  {t("auth.reset.password")}
+                </FormLabel>
                 <FormControl>
                   <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
@@ -70,7 +65,9 @@ export function PasswordResetView() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("auth.reset.confirmPassword")}</FormLabel>
+                <FormLabel className="text-base">
+                  {t("auth.reset.confirmPassword")}
+                </FormLabel>
                 <FormControl>
                   <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
@@ -78,7 +75,11 @@ export function PasswordResetView() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isPending}>
+          <Button
+            type="submit"
+            className="w-full text-base"
+            disabled={isPending}
+          >
             {isPending ? t("auth.reset.submitting") : t("auth.reset.submit")}
           </Button>
         </form>

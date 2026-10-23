@@ -3,11 +3,13 @@
 import { ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { Input } from "@workspace/ui/components/input"
+import { cn } from "@workspace/ui/lib/utils"
 import { useState } from "react"
 
 import { t } from "@/lib/i18n"
 
 export function PasswordInput({
+  className,
   ...props
 }: Omit<React.ComponentProps<typeof Input>, "type">) {
   const [isVisible, setIsVisible] = useState(false)
@@ -17,7 +19,7 @@ export function PasswordInput({
       <Input
         {...props}
         type={isVisible ? "text" : "password"}
-        className="pr-9"
+        className={cn("pr-11", className)}
       />
       <button
         type="button"
@@ -26,11 +28,11 @@ export function PasswordInput({
         }
         aria-pressed={isVisible}
         onClick={() => setIsVisible((visible) => !visible)}
-        className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-md text-muted-foreground transition-colors hover:text-foreground focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
       >
         <HugeiconsIcon
           icon={isVisible ? ViewOffIcon : ViewIcon}
-          size={16}
+          size={18}
           strokeWidth={1.8}
         />
       </button>

@@ -24,8 +24,13 @@ import { channelErrorMessage, deleteChannel } from "../../hooks/api"
 import { useBaileysPairingForm } from "../../hooks/use-baileys-pairing-form"
 import { useBaileysQrWait } from "../../hooks/use-baileys-qr-wait"
 import { useChannelLive } from "../../hooks/use-channel-events"
-import { channelQueryKeys } from "../../hooks/use-channels"
+import {
+  channelQueryKeys,
+  isChannelConnected,
+  useChannels,
+} from "../../hooks/use-channels"
 import { BaileysQrPanel } from "./baileys-qr-panel"
+import { ChannelConnectedPanel } from "./channel-connected-panel"
 
 export function BaileysPairingForm({
   organizationId,
@@ -40,7 +45,10 @@ export function BaileysPairingForm({
   const { form, mutation, pairingForm, pairingMutation } =
     useBaileysPairingForm(organizationId)
   const live = useChannelLive()
+  const channels = useChannels(organizationId)
   const channelId = mutation.data?.channel.id ?? null
+  const channel =
+    channels.data?.items.find((item) => item.id === channelId) ?? null
   const wait = useBaileysQrWait({ organizationId, channelId })
   const pairingCode = channelId
     ? (live.pairingCodeByChannelId[channelId] ?? null)
@@ -60,6 +68,12 @@ export function BaileysPairingForm({
         queryKey: channelQueryKeys.list(organizationId),
       }),
   })
+
+  if (channel && isChannelConnected(channel)) {
+    return (
+      <ChannelConnectedPanel address={channel.address} onContinue={onDone} />
+    )
+  }
 
   return (
     <Card>

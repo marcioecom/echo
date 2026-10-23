@@ -12,8 +12,9 @@ type PricingSectionProps = {
 
 export function PricingSection({ signedIn }: PricingSectionProps) {
   const { copy } = useLanding()
-  const href = signedIn ? "/inbox" : "/sign-up"
   const label = signedIn ? copy.pricing.openInbox : copy.pricing.joinPilot
+  const ctaClassName =
+    "landing-cta inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
 
   return (
     <section
@@ -61,12 +62,19 @@ export function PricingSection({ signedIn }: PricingSectionProps) {
             ))}
           </ul>
           <div className="mt-8 flex flex-col items-center gap-2.5">
-            <Link
-              to={href}
-              className="landing-cta inline-flex h-12 w-full items-center justify-center rounded-full px-7 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)]"
-            >
-              {label}
-            </Link>
+            {signedIn ? (
+              <Link to="/inbox" className={ctaClassName}>
+                {label}
+              </Link>
+            ) : (
+              <Link
+                to="/sign-up"
+                search={{ source: "pricing" }}
+                className={ctaClassName}
+              >
+                {label}
+              </Link>
+            )}
             {signedIn ? null : (
               <p className="text-center text-sm text-neutral-600">
                 {copy.pricing.clickTrigger}

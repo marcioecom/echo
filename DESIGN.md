@@ -50,9 +50,11 @@ Rules:
 
 - **One family:** Inter (`--font-sans`), already loaded in
   `apps/web/app/styles.css`. Geist Mono (`--font-mono`) for IDs and data.
-- **Fixed rem scale** (product, no fluid type): page title `text-lg`
-  semibold tracking-tight; section title `text-sm` medium; body `text-sm`;
-  metadata/captions `text-xs` (11-12px); nav items 13px.
+- **Fixed rem scale** (product, no fluid type): auth page title `text-3xl`
+  semibold tracking-tight; app page title `text-lg` semibold tracking-tight;
+  section title `text-sm` medium; body `text-sm`; form control text
+  `text-base` (16px); metadata/captions `text-xs` (12px); nav items
+  `text-sm` (14px).
 - Weight roles: Regular body, Medium labels/nav-active, Semibold page titles
   and key identifiers. No Bold except rare emphasis.
 - `text-wrap: balance` on page titles, `pretty` on descriptions.
@@ -61,13 +63,17 @@ Rules:
 
 ## Layout
 
-- **App shell** (`apps/web/modules/shell/`): fixed left sidebar 240px
-  (`w-60`) + content column. On mobile (< md) the sidebar becomes an overlay
+- **App shell** (`apps/web/modules/shell/`): fixed left sidebar 256px
+  (`w-64`) + content column. On mobile (< md) the sidebar becomes an overlay
   with a 40% ink backdrop, Escape-to-close, and a sticky top bar with menu
   button.
 - Sidebar anatomy: brand mark + Organization name; grouped nav (primary
   section unlabeled, then a small sentence-case group label like "Settings");
-  footer with initials avatar, user name, role, ghost icon sign-out.
+  footer with initials avatar, user name, role, ghost icon menu. The account
+  menu keeps its language submenu; it is not a separate control.
+- Auth layout: a single centered column (`max-w-md`) below `xl`, with the
+  brand mark above the form. At `xl` it splits into the marketing panel and a
+  form column; the form column keeps the same readable width.
 - Content: `px-4 py-6 md:px-8 md:py-8`, settings pages in `max-w-2xl`.
 - Page header pattern: `PageHeader` (title + optional description + actions
   slot), `mb-6`.
@@ -83,10 +89,21 @@ Rules:
   `pnpm dlx shadcn add <component>` from their owning package. Radius base
   `--radius: 0.625rem`; nothing
   larger than 16px on cards/panels.
-- Nav item: `rounded-md px-2 py-1.5 text-[13px]`, muted text; hover/focus
+- Control scale: default button, input, and select are `h-9`; auth and
+  onboarding use the same control height. Default button text is `text-sm`,
+  input/select text is `text-base`, and auth primary actions keep
+  `text-base`; card padding `20px`; form messages `text-sm`.
+- Nav item: `rounded-md px-2.5 py-2 text-sm`, muted text; hover/focus
   `bg-sidebar-accent`; active adds `font-medium` + primary-green icon.
 - Icons: Hugeicons (`@hugeicons/react` + `core-free-icons`), stroke style,
-  size 14-18, strokeWidth 1.8. Never mix icon sets.
+  size 16-18, strokeWidth 1.8. Never mix icon sets. The one exception is the
+  official multicolor Google "G" in `modules/auth/ui/components/google-mark.tsx`
+  used on the sign-in button; third-party brand marks keep their official
+  colors.
+- Language switch: the dashboard keeps the language submenu inside the
+  account menu. The landing nav uses a globe + `PT`/`EN` pill that opens a
+  radio menu with full native language names, a checkmark on the active
+  choice, and `lang` on each item.
 - Empty states: dashed-border panel, icon in `bg-primary/10` circle,
   `text-sm` medium title + one calm sentence of muted text that teaches what
   will appear here.
@@ -104,8 +121,11 @@ Rules:
 ## Accessibility
 
 - WCAG 2.2 AA floor; the token table above carries measured contrast.
+- Form controls use 16px text so mobile browsers do not zoom on focus and
+  low-vision operators can read typed values comfortably.
 - `aria-current="page"` on the active nav item; labeled icon buttons
-  (`aria-label`) for menu open/close and sign out.
+  (`aria-label`) for menu open/close and sign out. The landing language menu
+  exposes the current language in its accessible name.
 - State is never color-only; pair with icon or label.
 - `::selection` uses primary green.
 
@@ -115,3 +135,5 @@ Rules:
   `next-themes` provider wiring) before a toggle ships.
 - Destructive-on-dark filled contrast (2.71:1) is inherited stock; fix in
   the dark pass.
+- User-controlled text size (default/large) as an accessibility preference,
+  if the fixed 16px control scale is not enough for the team.

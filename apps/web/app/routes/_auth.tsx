@@ -12,15 +12,15 @@ export const Route = createFileRoute("/_auth")({
 
 function AuthLayout() {
   return (
-    <div className="grid min-h-svh bg-background lg:grid-cols-[minmax(0,1.1fr)_minmax(30rem,0.9fr)]">
-      <aside className="hidden min-h-svh flex-col border-r bg-sidebar p-10 lg:flex xl:p-14">
+    <div className="grid min-h-svh bg-background xl:grid-cols-[minmax(0,1.1fr)_minmax(30rem,0.9fr)]">
+      <aside className="hidden min-h-svh flex-col border-r bg-sidebar p-10 xl:flex 2xl:p-14">
         <BrandLogo priority imageClassName="h-9 w-auto" />
         <div className="my-auto max-w-xl py-12">
           <p className="flex items-center gap-2 text-sm font-medium text-primary">
             <HugeiconsIcon icon={WhatsappIcon} size={17} strokeWidth={1.8} />
             {t("auth.layout.eyebrow")}
           </p>
-          <h1 className="mt-5 max-w-md text-4xl font-semibold tracking-[-0.035em] text-balance xl:text-5xl">
+          <h1 className="mt-5 max-w-md text-4xl font-semibold tracking-[-0.035em] text-balance 2xl:text-5xl">
             {t("auth.layout.title")}
           </h1>
           <p className="mt-5 max-w-[52ch] text-base leading-7 text-pretty text-muted-foreground">
@@ -33,13 +33,8 @@ function AuthLayout() {
         </p>
       </aside>
 
-      <main className="flex min-w-0 flex-col px-6 py-5 sm:px-10 sm:py-8 lg:px-14 xl:px-20">
-        <div className="flex h-11 items-center justify-between lg:justify-end">
-          <BrandLogo
-            priority
-            className="lg:hidden"
-            imageClassName="h-7 w-auto"
-          />
+      <main className="flex min-w-0 flex-col px-6 py-5 sm:px-10 sm:py-8 xl:px-14 2xl:px-20">
+        <div className="flex h-11 items-center justify-end">
           <Link
             to="/"
             className="inline-flex h-11 items-center text-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30"
@@ -47,8 +42,13 @@ function AuthLayout() {
             {t("auth.layout.back")}
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-center py-12 sm:py-16">
-          <div className="w-full max-w-sm">
+        <div className="flex flex-1 items-center justify-center py-10 sm:py-14">
+          <div className="w-full max-w-md">
+            <BrandLogo
+              priority
+              className="mb-10 xl:hidden"
+              imageClassName="h-7 w-auto"
+            />
             <Outlet />
           </div>
         </div>

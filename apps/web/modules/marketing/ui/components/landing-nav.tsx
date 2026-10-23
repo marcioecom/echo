@@ -19,8 +19,9 @@ export function LandingNav({ signedIn }: LandingNavProps) {
   const { locale, copy } = useLanding()
   const [open, setOpen] = useState(false)
   const menuId = useId()
-  const startHref = signedIn ? "/inbox" : "/sign-up"
   const startLabel = signedIn ? copy.nav.openInbox : copy.nav.getStarted
+  const startClassName =
+    "landing-cta inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)] sm:px-4"
   const signInHref = signedIn ? "/inbox" : "/login"
   const signInLabel = signedIn ? copy.nav.dashboard : copy.nav.signIn
   const navLinks = [
@@ -64,12 +65,19 @@ export function LandingNav({ signedIn }: LandingNavProps) {
 
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <Link
-              to={startHref}
-              className="landing-cta inline-flex h-9 items-center rounded-full px-3.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--echo-primary)] sm:px-4"
-            >
-              {startLabel}
-            </Link>
+            {signedIn ? (
+              <Link to="/inbox" className={startClassName}>
+                {startLabel}
+              </Link>
+            ) : (
+              <Link
+                to="/sign-up"
+                search={{ source: "nav" }}
+                className={startClassName}
+              >
+                {startLabel}
+              </Link>
+            )}
             <button
               type="button"
               className="inline-flex size-9 items-center justify-center rounded-full text-neutral-800 outline-none hover:bg-white/60 focus-visible:ring-2 focus-visible:ring-neutral-900/20 lg:hidden"

@@ -23,9 +23,3 @@ export function passwordResetHead() {
     meta: [{ title: t("auth.reset.metaTitle") }],
   }
 }
-
-export function onboardingHead() {
-  return {
-    meta: [{ title: t("auth.onboarding.metaTitle") }],
-  }
-}
