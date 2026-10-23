@@ -38,7 +38,9 @@ describe("organization switcher", () => {
       "modules/organization/hooks/use-create-organization-form.ts"
     )
     const setupHook = read("modules/setup/hooks/use-organization-form.ts")
-    const setupCreate = read("modules/setup/lib/create-organization.ts")
+    const organizationCreate = read(
+      "modules/organization/lib/create-organization.ts"
+    )
     const setupRoute = read("app/routes/_setup/setup.tsx")
     const setupForm = read("modules/setup/ui/components/organization-form.tsx")
     const availability = read(
@@ -54,9 +56,9 @@ describe("organization switcher", () => {
     // The first Organization is created from one field: the slug is an internal
     // address, so it is derived and retried on collision instead of asked.
     assert.match(setupHook, /createOrganization\(/)
-    assert.match(setupCreate, /deriveSlug/)
-    assert.match(setupCreate, /authClient\.organization\.create/)
-    assert.doesNotMatch(setupCreate, /checkSlug/)
+    assert.match(organizationCreate, /deriveSlug/)
+    assert.match(organizationCreate, /authClient\.organization\.create/)
+    assert.doesNotMatch(organizationCreate, /checkSlug/)
     assert.doesNotMatch(setupForm, /slug/i)
     assert.match(setupRoute, /<OrganizationForm \/>/)
   })

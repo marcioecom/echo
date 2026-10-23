@@ -12,10 +12,8 @@ import { authClient } from "@/lib/auth-client"
 import { t } from "@/lib/i18n"
 import { displayNameFromEmail } from "@/modules/auth/display-name"
 import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
-import { createOrganization } from "@/modules/setup/lib/create-organization"
 
 const signUpSchema = z.object({
-  organizationName: z.string().min(1, "auth.validation.organizationName"),
   email: z.email("auth.validation.email"),
   password: z.string().min(8, "auth.validation.passwordMin"),
 })
@@ -31,10 +29,12 @@ export function useSignUpForm() {
   const navigateAfterAuth = useNavigateAfterAuth()
   const search = useSearch({ strict: false })
   const source = typeof search.source === "string" ? search.source : undefined
-  const redirectTo =
+  const redirectParam =
     typeof search.redirect === "string" && search.redirect.startsWith("/")
       ? search.redirect
-      : "/setup"
+      : undefined
+  const redirectTo = redirectParam ?? "/setup"
+  const isInvitation = redirectParam?.startsWith("/accept-invitation") ?? false
 
   const viewedRef = useRef(false)
   const startedRef = useRef(false)
@@ -48,7 +48,6 @@ export function useSignUpForm() {
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      organizationName: "",
       email: "",
       password: "",
     },
@@ -85,17 +84,16 @@ export function useSignUpForm() {
       return
     }
 
-    // An invitation creates the Membership, not an Organization of its own.
-    if (!redirectTo.startsWith("/accept-invitation")) {
-      try {
-        await createOrganization(values.organizationName)
-      } catch {
-        // Signup never blocks on the Organization; /setup can create it later.
-      }
-    }
-
     await navigateAfterAuth(redirectTo)
   }
 
-  return { form, onSubmit, onFormFocus, redirectTo }
+  return {
+    form,
+    onSubmit,
+    onFormFocus,
+    redirectParam,
+    redirectTo,
+    source,
+    isInvitation,
+  }
 }

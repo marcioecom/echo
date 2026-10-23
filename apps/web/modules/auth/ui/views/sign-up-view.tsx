@@ -5,7 +5,6 @@ import { Button } from "@workspace/ui/components/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -16,11 +15,20 @@ import { t } from "@/lib/i18n"
 import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { suggestEmailDomain } from "@/modules/auth/email-typo"
 import { useSignUpForm } from "@/modules/auth/hooks/use-sign-up-form"
+import { AuthHeader } from "@/modules/auth/ui/components/auth-header"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
 import { SocialSignIn } from "@/modules/auth/ui/components/social-sign-in"
 
 export function SignUpView() {
-  const { form, onSubmit, onFormFocus, redirectTo } = useSignUpForm()
+  const {
+    form,
+    onSubmit,
+    onFormFocus,
+    redirectParam,
+    redirectTo,
+    source,
+    isInvitation,
+  } = useSignUpForm()
   const isPending = form.formState.isSubmitting
   const email = form.watch("email")
   const emailError = form.formState.errors.email
@@ -28,58 +36,43 @@ export function SignUpView() {
 
   return (
     <div>
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("auth.signUp.title")}
-        </h1>
-        <p className="mt-2 text-base text-muted-foreground">
-          {t("auth.signUp.description")}
-        </p>
-      </header>
-      <SocialSignIn redirectTo={redirectTo} variant="signup" />
+      <AuthHeader
+        title={t(
+          isInvitation ? "auth.signUp.invitationTitle" : "auth.signUp.title"
+        )}
+        description={t(
+          isInvitation
+            ? "auth.signUp.invitationDescription"
+            : "auth.signUp.description"
+        )}
+      />
+      <SocialSignIn redirectTo={redirectTo} source={source} variant="signup" />
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
           onFocusCapture={onFormFocus}
-          className="grid gap-4"
+          className="grid gap-5"
         >
-          <FormField
-            control={form.control}
-            name="organizationName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t("auth.signUp.organizationName")}</FormLabel>
-                <FormControl>
-                  <Input
-                    autoComplete="organization"
-                    placeholder={t("auth.signUp.organizationNamePlaceholder")}
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  {t("auth.signUp.organizationNameHint")}
-                </FormDescription>
-                <TranslatedFormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("auth.signUp.email")}</FormLabel>
+                <FormLabel className="text-base">
+                  {t("auth.signUp.email")}
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="email"
                     autoComplete="email"
+                    className="h-12"
                     placeholder={t("auth.signUp.emailPlaceholder")}
                     {...field}
                   />
                 </FormControl>
                 <TranslatedFormMessage />
                 {emailSuggestion ? (
-                  <p className="text-xs/relaxed text-muted-foreground">
+                  <p className="text-sm/relaxed text-muted-foreground">
                     {t("auth.signUp.emailTypoHint", { email: emailSuggestion })}{" "}
                     <button
                       type="button"
@@ -98,8 +91,11 @@ export function SignUpView() {
                 {emailError?.message === "auth.errors.emailTaken" ? (
                   <Link
                     to="/login"
-                    search={{ email: form.getValues("email") }}
-                    className="block w-fit text-xs text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
+                    search={{
+                      email: form.getValues("email"),
+                      redirect: redirectParam,
+                    }}
+                    className="block w-fit text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none"
                   >
                     {t("auth.signUp.signIn")}
                   </Link>
@@ -112,24 +108,43 @@ export function SignUpView() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("auth.signUp.password")}</FormLabel>
+                <FormLabel className="text-base">
+                  {t("auth.signUp.password")}
+                </FormLabel>
                 <FormControl>
-                  <PasswordInput autoComplete="new-password" {...field} />
+                  <PasswordInput
+                    autoComplete="new-password"
+                    className="h-12"
+                    {...field}
+                  />
                 </FormControl>
                 <TranslatedFormMessage />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? t("auth.signUp.submitting") : t("auth.signUp.submit")}
+          <Button
+            type="submit"
+            className="h-12 w-full text-base"
+            disabled={isPending}
+          >
+            {isPending
+              ? t("auth.signUp.submitting")
+              : t(
+                  isInvitation
+                    ? "auth.signUp.invitationSubmit"
+                    : "auth.signUp.submit"
+                )}
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
-            {t("auth.signUp.reassurance")}
-          </p>
+          {isInvitation ? null : (
+            <p className="text-center text-sm text-muted-foreground">
+              {t("auth.signUp.reassurance")}
+            </p>
+          )}
           <p className="pt-1 text-center text-sm text-muted-foreground">
             {t("auth.signUp.haveAccount")}{" "}
             <Link
               to="/login"
+              search={{ redirect: redirectParam }}
               className="font-medium text-foreground underline underline-offset-4"
             >
               {t("auth.signUp.signIn")}

@@ -56,7 +56,7 @@ export function AppShell({
 
   return (
     <div className="min-h-svh">
-      <aside className="fixed inset-y-0 left-0 z-(--z-sticky) hidden w-60 border-r border-sidebar-border md:block">
+      <aside className="fixed inset-y-0 left-0 z-(--z-sticky) hidden w-64 border-r border-sidebar-border md:block">
         <AppSidebar {...sidebarProps} organizationSwitcherSide="right" />
       </aside>
 
@@ -67,29 +67,29 @@ export function AppShell({
             className="absolute inset-0 animate-in bg-foreground/40 duration-150 fade-in"
             onClick={() => setSidebarOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 w-60 animate-in border-r border-sidebar-border duration-200 slide-in-from-left">
+          <aside className="absolute inset-y-0 left-0 w-64 animate-in border-r border-sidebar-border duration-200 slide-in-from-left">
             <AppSidebar {...sidebarProps} organizationSwitcherSide="bottom" />
           </aside>
           <button
             type="button"
             aria-label={t("shell.closeNav")}
             onClick={() => setSidebarOpen(false)}
-            className="absolute top-3.5 left-64 flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="absolute top-3.5 left-[17rem] flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-background focus-visible:ring-2 focus-visible:ring-ring/30"
           >
-            <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={1.8} />
+            <HugeiconsIcon icon={Cancel01Icon} size={16} strokeWidth={1.8} />
           </button>
         </div>
       ) : null}
 
-      <div className="flex min-h-svh min-w-0 flex-col md:pl-60">
-        <header className="sticky top-0 z-(--z-sticky) flex h-12 items-center gap-2 border-b bg-background px-4 md:hidden">
+      <div className="flex min-h-svh min-w-0 flex-col md:pl-64">
+        <header className="sticky top-0 z-(--z-sticky) flex h-14 items-center gap-2 border-b bg-background px-4 md:hidden">
           <button
             type="button"
             aria-label={t("shell.openNav")}
             onClick={() => setSidebarOpen(true)}
-            className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors duration-150 outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
           >
-            <HugeiconsIcon icon={Menu01Icon} size={16} strokeWidth={1.8} />
+            <HugeiconsIcon icon={Menu01Icon} size={18} strokeWidth={1.8} />
           </button>
           <BrandLogo variant="compact" imageClassName="h-6 w-auto" />
         </header>

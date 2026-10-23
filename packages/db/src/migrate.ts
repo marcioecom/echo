@@ -1,9 +1,11 @@
+import type { DatabaseClient } from "./client"
+
 import { readFile } from "node:fs/promises"
 import { join } from "node:path"
 
 import { migrate } from "drizzle-orm/node-postgres/migrator"
 
-import { createDatabase, type DatabaseClient } from "./client"
+import { createDatabase } from "./client"
 
 const migrationsFolder = "migrations"
 const migrationsSchema = "drizzle"
@@ -38,10 +40,12 @@ async function readJournal(): Promise<JournalEntry[]> {
   return journal.entries
 }
 
-async function readLastAppliedAt(pool: DatabaseClient["pool"]): Promise<number | null> {
+async function readLastAppliedAt(
+  pool: DatabaseClient["pool"]
+): Promise<number | null> {
   const existence = await pool.query<{ present: boolean }>(
     "select to_regclass($1) is not null as present",
-    [`${migrationsSchema}.${migrationsTable}`],
+    [`${migrationsSchema}.${migrationsTable}`]
   )
 
   if (!existence.rows[0]?.present) {
@@ -49,7 +53,7 @@ async function readLastAppliedAt(pool: DatabaseClient["pool"]): Promise<number |
   }
 
   const result = await pool.query<{ last_applied_at: string | null }>(
-    `select max(created_at) as last_applied_at from "${migrationsSchema}"."${migrationsTable}"`,
+    `select max(created_at) as last_applied_at from "${migrationsSchema}"."${migrationsTable}"`
   )
   const value = result.rows[0]?.last_applied_at
 
@@ -61,10 +65,14 @@ const database = createDatabase(databaseUrl, dependencyTimeoutMs)
 try {
   const entries = await readJournal()
   const lastAppliedAt = await readLastAppliedAt(database.pool)
-  const pending = entries.filter((entry) => lastAppliedAt === null || entry.when > lastAppliedAt)
+  const pending = entries.filter(
+    (entry) => lastAppliedAt === null || entry.when > lastAppliedAt
+  )
 
   if (pending.length === 0) {
-    console.log(`Nothing to apply. ${describeMigrations(entries.length)} already applied.`)
+    console.log(
+      `Nothing to apply. ${describeMigrations(entries.length)} already applied.`
+    )
   } else {
     console.log(`Applying ${describeMigrations(pending.length)}:`)
     for (const entry of pending) {
@@ -72,9 +80,15 @@ try {
     }
 
     const startedAt = Date.now()
-    await migrate(database.db, { migrationsFolder, migrationsSchema, migrationsTable })
+    await migrate(database.db, {
+      migrationsFolder,
+      migrationsSchema,
+      migrationsTable,
+    })
 
-    console.log(`Applied ${describeMigrations(pending.length)} in ${Date.now() - startedAt}ms.`)
+    console.log(
+      `Applied ${describeMigrations(pending.length)} in ${Date.now() - startedAt}ms.`
+    )
   }
 } finally {
   await database.close()

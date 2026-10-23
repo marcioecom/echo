@@ -45,20 +45,13 @@ export function createAuth(options: CreateAuthOptions) {
     secret: options.secret,
     trustedOrigins: [options.webAppUrl],
     socialProviders: googleProvider ? { google: googleProvider } : undefined,
-    ...(googleProvider && {
-      account: {
-        accountLinking: {
-          enabled: true,
-          trustedProviders: ["google"],
-          // Local signup does not verify emails, so requiring a verified local
-          // address would refuse every Google login for an existing password
-          // account. Linking keeps the flow open; the tradeoff is that someone
-          // could pre-register another person's email and have that person's
-          // Google login land in the pre-registered account.
-          requireLocalEmailVerified: false,
-        },
-      },
-    }),
+    // Implicit account linking stays off. Local emails are unverified, so
+    // linking would let someone who registers a victim's email take over the
+    // account on the victim's first Google login. OAuth failures land on the
+    // login page, which explains how to sign in with the password instead.
+    onAPIError: {
+      errorURL: new URL("/login", options.webAppUrl).toString(),
+    },
     database: drizzleAdapter(options.db, {
       provider: "pg",
       usePlural: true,

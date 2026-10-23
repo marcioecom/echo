@@ -26,7 +26,7 @@ export type AnalyticsEventName = keyof typeof analyticsEventOwners
 export type AnalyticsEventProperties = {
   signup_viewed: { source?: string }
   signup_started: { method: "email" | "google"; source?: string }
-  signup_failed: { method: "email"; code: string }
+  signup_failed: { method: "email" | "google"; code: string }
   signup_completed: { method: "email" | "google" }
   organization_created: { organizationId: string; role: string }
   invitation_sent: { organizationId: string; role: string }

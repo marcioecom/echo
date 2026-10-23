@@ -12,7 +12,7 @@ function read(path) {
 }
 
 describe("dashboard account menu", () => {
-  it("opens from the sidebar footer and switches the lang cookie", () => {
+  it("opens from the sidebar footer and switches the language cookie", () => {
     const sidebar = read("modules/shell/ui/app-sidebar.tsx")
     const menu = read("modules/shell/ui/account-menu.tsx")
     const dashboard = read("app/routes/_dashboard.tsx")
@@ -20,19 +20,20 @@ describe("dashboard account menu", () => {
 
     assert.match(sidebar, /<AccountMenu/)
     assert.match(sidebar, /userEmail/)
+    assert.doesNotMatch(sidebar, /<LanguageMenu/)
     assert.doesNotMatch(sidebar, /SignOutButton/)
     assert.doesNotMatch(sidebar, /Logout01Icon/)
 
     assert.match(dashboard, /userEmail=\{workspace\.user\.email\}/)
     assert.match(menu, /persistLanguageChoice/)
     assert.match(menu, /window\.location\.reload/)
+    assert.match(menu, /DropdownMenuRadioItem/)
     assert.match(menu, /to="\/settings\/members"/)
     assert.match(menu, /t\("shell\.settings"\)/)
     assert.match(menu, /t\("shell\.language"\)/)
-    assert.match(menu, /t\("shell\.signOut"\)/)
     assert.match(menu, /t\("shell\.languageEnglish"\)/)
     assert.match(menu, /t\("shell\.languagePortuguese"\)/)
-    assert.match(menu, /DropdownMenuRadioItem/)
+    assert.match(menu, /t\("shell\.signOut"\)/)
     assert.match(menu, /MoreHorizontalIcon/)
     assert.match(menu, /aria-hidden/)
     assert.match(shell, /language: "Idioma"/)

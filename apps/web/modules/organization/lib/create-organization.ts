@@ -3,9 +3,9 @@ import { deriveSlug, SLUG_MAX_LENGTH } from "@workspace/domain"
 import { authClient } from "@/lib/auth-client"
 
 /**
- * Creates the Organization a person signs up for. The slug is an internal
- * address, so it is derived from the name and retried on collision instead of
- * being asked of the person who is only trying to start.
+ * Creates an Organization from the name collected in onboarding. The slug is
+ * an internal address, so it is derived from the name and retried on collision
+ * instead of being asked of the person who is only trying to start.
  */
 export async function createOrganization(name: string) {
   for (const slug of slugCandidates(name)) {

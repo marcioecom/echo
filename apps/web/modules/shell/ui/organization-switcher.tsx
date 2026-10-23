@@ -111,12 +111,12 @@ export function OrganizationSwitcher({
         <button
           type="button"
           aria-label={t("shell.switchLabel", { name: activeOrganizationName })}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1 py-1 text-left text-sm font-semibold tracking-tight transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30 aria-expanded:bg-sidebar-accent"
+          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-left text-sm font-semibold tracking-tight transition-colors duration-150 outline-none hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30 aria-expanded:bg-sidebar-accent"
         >
           <span className="truncate">{activeOrganizationName}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
-            size={14}
+            size={16}
             strokeWidth={1.8}
             aria-hidden
             className="shrink-0 text-muted-foreground"
@@ -137,7 +137,7 @@ export function OrganizationSwitcher({
       >
         {view === "list" ? (
           <>
-            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+            <p className="px-3 py-2 text-sm text-muted-foreground">
               {t("shell.organizations")}
             </p>
             {isLoading ? (
@@ -154,20 +154,20 @@ export function OrganizationSwitcher({
                 ))}
               </div>
             ) : isError ? (
-              <div className="space-y-2 px-2 py-3">
-                <p className="text-xs text-muted-foreground">
+              <div className="space-y-2 px-3 py-3">
+                <p className="text-sm text-muted-foreground">
                   {t("shell.organizationsError")}
                 </p>
                 <button
                   type="button"
                   onClick={() => refetch()}
-                  className="rounded-sm text-xs font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/30"
+                  className="rounded-sm text-sm font-medium text-primary outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/30"
                 >
                   {t("shell.tryAgain")}
                 </button>
               </div>
             ) : organizations.length === 0 ? (
-              <p className="px-2 py-3 text-xs text-muted-foreground">
+              <p className="px-3 py-3 text-sm text-muted-foreground">
                 {t("shell.organizationsEmpty")}
               </p>
             ) : (
@@ -188,7 +188,7 @@ export function OrganizationSwitcher({
                           handleOrganizationSelect(organization.id)
                         }
                         className={cn(
-                          "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors duration-150 outline-none",
+                          "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left transition-colors duration-150 outline-none",
                           active
                             ? "bg-accent text-accent-foreground"
                             : "hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30",
@@ -197,15 +197,15 @@ export function OrganizationSwitcher({
                       >
                         <span
                           aria-hidden
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary"
+                          className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
                         >
                           {initials(organization.name)}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-xs font-medium">
+                          <span className="block truncate text-sm font-medium">
                             {organization.name}
                           </span>
-                          <span className="block truncate text-[11px] text-muted-foreground">
+                          <span className="block truncate text-xs text-muted-foreground">
                             {organization.slug}
                           </span>
                         </span>
@@ -239,15 +239,15 @@ export function OrganizationSwitcher({
               ref={createActionRef}
               type="button"
               onClick={handleCreate}
-              className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs font-medium transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+              className="group flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-sm font-medium transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
             >
               <span
                 aria-hidden
-                className="flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors duration-150 group-hover:border-accent-foreground/30 group-hover:text-accent-foreground"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground transition-colors duration-150 group-hover:border-accent-foreground/30 group-hover:text-accent-foreground"
               >
                 <HugeiconsIcon
                   icon={PlusSignIcon}
-                  size={13}
+                  size={14}
                   strokeWidth={1.8}
                 />
               </span>
@@ -261,16 +261,16 @@ export function OrganizationSwitcher({
                 type="button"
                 onClick={handleBackToList}
                 aria-label={t("shell.backToOrganizations")}
-                className="flex size-6 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+                className="flex size-8 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors duration-150 outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
               >
                 <HugeiconsIcon
                   icon={ArrowLeft01Icon}
-                  size={14}
+                  size={16}
                   strokeWidth={1.8}
                   aria-hidden
                 />
               </button>
-              <p className="text-xs font-medium">
+              <p className="text-sm font-medium">
                 {t("shell.newOrganization")}
               </p>
             </div>

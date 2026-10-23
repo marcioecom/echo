@@ -78,22 +78,22 @@ export function AccountMenu({
         <button
           type="button"
           className={cn(
-            "group flex w-full items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors duration-150 outline-none",
+            "group flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left transition-colors duration-150 outline-none",
             "hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring/30",
             "aria-expanded:bg-sidebar-accent"
           )}
         >
           <span
             aria-hidden
-            className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
           >
             {initials(userName)}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium">
+            <span className="block truncate text-sm font-medium">
               {userName}
             </span>
-            <span className="block truncate text-[11px] text-muted-foreground">
+            <span className="block truncate text-xs text-muted-foreground">
               {memberRoleLabel(userRole)}
             </span>
           </span>
@@ -110,13 +110,13 @@ export function AccountMenu({
         align="start"
         sideOffset={8}
         collisionPadding={8}
-        className="z-(--z-modal)"
+        className="z-(--z-modal) min-w-56"
       >
         <DropdownMenuLabel className="font-normal">
           <span className="block truncate text-sm font-medium text-popover-foreground">
             {userName}
           </span>
-          <span className="block truncate text-muted-foreground">
+          <span className="block truncate text-xs text-muted-foreground">
             {userEmail}
           </span>
         </DropdownMenuLabel>

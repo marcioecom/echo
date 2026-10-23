@@ -18,7 +18,8 @@ describe("first-run setup routing", () => {
     assert.doesNotMatch(dashboard, /to: "\/onboarding"/)
 
     const signUp = read("../modules/auth/hooks/use-sign-up-form.ts")
-    assert.match(signUp, /: "\/setup"/)
+    assert.match(signUp, /redirectParam \?\? "\/setup"/)
+    assert.match(signUp, /isInvitation/)
   })
 
   it("keeps /onboarding as a redirect into the setup flow", () => {

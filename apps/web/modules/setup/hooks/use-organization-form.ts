@@ -5,8 +5,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 
 import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
-
-import { createOrganization } from "../lib/create-organization"
+import { createOrganization } from "@/modules/organization/lib/create-organization"
 
 const organizationSchema = z.object({
   name: z.string().min(1, "setup.organization.errors.name"),
@@ -15,9 +14,8 @@ const organizationSchema = z.object({
 export type OrganizationFormValues = z.infer<typeof organizationSchema>
 
 /**
- * First-run variant of the Organization form: one visible field. The slug is an
- * internal address, so it is derived from the name and retried on collision
- * instead of being asked of the person who is only trying to start.
+ * First-run variant of the Organization form: one visible field. The slug
+ * rules live in the shared createOrganization helper.
  */
 export function useOrganizationForm() {
   const navigateAfterAuth = useNavigateAfterAuth()

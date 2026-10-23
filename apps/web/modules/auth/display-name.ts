@@ -3,7 +3,7 @@ const FALLBACK_DISPLAY_NAME = "Equipe"
 /**
  * Better Auth requires a non-empty User name, but signup no longer asks for one.
  * The email local part is the closest thing we already have, so it becomes the
- * readable default until the person changes it in their profile.
+ * readable default.
  */
 export function displayNameFromEmail(email: string): string {
   const localPart = email.split("@")[0] ?? ""

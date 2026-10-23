@@ -21,26 +21,32 @@ export function OrganizationForm() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-xl font-semibold tracking-tight text-balance">
+      <header className="max-w-xl space-y-3">
+        <h1 className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
           {t("setup.organization.title")}
         </h1>
-        <p className="max-w-prose text-sm text-pretty text-muted-foreground">
+        <p className="max-w-prose text-base leading-7 text-pretty text-muted-foreground">
           {t("setup.organization.description")}
         </p>
       </header>
 
       <Form {...form}>
-        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+        <form
+          className="max-w-md space-y-5"
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
           <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("setup.organization.name")}</FormLabel>
+                <FormLabel className="text-base">
+                  {t("setup.organization.name")}
+                </FormLabel>
                 <FormControl>
                   <Input
                     autoComplete="organization"
+                    className="h-12"
                     placeholder={t("setup.organization.namePlaceholder")}
                     {...field}
                   />
@@ -49,7 +55,11 @@ export function OrganizationForm() {
               </FormItem>
             )}
           />
-          <Button disabled={isPending} type="submit">
+          <Button
+            className="h-12 w-full text-base"
+            disabled={isPending}
+            type="submit"
+          >
             {isPending
               ? t("setup.organization.submitting")
               : t("setup.organization.submit")}
@@ -57,7 +67,7 @@ export function OrganizationForm() {
         </form>
       </Form>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="max-w-md text-sm text-muted-foreground">
         {t("setup.organization.next")}
       </p>
     </div>
