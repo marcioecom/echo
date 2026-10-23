@@ -5,6 +5,7 @@ import { Button } from "@workspace/ui/components/button"
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -34,17 +35,20 @@ export function SignUpView() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
           <FormField
             control={form.control}
-            name="name"
+            name="organizationName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t("auth.signUp.name")}</FormLabel>
+                <FormLabel>{t("auth.signUp.organizationName")}</FormLabel>
                 <FormControl>
                   <Input
-                    autoComplete="name"
-                    placeholder={t("auth.signUp.namePlaceholder")}
+                    autoComplete="organization"
+                    placeholder={t("auth.signUp.organizationNamePlaceholder")}
                     {...field}
                   />
                 </FormControl>
+                <FormDescription>
+                  {t("auth.signUp.organizationNameHint")}
+                </FormDescription>
                 <TranslatedFormMessage />
               </FormItem>
             )}

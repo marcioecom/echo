@@ -1,12 +1,12 @@
 "use client"
 
 import { zodResolver } from "@hookform/resolvers/zod"
-import { deriveSlug, SLUG_MAX_LENGTH } from "@workspace/domain"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { authClient } from "@/lib/auth-client"
 import { useNavigateAfterAuth } from "@/modules/auth/hooks/use-navigate-after-auth"
+
+import { createOrganization } from "../lib/create-organization"
 
 const organizationSchema = z.object({
   name: z.string().min(1, "setup.organization.errors.name"),
@@ -37,38 +37,4 @@ export function useOrganizationForm() {
   }
 
   return { form, onSubmit }
-}
-
-async function createOrganization(name: string) {
-  for (const slug of slugCandidates(name)) {
-    const { data, error } = await authClient.organization.create({ name, slug })
-    if (!error && data) return data
-    if (!slugIsTaken(error)) return null
-  }
-  return null
-}
-
-function slugCandidates(name: string): string[] {
-  const base = deriveSlug(name) || "organizacao"
-  return [
-    base,
-    ...["2", "3", "4", "5"].map((suffix) => withSuffix(base, suffix)),
-    withSuffix(base, Math.random().toString(36).slice(2, 6)),
-  ]
-}
-
-function withSuffix(base: string, suffix: string): string {
-  const room = SLUG_MAX_LENGTH - suffix.length - 1
-  return `${base.slice(0, room).replace(/-+$/, "")}-${suffix}`
-}
-
-function slugIsTaken(error: unknown): boolean {
-  const code =
-    typeof error === "object" && error !== null && "code" in error
-      ? error.code
-      : undefined
-  return (
-    code === "ORGANIZATION_SLUG_ALREADY_TAKEN" ||
-    code === "ORGANIZATION_ALREADY_EXISTS"
-  )
 }
