@@ -16,9 +16,10 @@ import { TranslatedFormMessage } from "@/lib/i18n-form"
 import { suggestEmailDomain } from "@/modules/auth/email-typo"
 import { useSignUpForm } from "@/modules/auth/hooks/use-sign-up-form"
 import { PasswordInput } from "@/modules/auth/ui/components/password-input"
+import { SocialSignIn } from "@/modules/auth/ui/components/social-sign-in"
 
 export function SignUpView() {
-  const { form, onSubmit, onFormFocus } = useSignUpForm()
+  const { form, onSubmit, onFormFocus, redirectTo } = useSignUpForm()
   const isPending = form.formState.isSubmitting
   const email = form.watch("email")
   const emailError = form.formState.errors.email
@@ -34,6 +35,7 @@ export function SignUpView() {
           {t("auth.signUp.description")}
         </p>
       </header>
+      <SocialSignIn redirectTo={redirectTo} variant="signup" />
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

@@ -85,5 +85,5 @@ export function useSignUpForm() {
     await navigateAfterAuth(redirectTo)
   }
 
-  return { form, onSubmit, onFormFocus }
+  return { form, onSubmit, onFormFocus, redirectTo }
 }

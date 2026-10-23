@@ -18,6 +18,7 @@ const en = {
     resetInvalid: "This password reset link is invalid or expired",
     reset: "Could not reset your password",
     resetRequest: "Could not request a password reset",
+    social: "Could not continue with Google",
   },
   login: {
     metaTitle: "Sign in | Echo",
@@ -48,6 +49,10 @@ const en = {
     signIn: "Sign in",
     emailTypoHint: "Did you mean {email}?",
     emailTypoApply: "Use this email",
+  },
+  social: {
+    continueWithGoogle: "Continue with Google",
+    or: "or",
   },
   resetRequest: {
     metaTitle: "Reset password | Echo",
@@ -119,6 +124,7 @@ const ptBR = {
     resetInvalid: "Este link para redefinir a senha é inválido ou expirou",
     reset: "Não foi possível redefinir a senha",
     resetRequest: "Não foi possível pedir a redefinição de senha",
+    social: "Não foi possível continuar com o Google",
   },
   login: {
     metaTitle: "Entrar | Echo",
@@ -149,6 +155,10 @@ const ptBR = {
     signIn: "Entrar",
     emailTypoHint: "Você quis dizer {email}?",
     emailTypoApply: "Usar esse e-mail",
+  },
+  social: {
+    continueWithGoogle: "Continuar com Google",
+    or: "ou",
   },
   resetRequest: {
     metaTitle: "Redefinir senha | Echo",
