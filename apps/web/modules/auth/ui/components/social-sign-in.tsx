@@ -67,7 +67,7 @@ export function SocialSignIn({
       <Button
         type="button"
         variant="outline"
-        className="h-12 w-full gap-2.5 text-base"
+        className="w-full gap-2.5 text-base"
         disabled={isRedirecting}
         onClick={handleClick}
       >

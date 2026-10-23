@@ -57,7 +57,6 @@ export function PasswordResetRequestView() {
                   <Input
                     type="email"
                     autoComplete="email"
-                    className="h-12"
                     placeholder={t("auth.resetRequest.emailPlaceholder")}
                     {...field}
                   />
@@ -68,7 +67,7 @@ export function PasswordResetRequestView() {
           />
           <Button
             type="submit"
-            className="h-12 w-full text-base"
+            className="w-full text-base"
             disabled={isPending}
           >
             {isPending

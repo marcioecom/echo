@@ -46,7 +46,6 @@ export function OrganizationForm() {
                 <FormControl>
                   <Input
                     autoComplete="organization"
-                    className="h-12"
                     placeholder={t("setup.organization.namePlaceholder")}
                     {...field}
                   />
@@ -56,7 +55,7 @@ export function OrganizationForm() {
             )}
           />
           <Button
-            className="h-12 w-full text-base"
+            className="w-full text-base"
             disabled={isPending}
             type="submit"
           >

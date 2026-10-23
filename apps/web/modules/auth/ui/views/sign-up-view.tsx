@@ -65,7 +65,6 @@ export function SignUpView() {
                   <Input
                     type="email"
                     autoComplete="email"
-                    className="h-12"
                     placeholder={t("auth.signUp.emailPlaceholder")}
                     {...field}
                   />
@@ -112,11 +111,7 @@ export function SignUpView() {
                   {t("auth.signUp.password")}
                 </FormLabel>
                 <FormControl>
-                  <PasswordInput
-                    autoComplete="new-password"
-                    className="h-12"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
                 <TranslatedFormMessage />
               </FormItem>
@@ -124,7 +119,7 @@ export function SignUpView() {
           />
           <Button
             type="submit"
-            className="h-12 w-full text-base"
+            className="w-full text-base"
             disabled={isPending}
           >
             {isPending

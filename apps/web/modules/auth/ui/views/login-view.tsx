@@ -48,7 +48,6 @@ export function LoginView() {
                   <Input
                     type="email"
                     autoComplete="email"
-                    className="h-12"
                     placeholder={t("auth.login.emailPlaceholder")}
                     {...field}
                   />
@@ -66,11 +65,7 @@ export function LoginView() {
                   {t("auth.login.password")}
                 </FormLabel>
                 <FormControl>
-                  <PasswordInput
-                    autoComplete="current-password"
-                    className="h-12"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="current-password" {...field} />
                 </FormControl>
                 <TranslatedFormMessage />
                 <Link
@@ -84,7 +79,7 @@ export function LoginView() {
           />
           <Button
             type="submit"
-            className="h-12 w-full text-base"
+            className="w-full text-base"
             disabled={isPending}
           >
             {isPending ? t("auth.login.submitting") : t("auth.login.submit")}

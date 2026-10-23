@@ -89,9 +89,10 @@ Rules:
   `pnpm dlx shadcn add <component>` from their owning package. Radius base
   `--radius: 0.625rem`; nothing
   larger than 16px on cards/panels.
-- Control scale: default button `h-9 text-sm`; input and select `h-9
-  text-base`; auth primary actions and fields `h-12 text-base`; card padding
-  `20px`; form messages `text-sm`.
+- Control scale: default button, input, and select are `h-9`; auth and
+  onboarding use the same control height. Default button text is `text-sm`,
+  input/select text is `text-base`, and auth primary actions keep
+  `text-base`; card padding `20px`; form messages `text-sm`.
 - Nav item: `rounded-md px-2.5 py-2 text-sm`, muted text; hover/focus
   `bg-sidebar-accent`; active adds `font-medium` + primary-green icon.
 - Icons: Hugeicons (`@hugeicons/react` + `core-free-icons`), stroke style,

@@ -54,11 +54,7 @@ export function PasswordResetView() {
                   {t("auth.reset.password")}
                 </FormLabel>
                 <FormControl>
-                  <PasswordInput
-                    autoComplete="new-password"
-                    className="h-12"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
                 <TranslatedFormMessage />
               </FormItem>
@@ -73,11 +69,7 @@ export function PasswordResetView() {
                   {t("auth.reset.confirmPassword")}
                 </FormLabel>
                 <FormControl>
-                  <PasswordInput
-                    autoComplete="new-password"
-                    className="h-12"
-                    {...field}
-                  />
+                  <PasswordInput autoComplete="new-password" {...field} />
                 </FormControl>
                 <TranslatedFormMessage />
               </FormItem>
@@ -85,7 +77,7 @@ export function PasswordResetView() {
           />
           <Button
             type="submit"
-            className="h-12 w-full text-base"
+            className="w-full text-base"
             disabled={isPending}
           >
             {isPending ? t("auth.reset.submitting") : t("auth.reset.submit")}
