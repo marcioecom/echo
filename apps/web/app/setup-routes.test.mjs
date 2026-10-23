@@ -74,7 +74,8 @@ describe("first-run setup routing", () => {
 
   it("polls for the first conversation instead of trusting one load", () => {
     const hook = read("../modules/setup/hooks/use-first-conversation.ts")
-    assert.match(hook, /status=all&limit=1/)
+    assert.match(hook, /conversationListPath\(\{ limit: 1 \}\)/)
+    assert.doesNotMatch(hook, /status=all/)
     assert.match(hook, /refetchInterval/)
     assert.match(hook, /echoAnswered/)
   })

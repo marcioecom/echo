@@ -5,6 +5,7 @@ import type { InboxConversationPage } from "@/modules/inbox/types"
 import { useQuery } from "@tanstack/react-query"
 
 import { inboxApiRequest } from "@/modules/inbox/hooks/api"
+import { conversationListPath } from "@/modules/inbox/hooks/conversation-list-path"
 
 import { describeFirstConversation } from "../state"
 
@@ -20,7 +21,7 @@ export function useFirstConversation(organizationId: string, enabled: boolean) {
     queryKey: ["setup", "first-conversation", organizationId] as const,
     queryFn: () =>
       inboxApiRequest<InboxConversationPage>(
-        "/v1/support-conversations?status=all&limit=1"
+        conversationListPath({ limit: 1 })
       ),
     enabled,
     refetchInterval: (current) => {
