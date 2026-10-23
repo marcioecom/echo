@@ -50,6 +50,12 @@ export function createAuth(options: CreateAuthOptions) {
         accountLinking: {
           enabled: true,
           trustedProviders: ["google"],
+          // Local signup does not verify emails, so requiring a verified local
+          // address would refuse every Google login for an existing password
+          // account. Linking keeps the flow open; the tradeoff is that someone
+          // could pre-register another person's email and have that person's
+          // Google login land in the pre-registered account.
+          requireLocalEmailVerified: false,
         },
       },
     }),
