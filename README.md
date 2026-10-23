@@ -87,6 +87,7 @@ pnpm db:studio
 ```
 
 Commit generated SQL migrations. Do not use `drizzle-kit push` as the normal schema workflow.
+`pnpm db:migrate` lists the migrations it applies, or reports that nothing is pending.
 Database commands load `apps/api/.env`, the app-local environment owned by the API. The same commands can be run from `packages/db` as `pnpm db:generate`, `pnpm db:migrate`, and `pnpm db:studio`.
 
 ## Provision a WhatsApp Channel Connection
