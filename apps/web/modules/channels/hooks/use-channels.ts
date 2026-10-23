@@ -14,7 +14,7 @@ export function useChannels(organizationId: string) {
   return useQuery({
     queryKey: channelQueryKeys.list(organizationId),
     queryFn: listChannels,
-    // The live socket is the primary signal. This poll is a safety net: a missed
+    // The live socket is the primary signal. This poll is a safety net. A missed
     // event must not leave the pairing screen stuck after the phone connects.
     refetchInterval: (query) =>
       query.state.data?.items.some((channel) => channel.status === "pending")

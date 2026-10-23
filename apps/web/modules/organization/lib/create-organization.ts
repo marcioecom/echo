@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth-client"
 /**
  * Creates an Organization from the name collected in onboarding. The slug is
  * an internal address, so it is derived from the name and retried on collision
- * instead of being asked of the person who is only trying to start.
+ * instead of asking the person to choose one.
  */
 export async function createOrganization(name: string) {
   for (const slug of slugCandidates(name)) {

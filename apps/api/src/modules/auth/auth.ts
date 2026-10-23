@@ -47,8 +47,10 @@ export function createAuth(options: CreateAuthOptions) {
     socialProviders: googleProvider ? { google: googleProvider } : undefined,
     // Implicit account linking stays off. Local emails are unverified, so
     // linking would let someone who registers a victim's email take over the
-    // account on the victim's first Google login. OAuth failures land on the
-    // login page, which explains how to sign in with the password instead.
+    // account on the victim's first Google login.
+    //
+    // OAuth failures land on the login page, which explains how to sign in
+    // with the password instead.
     onAPIError: {
       errorURL: new URL("/login", options.webAppUrl).toString(),
     },

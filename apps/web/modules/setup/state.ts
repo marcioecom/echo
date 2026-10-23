@@ -30,7 +30,7 @@ export type SetupState = {
 
 /**
  * Derives the first-run checklist from live data instead of a stored flag, so
- * the steps can never claim progress the Organization does not actually have.
+ * the steps cannot claim progress the Organization does not have.
  */
 export function resolveSetupState(input: {
   hasOrganization: boolean
@@ -101,9 +101,8 @@ function channelLabel(channel: ChannelConnection | null): string | null {
 }
 
 /**
- * The first conversation is the proof the whole setup works, so the checklist
- * waits for it instead of stopping at "connected". An Echo reply is the real
- * answer: a contact message alone means the webhook delivered but nobody spoke.
+ * The checklist waits for an Echo reply instead of stopping at "connected".
+ * A contact message alone means the webhook delivered but nobody answered.
  */
 export function describeFirstConversation(
   conversation: InboxConversation | null

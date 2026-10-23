@@ -40,9 +40,8 @@ const domainSuggestions: Record<string, string> = {
 }
 
 /**
- * Suggests a corrected email when the domain is a common typo of a known
- * provider. Only exact, known typos are corrected so legitimate domains that
- * happen to be one edit away (for example `mail.com`) are left untouched.
+ * Only exact, known typos are corrected so legitimate domains that happen to
+ * be one edit away (for example `mail.com`) are left untouched.
  */
 export function suggestEmailDomain(email: string): string | null {
   const trimmed = email.trim()

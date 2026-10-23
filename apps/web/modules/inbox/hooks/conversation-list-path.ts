@@ -1,7 +1,7 @@
 import type { InboxStatusFilter } from "../types"
 
 /**
- * Builds the Support Inbox list path. `all` is a UI-only filter: the API takes
+ * Builds the Support Inbox list path. `all` is a UI-only filter. The API takes
  * an optional concrete status, so sending `status=all` is a 400, not "no
  * filter".
  */

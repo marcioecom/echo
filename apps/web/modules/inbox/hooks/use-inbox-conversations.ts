@@ -53,9 +53,9 @@ export function useInboxConversation(
 }
 
 /**
- * An empty queue has two very different meanings: nothing needs a person right
- * now, or nothing ever arrived. One-row probe distinguishes them without
- * loading the whole list.
+ * An empty queue has two meanings: nothing needs a person right now, or nothing
+ * ever arrived. A one-row probe distinguishes them without loading the whole
+ * list.
  */
 export function useInboxHasConversations(
   organizationId: string,
@@ -68,8 +68,8 @@ export function useInboxHasConversations(
         conversationListPath({ limit: 1 })
       ),
     enabled,
-    // While the queue is empty this is the only thing watching for the very
-    // first message, so it has to keep asking instead of trusting one response.
+    // While the queue is empty this is the only thing watching for the first
+    // message, so it has to keep asking instead of trusting one response.
     refetchInterval: (query) =>
       (query.state.data?.items.length ?? 0) > 0 ? false : 5_000,
   })

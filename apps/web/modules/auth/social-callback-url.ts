@@ -6,8 +6,8 @@ type SocialCallbackUrlInput = {
 
 /**
  * Builds the callback URL for social sign-in. The URL parser normalizes
- * backslashes, tabs, and newlines, so the origin check happens after parsing;
- * a string prefix check would let `/%09/evil.example` through.
+ * backslashes, tabs, and newlines, so the origin check happens after parsing.
+ * A string prefix check would let `/%09/evil.example` through.
  */
 export function buildSocialCallbackUrl({
   base,

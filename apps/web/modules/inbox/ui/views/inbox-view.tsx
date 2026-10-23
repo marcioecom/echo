@@ -50,14 +50,12 @@ export function InboxView({
     organizationId,
     !setup.isLoading && conversations.length === 0
   )
-  // A quiet queue makes the one-row probe the only thing watching for the very
-  // first message, on every filter including "all".
   const hasAnyConversations =
     conversations.length > 0 || (anyConversations.data?.items.length ?? 0) > 0
   const signalReady = !anyConversations.isPending && !anyConversations.isError
   const listSettled = !conversationsQuery.isPending
 
-  // The queue is empty for two different reasons. Say which one it is instead
+  // The queue is empty for two reasons. Say which one it is instead
   // of offering "Show all" on a Support Inbox that has never received anything.
   const isFirstRun =
     listSettled &&

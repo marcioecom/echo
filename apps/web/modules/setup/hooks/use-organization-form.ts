@@ -14,8 +14,7 @@ const organizationSchema = z.object({
 export type OrganizationFormValues = z.infer<typeof organizationSchema>
 
 /**
- * First-run variant of the Organization form: one visible field. The slug
- * rules live in the shared createOrganization helper.
+ * The slug rules live in the shared createOrganization helper.
  */
 export function useOrganizationForm() {
   const navigateAfterAuth = useNavigateAfterAuth()

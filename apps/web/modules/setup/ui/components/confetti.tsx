@@ -14,18 +14,17 @@ type Particle = {
   y: number
 }
 
-// Moss green and warm paper tones taken from the UI tokens, so the burst reads
-// as Echo celebrating instead of a generic party effect.
+// Moss green and warm paper tones from the UI tokens, so the burst matches
+// Echo's palette.
 const COLORS = ["#507e00", "#87b651", "#436416", "#e9ece7", "#c9a978"]
 
 const DURATION_MS = 3_200
 const GRAVITY = 0.22
 
 /**
- * A single burst, played once per browser session. Used for the moment the
- * first WhatsApp message comes back answered — a genuine peak in the first-run
- * flow, not decoration. The canvas stays mounted and clears itself so the
- * celebration outlives the data transition that started it.
+ * A single burst, used for the moment the first WhatsApp message comes back
+ * answered. The canvas stays mounted and clears itself so the celebration
+ * outlives the data transition that started it.
  */
 export function Confetti({
   active,

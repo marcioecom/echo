@@ -232,7 +232,7 @@ function stepAction(
 
   const target = step.id === "channel" ? "channel" : "knowledge"
 
-  // Inside the setup flow the step opens in place; from the Support Inbox the
+  // Inside the setup flow the step opens in place. From the Support Inbox the
   // same button sends the operator into that flow instead of to settings.
   if (onSelectStep) {
     return (

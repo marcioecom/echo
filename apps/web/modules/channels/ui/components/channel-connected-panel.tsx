@@ -7,9 +7,8 @@ import { Button } from "@workspace/ui/components/button"
 import { t } from "@/lib/i18n"
 
 /**
- * Replaces the pairing UI the moment WhatsApp confirms the connection. Without
- * this swap the QR panel keeps rendering an empty square while the channel row
- * below already says "Connected".
+ * Without this swap the QR panel keeps rendering an empty square while the
+ * channel row below already says "Connected".
  */
 export function ChannelConnectedPanel({
   address,
