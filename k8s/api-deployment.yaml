@@ -18,11 +18,15 @@ spec:
         app.kubernetes.io/name: echo-api
         app.kubernetes.io/part-of: echo
     spec:
+      # Keep the API next to Postgres/Valkey (fsn1) so queries stay in-region.
+      # Keep in sync with orbit:dataNodeSelector.
+      nodeSelector:
+        topology.kubernetes.io/region: fsn1
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
         - name: api
-          image: ghcr.io/marcioecom/echo-api:latest
+          image: ${ECHO_API_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -46,8 +50,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 100m
-              memory: 256Mi
+              cpu: 50m
+              memory: 128Mi
             limits:
               cpu: "1"
               memory: 512Mi

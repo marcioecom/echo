@@ -25,11 +25,15 @@ spec:
         app.kubernetes.io/part-of: echo
     spec:
       terminationGracePeriodSeconds: 45
+      # Keep the gateway next to Postgres/Valkey (fsn1) so writes stay in-region.
+      # Keep in sync with orbit:dataNodeSelector.
+      nodeSelector:
+        topology.kubernetes.io/region: fsn1
       imagePullSecrets:
         - name: ghcr-pull-secret
       containers:
         - name: wa-gateway
-          image: ghcr.io/marcioecom/echo-wa-gateway:latest
+          image: ${ECHO_WA_GATEWAY_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
@@ -60,8 +64,8 @@ spec:
             periodSeconds: 10
           resources:
             requests:
-              cpu: 100m
-              memory: 512Mi
+              cpu: 50m
+              memory: 256Mi
             limits:
               memory: 2Gi
           securityContext:
