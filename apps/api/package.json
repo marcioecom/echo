@@ -17,7 +17,7 @@
     "format:check": "prettier --check --ignore-path ../../.prettierignore \"**/*.{ts,tsx}\""
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.6.23",
+    "@better-auth/drizzle-adapter": "^1.7.7",
     "@fastify/cors": "^11.2.0",
     "@fastify/formbody": "^8.0.2",
     "@fastify/rate-limit": "^11.2.0",
